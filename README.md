@@ -83,10 +83,18 @@ in the marketing copy even after a backend exists.
 ```
 src/
   lib/        styles.ts (recipes) · engine.ts (canvas pipeline) · video.ts (clip renderer)
-              native.ts (Capacitor bridge) · store.tsx (app state) · captions.ts
+              native.ts (Capacitor bridge) · store.tsx (app state) · captions.ts ·
+              useStyleThumbs.ts (engine-rendered card previews)
   components/ Nav · Footer · UploadArea · StyleCarousel · AdjustmentPanel · VideoPreview ·
-              BeforeAfterSlider · ExportPanel · AuthModal · Modal · Logo
-  pages/      LandingPage · Studio · PricingPage · Dashboard
-  assets/     sample "photos" (hand-built SVG art, safe to replace with real photography)
+              BeforeAfterSlider · ExportPanel · AuthModal · Modal · Logo · icons
+  components/home/  the consumer app-shell: Header · SearchBar · CategoryChips ·
+              RecentProjectCard · ToolCard · FloatingCTA · BottomNav (glassy dock) ·
+              UploadModal · AccountSheet · PhoneFrame (desktop demo shell)
+  pages/      Home (mobile app home) · LandingPage · Studio · PricingPage · Dashboard
+  assets/     editorial sample photography (AI-generated, replaceable)
 ios/          Capacitor iOS shell (open with Xcode via `npx cap open ios`)
 ```
+
+The app boots to `/home` when installed (native shell or PWA standalone) and to the
+marketing landing page on the plain web. On desktop, `/home` presents inside a
+device frame with a mock status bar — a ready-made demo/screenshot view.

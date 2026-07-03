@@ -1,14 +1,6 @@
-import { Link, NavLink, useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import Logo from './Logo'
-import { IconCamera, IconGrid, IconHome, IconTag } from './icons'
 import { FREE_CREDITS, useApp } from '../lib/store'
-
-const tabs = [
-  { to: '/', label: 'Home', icon: IconHome },
-  { to: '/studio', label: 'Studio', icon: IconCamera },
-  { to: '/pricing', label: 'Pricing', icon: IconTag },
-  { to: '/dashboard', label: 'Library', icon: IconGrid },
-]
 
 export default function Nav() {
   const { creditsLeft, isPaid, plan, user, setAuthOpen } = useApp()
@@ -81,29 +73,6 @@ export default function Nav() {
         </div>
       </header>
 
-      {/* mobile bottom tab bar */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-paper border-t border-hairline pb-[env(safe-area-inset-bottom)]">
-        <div className="grid grid-cols-4">
-          {tabs.map((t) => (
-            <NavLink
-              key={t.to}
-              to={t.to}
-              className={({ isActive }) =>
-                `flex flex-col items-center gap-1 py-2.5 font-mono text-[9px] tracking-[0.12em] uppercase transition-colors ${
-                  isActive ? 'text-ink' : 'text-fog'
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <t.icon size={18} className={isActive ? 'text-signal' : ''} />
-                  {t.label}
-                </>
-              )}
-            </NavLink>
-          ))}
-        </div>
-      </nav>
     </>
   )
 }

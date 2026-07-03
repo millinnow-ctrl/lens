@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { loadImage, renderStyled } from './engine'
 import { CAMERA_STYLES } from './styles'
 
@@ -7,27 +7,31 @@ import { CAMERA_STYLES } from './styles'
  * flash, grain, vignette, frames and all — so each style card demonstrates
  * its actual look instead of a flat CSS approximation.
  *
+ * Pass one source to tell the "one photo, every era" story, or several to
+ * give a shelf visual variety (sources rotate per style).
  * Renders are chunked across frames to keep the main thread breathing.
  */
-export function useStyleThumbs(src: string | null, size = 300): Record<string, string> {
+export function useStyleThumbs(src: string | string[] | null, size = 300): Record<string, string> {
   const [thumbs, setThumbs] = useState<Record<string, string>>({})
+  const srcs = useMemo(() => (src == null ? [] : Array.isArray(src) ? src : [src]), [src])
+  const key = srcs.join('|')
 
   useEffect(() => {
     setThumbs({})
-    if (!src) return
+    if (srcs.length === 0) return
     let cancelled = false
     let raf = 0
 
-    loadImage(src).then((img) => {
+    Promise.all(srcs.map(loadImage)).then((imgs) => {
       if (cancelled) return
-      const queue = [...CAMERA_STYLES]
+      const queue = CAMERA_STYLES.map((style, i) => ({ style, img: imgs[i % imgs.length] }))
       const next = () => {
         if (cancelled) return
-        const style = queue.shift()
-        if (!style) return
-        const canvas = renderStyled(img, style, style.defaults, { maxSize: size })
+        const item = queue.shift()
+        if (!item) return
+        const canvas = renderStyled(item.img, item.style, item.style.defaults, { maxSize: size })
         const url = canvas.toDataURL('image/jpeg', 0.8)
-        setThumbs((prev) => ({ ...prev, [style.id]: url }))
+        setThumbs((prev) => ({ ...prev, [item.style.id]: url }))
         raf = requestAnimationFrame(next)
       }
       raf = requestAnimationFrame(next)
@@ -37,7 +41,8 @@ export function useStyleThumbs(src: string | null, size = 300): Record<string, s
       cancelled = true
       cancelAnimationFrame(raf)
     }
-  }, [src, size])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, size])
 
   return thumbs
 }

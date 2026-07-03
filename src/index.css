@@ -371,3 +371,107 @@ input[type='range'].lm-slider::-moz-range-thumb {
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* ================================================================
+   Home surface — consumer app-shell tokens (scoped, hm- prefix).
+   Reverse-engineered system: soft canvas, white radius-20 cards,
+   two-layer shadows, pill chrome, glassy floating dock.
+   ================================================================ */
+
+.hm-canvas {
+  background: #f2f2ef;
+}
+
+.hm-card {
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow:
+    0 1px 2px rgb(20 20 18 / 0.03),
+    0 6px 20px -8px rgb(20 20 18 / 0.1);
+}
+
+.hm-tile {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow:
+    0 1px 2px rgb(20 20 18 / 0.03),
+    0 4px 14px -6px rgb(20 20 18 / 0.08);
+}
+
+.hm-pill {
+  background: #ffffff;
+  border-radius: 999px;
+  box-shadow:
+    0 1px 2px rgb(20 20 18 / 0.04),
+    0 4px 12px -6px rgb(20 20 18 / 0.08);
+}
+
+.hm-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow:
+    0 1px 2px rgb(20 20 18 / 0.04),
+    0 4px 12px -6px rgb(20 20 18 / 0.08);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-ink-soft);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.1s ease;
+}
+.hm-chip:active {
+  transform: scale(0.96);
+}
+.hm-chip[data-active='true'] {
+  background: var(--color-ink);
+  color: #ffffff;
+}
+
+.hm-cta {
+  box-shadow:
+    0 2px 6px rgb(20 20 18 / 0.18),
+    0 12px 32px -8px rgb(20 20 18 / 0.42);
+}
+
+.hm-dock {
+  background: rgb(255 255 255 / 0.88);
+  backdrop-filter: blur(28px) saturate(1.4);
+  -webkit-backdrop-filter: blur(28px) saturate(1.4);
+  border: 1px solid rgb(20 20 18 / 0.06);
+  border-radius: 24px;
+  box-shadow:
+    0 1px 2px rgb(20 20 18 / 0.05),
+    0 12px 40px -12px rgb(20 20 18 / 0.22);
+}
+
+@keyframes hm-sheet-in {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.hm-sheet {
+  animation: hm-sheet-in 0.22s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+/* press feedback for tappable cards */
+.hm-press {
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.15s ease;
+}
+.hm-press:active {
+  transform: scale(0.97);
+}
