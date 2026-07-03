@@ -2,13 +2,20 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import { viteSingleFile } from 'vite-plugin-singlefile'
+
+// LM_SINGLEFILE=1 builds a fully self-contained index.html (fonts, images and
+// code inlined) used for shareable previews. The normal build keeps the PWA.
+const singleFile = process.env.LM_SINGLEFILE === '1'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [
-    react(),
-    tailwindcss(),
-    VitePWA({
+  plugins: singleFile
+    ? [react(), tailwindcss(), viteSingleFile()]
+    : [
+        react(),
+        tailwindcss(),
+        VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icons/apple-touch-icon.png'],
       workbox: {
@@ -33,9 +40,9 @@ export default defineConfig({
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable',
+              },
+            ],
           },
-        ],
-      },
-    }),
-  ],
+        }),
+      ],
 })

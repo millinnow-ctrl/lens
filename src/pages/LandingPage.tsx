@@ -81,9 +81,12 @@ export default function LandingPage() {
               <Link to="/studio" className="pill-base pill-violet px-7 py-3.5 text-base">
                 Try it free
               </Link>
-              <a href="#styles" className="pill-base pill-ghost px-7 py-3.5 text-base">
+              <button
+                onClick={() => document.getElementById('styles')?.scrollIntoView({ behavior: 'smooth' })}
+                className="pill-base pill-ghost px-7 py-3.5 text-base"
+              >
                 Explore camera styles
-              </a>
+              </button>
             </motion.div>
             <motion.p
               initial={{ opacity: 0 }}
