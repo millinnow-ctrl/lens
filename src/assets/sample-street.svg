@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="800" viewBox="0 0 640 800">
+  <defs>
+    <linearGradient id="wall" x1="0" y1="0" x2="0.6" y2="1">
+      <stop offset="0" stop-color="#f2ede4"/>
+      <stop offset="1" stop-color="#ddd3c4"/>
+    </linearGradient>
+    <linearGradient id="pave" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#b9b0a2"/>
+      <stop offset="1" stop-color="#8f867a"/>
+    </linearGradient>
+    <linearGradient id="door" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e4762d"/>
+      <stop offset="1" stop-color="#bf5a1c"/>
+    </linearGradient>
+    <filter id="grain2">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.05"/></feComponentTransfer>
+      <feComposite operator="over" in2="SourceGraphic"/>
+    </filter>
+  </defs>
+  <g filter="url(#grain2)">
+    <rect width="640" height="800" fill="url(#wall)"/>
+    <rect y="620" width="640" height="180" fill="url(#pave)"/>
+    <rect x="452" y="270" width="120" height="350" rx="4" fill="url(#door)"/>
+    <rect x="466" y="290" width="92" height="140" rx="3" fill="#a04a15" opacity="0.55"/>
+    <rect x="466" y="450" width="92" height="150" rx="3" fill="#a04a15" opacity="0.55"/>
+    <circle cx="470" cy="452" r="4" fill="#3a2a1c"/>
+    <!-- hard diagonal light -->
+    <path d="M0 0 L640 0 L640 250 L0 620 Z" fill="#ffffff" opacity="0.28"/>
+    <path d="M0 620 L640 250 L640 800 L0 800 Z" fill="#2f2a24" opacity="0.34"/>
+    <!-- window slits shadow -->
+    <g fill="#2f2a24" opacity="0.18">
+      <rect x="60" y="120" width="10" height="330" transform="rotate(30 60 120)"/>
+      <rect x="130" y="90" width="10" height="360" transform="rotate(30 130 90)"/>
+      <rect x="200" y="60" width="10" height="390" transform="rotate(30 200 60)"/>
+    </g>
+    <!-- walking figure -->
+    <g fill="#1d1a19">
+      <circle cx="296" cy="470" r="17"/>
+      <path d="M281 490 q15 -10 30 0 l6 62 -12 3 -6 -40 -6 40 -12 -3 Z"/>
+      <path d="M285 552 l-12 66 10 3 14 -58 12 58 10 -3 -10 -66 Z"/>
+      <path d="M279 498 l-16 44 8 4 16 -38 Z"/>
+      <path d="M311 498 l17 40 -8 5 -17 -36 Z"/>
+    </g>
+    <path d="M292 620 L360 690 L320 694 L280 640 Z" fill="#1d1a19" opacity="0.35"/>
+  </g>
+</svg>

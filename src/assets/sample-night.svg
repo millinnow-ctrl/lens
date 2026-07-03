@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="800" viewBox="0 0 640 800">
+  <defs>
+    <linearGradient id="nightSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0d1026"/>
+      <stop offset="0.6" stop-color="#181438"/>
+      <stop offset="1" stop-color="#241a45"/>
+    </linearGradient>
+    <linearGradient id="wet" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1a1535"/>
+      <stop offset="1" stop-color="#0b0a1c"/>
+    </linearGradient>
+    <radialGradient id="neonPink" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ff5fa8" stop-opacity="0.75"/>
+      <stop offset="1" stop-color="#ff5fa8" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="neonViolet" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#8b5cf6" stop-opacity="0.8"/>
+      <stop offset="1" stop-color="#8b5cf6" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="grain3">
+      <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.07"/></feComponentTransfer>
+      <feComposite operator="over" in2="SourceGraphic"/>
+    </filter>
+    <filter id="blurGlow"><feGaussianBlur stdDeviation="3"/></filter>
+  </defs>
+  <g filter="url(#grain3)">
+    <rect width="640" height="800" fill="url(#nightSky)"/>
+    <!-- buildings -->
+    <g fill="#12102a">
+      <rect x="0" y="180" width="150" height="420"/>
+      <rect x="150" y="260" width="130" height="340"/>
+      <rect x="390" y="220" width="140" height="380"/>
+      <rect x="530" y="150" width="110" height="450"/>
+    </g>
+    <!-- windows -->
+    <g fill="#ffca7a" opacity="0.85">
+      <rect x="24" y="220" width="16" height="22"/><rect x="64" y="220" width="16" height="22"/>
+      <rect x="24" y="300" width="16" height="22"/><rect x="104" y="260" width="16" height="22"/>
+      <rect x="176" y="300" width="14" height="20"/><rect x="216" y="360" width="14" height="20"/>
+      <rect x="416" y="260" width="15" height="21"/><rect x="456" y="330" width="15" height="21"/>
+      <rect x="556" y="200" width="16" height="22"/><rect x="596" y="280" width="16" height="22"/>
+      <rect x="556" y="380" width="16" height="22"/>
+    </g>
+    <!-- neon signs -->
+    <ellipse cx="330" cy="330" rx="210" ry="160" fill="url(#neonViolet)"/>
+    <ellipse cx="470" cy="470" rx="160" ry="120" fill="url(#neonPink)"/>
+    <g filter="url(#blurGlow)">
+      <rect x="290" y="280" width="86" height="130" rx="10" fill="none" stroke="#b18cff" stroke-width="6"/>
+      <rect x="440" y="430" width="110" height="46" rx="23" fill="none" stroke="#ff7cb8" stroke-width="6"/>
+    </g>
+    <rect x="290" y="280" width="86" height="130" rx="10" fill="none" stroke="#e4d4ff" stroke-width="2.5"/>
+    <rect x="440" y="430" width="110" height="46" rx="23" fill="none" stroke="#ffd2e6" stroke-width="2.5"/>
+    <!-- wet street -->
+    <rect y="600" width="640" height="200" fill="url(#wet)"/>
+    <g opacity="0.5">
+      <rect x="300" y="620" width="66" height="150" fill="#8b5cf6" opacity="0.35"/>
+      <rect x="452" y="620" width="86" height="120" fill="#ff5fa8" opacity="0.3"/>
+      <rect x="40" y="620" width="12" height="120" fill="#ffca7a" opacity="0.3"/>
+    </g>
+    <!-- figure with umbrella -->
+    <g fill="#07060f">
+      <path d="M240 470 a52 52 0 0 1 104 0 Z"/>
+      <rect x="290" y="418" width="4" height="60"/>
+      <circle cx="292" cy="496" r="13"/>
+      <path d="M280 512 q12 -8 24 0 l5 52 -10 2 -7 -34 -7 34 -10 -2 Z"/>
+      <path d="M283 562 l-8 56 9 2 10 -50 10 50 9 -2 -8 -56 Z"/>
+    </g>
+    <ellipse cx="292" cy="682" rx="40" ry="6" fill="#000" opacity="0.5"/>
+  </g>
+</svg>
