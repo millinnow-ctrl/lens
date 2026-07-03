@@ -34,6 +34,10 @@ npx cap sync ios     # copies dist/ into the native shell + wires plugins
 npx cap open ios     # opens Xcode — pick your team, then Run on a device/simulator
 ```
 
+**No Mac? Ship to TestFlight from GitHub Actions instead** — the repo includes a
+one-button cloud build pipeline. See [docs/TESTFLIGHT.md](docs/TESTFLIGHT.md) for the
+full walkthrough (both the Mac path and the no-Mac path).
+
 Native integrations already wired up in `src/lib/native.ts`:
 
 - **Camera** — "Take a photo" uses the real iOS camera (falls back to `<input capture>` on web)

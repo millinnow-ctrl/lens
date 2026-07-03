@@ -55,5 +55,7 @@
 	<string>LensMood saves your finished shots back to your photo library.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>LensMood keeps your clip’s original audio when exporting styled videos.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>
