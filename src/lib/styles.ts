@@ -289,6 +289,30 @@ export const QUICK_PRESETS: QuickPreset[] = [
   },
 ]
 
+/** compact param encoding for shareable transformation links */
+const PARAM_ORDER: (keyof StyleParams)[] = [
+  'intensity',
+  'grain',
+  'contrast',
+  'warmth',
+  'flash',
+  'shadows',
+  'smoothing',
+]
+
+export const encodeParams = (p: StyleParams): string => PARAM_ORDER.map((k) => p[k]).join('.')
+
+export function decodeParams(raw: string | null): StyleParams | null {
+  if (!raw) return null
+  const parts = raw.split('.').map(Number)
+  if (parts.length !== PARAM_ORDER.length || parts.some((n) => !Number.isFinite(n))) return null
+  const p = {} as StyleParams
+  PARAM_ORDER.forEach((k, i) => {
+    p[k] = Math.max(0, Math.min(100, Math.round(parts[i])))
+  })
+  return p
+}
+
 export const GENERATION_STEPS = [
   'Reading lighting…',
   'Rebuilding color profile…',

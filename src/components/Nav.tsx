@@ -53,7 +53,7 @@ export default function Nav() {
   return (
     <>
       {/* top bar */}
-      <header className="sticky top-0 z-50 bg-paper/80 backdrop-blur-xl border-b border-cloud/70">
+      <header className="sticky top-0 z-50 bg-paper/80 backdrop-blur-xl border-b border-cloud/70 pt-[env(safe-area-inset-top)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
           <Link to="/" className="shrink-0">
             <Logo />

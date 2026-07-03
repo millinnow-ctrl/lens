@@ -4,9 +4,13 @@ export interface RenderOptions {
   /** longest edge of the output; source is downscaled to fit */
   maxSize?: number
   watermark?: boolean
+  /** reuse this canvas instead of allocating one (video frame loops) */
+  target?: HTMLCanvasElement
+  /** jitter the grain pattern per call so video grain flickers like film */
+  animateGrain?: boolean
 }
 
-type Source = HTMLImageElement | HTMLCanvasElement | ImageBitmap
+type Source = HTMLImageElement | HTMLCanvasElement | ImageBitmap | HTMLVideoElement
 
 /* ---------------------------------------------------------------- noise */
 
@@ -35,8 +39,18 @@ function getNoiseTile(): HTMLCanvasElement {
 
 /* ------------------------------------------------------------- helpers */
 
-const srcWidth = (s: Source) => ('naturalWidth' in s ? s.naturalWidth || s.width : s.width)
-const srcHeight = (s: Source) => ('naturalHeight' in s ? s.naturalHeight || s.height : s.height)
+const srcWidth = (s: Source) =>
+  s instanceof HTMLVideoElement
+    ? s.videoWidth
+    : 'naturalWidth' in s
+      ? s.naturalWidth || s.width
+      : s.width
+const srcHeight = (s: Source) =>
+  s instanceof HTMLVideoElement
+    ? s.videoHeight
+    : 'naturalHeight' in s
+      ? s.naturalHeight || s.height
+      : s.height
 
 function fitted(source: Source, maxSize: number): { w: number; h: number } {
   const sw = srcWidth(source)
@@ -61,17 +75,18 @@ export function renderStyled(
   params: StyleParams,
   opts: RenderOptions = {},
 ): HTMLCanvasElement {
-  const { maxSize = 1280, watermark = false } = opts
+  const { maxSize = 1280, watermark = false, target, animateGrain = false } = opts
   const { w, h } = fitted(source, maxSize)
   const ch = style.character
   const s = params.intensity / 100 // global look strength
   const ref = Math.max(w, h) / 1000 // scale-independent px unit
 
-  const canvas = document.createElement('canvas')
-  canvas.width = w
-  canvas.height = h
+  const canvas = target ?? document.createElement('canvas')
+  if (canvas.width !== w) canvas.width = w
+  if (canvas.height !== h) canvas.height = h
   const ctx = canvas.getContext('2d')!
   ctx.imageSmoothingQuality = 'high'
+  ctx.clearRect(0, 0, w, h)
 
   /* 1 — base color pass via canvas filters */
   const contrastAmt = 0.72 + (params.contrast / 100) * 0.62 // 0.72..1.34
@@ -196,9 +211,16 @@ export function renderStyled(
     ctx.save()
     ctx.globalCompositeOperation = 'overlay'
     ctx.globalAlpha = grain * 0.55
-    const pattern = ctx.createPattern(getNoiseTile(), 'repeat')!
-    ctx.fillStyle = pattern
-    ctx.fillRect(0, 0, w, h)
+    ctx.fillStyle = ctx.createPattern(getNoiseTile(), 'repeat')!
+    if (animateGrain) {
+      // shift the tile a random amount each frame so video grain dances
+      const ox = Math.floor(Math.random() * 192)
+      const oy = Math.floor(Math.random() * 192)
+      ctx.translate(-ox, -oy)
+      ctx.fillRect(0, 0, w + 192, h + 192)
+    } else {
+      ctx.fillRect(0, 0, w, h)
+    }
     ctx.restore()
   }
 

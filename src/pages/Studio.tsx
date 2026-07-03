@@ -5,10 +5,18 @@ import UploadArea from '../components/UploadArea'
 import StyleCarousel from '../components/StyleCarousel'
 import AdjustmentPanel from '../components/AdjustmentPanel'
 import BeforeAfterSlider from '../components/BeforeAfterSlider'
+import VideoPreview from '../components/VideoPreview'
 import ExportPanel from '../components/ExportPanel'
 import Modal from '../components/Modal'
 import { loadImage, renderStyled, thumbnail } from '../lib/engine'
-import { GENERATION_STEPS, getStyle, type CameraStyle, type StyleParams } from '../lib/styles'
+import { haptic } from '../lib/native'
+import {
+  GENERATION_STEPS,
+  decodeParams,
+  getStyle,
+  type CameraStyle,
+  type StyleParams,
+} from '../lib/styles'
 import { useApp } from '../lib/store'
 
 type Phase = 'idle' | 'generating' | 'done'
@@ -17,7 +25,11 @@ type View = 'result' | 'original' | 'compare'
 export default function Studio() {
   const {
     photo,
-    setPhoto,
+    roll,
+    activeIndex,
+    setActiveIndex,
+    video,
+    clearMedia,
     styleId,
     params,
     selectStyle,
@@ -26,6 +38,8 @@ export default function Studio() {
     isPaid,
     spendCredit,
     addHistory,
+    pendingPreset,
+    setPendingPreset,
   } = useApp()
   const [searchParams] = useSearchParams()
 
@@ -37,18 +51,21 @@ export default function Studio() {
   const [exportOpen, setExportOpen] = useState(false)
   const [paywall, setPaywall] = useState(false)
   const [shutter, setShutter] = useState(false)
+  const [videoPoster, setVideoPoster] = useState<string | null>(null)
 
   const style = getStyle(styleId)
   const generationTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const renderRaf = useRef(0)
-  const pendingStyleUsed = useRef(false)
+  const deepLinkUsed = useRef(false)
+  const hasMedia = !!photo || !!video
 
-  /* load the uploaded photo into an Image element */
+  /* load the active photo into an Image element */
   useEffect(() => {
+    setResultUrl(null)
+    setPhase('idle')
+    setView('result')
     if (!photo) {
       setSource(null)
-      setResultUrl(null)
-      setPhase('idle')
       return
     }
     let cancelled = false
@@ -60,20 +77,66 @@ export default function Studio() {
     }
   }, [photo])
 
-  /* deep link: /studio?style=a24-still */
   useEffect(() => {
-    const pending = searchParams.get('style')
-    if (pending && source && !styleId && !pendingStyleUsed.current) {
-      const s = getStyle(pending)
+    if (!video) setVideoPoster(null)
+  }, [video])
+
+  const beginGeneration = useCallback(
+    (s: CameraStyle, presetParams?: StyleParams) => {
+      if (!source && !video) return
+      if (!spendCredit()) {
+        setPaywall(true)
+        return
+      }
+      haptic('medium')
+      selectStyle(s.id, presetParams)
+      setView('result')
+      setShutter(true)
+      setTimeout(() => setShutter(false), 750)
+      setPhase('generating')
+
+      if (generationTimer.current) clearTimeout(generationTimer.current)
+      generationTimer.current = setTimeout(() => {
+        const effective = presetParams ?? s.defaults
+        if (source) {
+          const canvas = renderStyled(source, s, effective, { maxSize: 1280 })
+          setResultUrl(canvas.toDataURL('image/jpeg', 0.9))
+          addHistory({ thumb: thumbnail(canvas), styleId: s.id, styleName: s.name })
+        } else if (videoPoster) {
+          // videos develop live — the history thumb comes from a styled poster frame
+          loadImage(videoPoster).then((poster) => {
+            const canvas = renderStyled(poster, s, effective, { maxSize: 480 })
+            addHistory({ thumb: thumbnail(canvas), styleId: s.id, styleName: `${s.name} · video` })
+          })
+        }
+        setPhase('done')
+        haptic('light')
+      }, 2300)
+    },
+    [source, video, videoPoster, spendCredit, selectStyle, addHistory],
+  )
+
+  /* deep link: /studio?style=a24-still&p=90.30.55.46.0.58.0 */
+  useEffect(() => {
+    const pendingStyle = searchParams.get('style')
+    if (pendingStyle && (source || video) && !styleId && !deepLinkUsed.current) {
+      const s = getStyle(pendingStyle)
       if (s) {
-        pendingStyleUsed.current = true
-        beginGeneration(s)
+        deepLinkUsed.current = true
+        beginGeneration(s, decodeParams(searchParams.get('p')) ?? undefined)
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [source, searchParams, styleId])
+  }, [source, video, searchParams, styleId, beginGeneration])
 
-  /* re-render instantly when sliders move after the first development */
+  /* saved preset chosen from the dashboard */
+  useEffect(() => {
+    if (!pendingPreset || (!source && !video) || styleId) return
+    const s = getStyle(pendingPreset.styleId)
+    setPendingPreset(null)
+    if (s) beginGeneration(s, pendingPreset.params)
+  }, [pendingPreset, source, video, styleId, beginGeneration, setPendingPreset])
+
+  /* re-render instantly when sliders move after the first development (photos) */
   useEffect(() => {
     if (phase !== 'done' || !source || !style || !params) return
     cancelAnimationFrame(renderRaf.current)
@@ -94,31 +157,6 @@ export default function Studio() {
     return () => clearInterval(iv)
   }, [phase])
 
-  const beginGeneration = useCallback(
-    (s: CameraStyle, presetParams?: StyleParams) => {
-      if (!source) return
-      if (!spendCredit()) {
-        setPaywall(true)
-        return
-      }
-      selectStyle(s.id, presetParams)
-      setView('result')
-      setShutter(true)
-      setTimeout(() => setShutter(false), 750)
-      setPhase('generating')
-
-      if (generationTimer.current) clearTimeout(generationTimer.current)
-      generationTimer.current = setTimeout(() => {
-        const effective = presetParams ?? s.defaults
-        const canvas = renderStyled(source, s, effective, { maxSize: 1280 })
-        setResultUrl(canvas.toDataURL('image/jpeg', 0.9))
-        setPhase('done')
-        addHistory({ thumb: thumbnail(canvas), styleId: s.id, styleName: s.name })
-      }, 2300)
-    },
-    [source, spendCredit, selectStyle, addHistory],
-  )
-
   useEffect(
     () => () => {
       if (generationTimer.current) clearTimeout(generationTimer.current)
@@ -127,7 +165,7 @@ export default function Studio() {
   )
 
   /* ------------------------------------------------ empty state */
-  if (!photo) {
+  if (!hasMedia) {
     return (
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20 pb-28">
         <div className="text-center mb-10">
@@ -141,6 +179,9 @@ export default function Studio() {
       </main>
     )
   }
+
+  const showOriginal = view === 'original' || (!!photo && !resultUrl)
+  const carouselPreview = photo ?? videoPoster
 
   /* ------------------------------------------------ editor */
   return (
@@ -156,11 +197,19 @@ export default function Studio() {
               </span>
             </div>
             <div className="absolute top-3.5 right-4 z-20 font-mono text-[10px] tracking-widest text-white/40 pointer-events-none">
-              f/1.4 · ISO 400
+              {video ? 'REC · 30fps' : 'f/1.4 · ISO 400'}
             </div>
 
-            {/* image area */}
-            {view === 'compare' && resultUrl && photo ? (
+            {/* media area */}
+            {video ? (
+              <VideoPreview
+                src={video}
+                style={showOriginal || phase !== 'done' ? null : (style ?? null)}
+                params={showOriginal || phase !== 'done' ? null : params}
+                className="w-full"
+                onPoster={setVideoPoster}
+              />
+            ) : view === 'compare' && resultUrl && photo ? (
               <BeforeAfterSlider
                 before={photo}
                 after={resultUrl}
@@ -169,8 +218,8 @@ export default function Studio() {
             ) : (
               <div className="relative w-full flex items-center justify-center">
                 <img
-                  key={view === 'original' || !resultUrl ? 'orig' : resultUrl}
-                  src={view === 'original' || !resultUrl ? photo : resultUrl}
+                  key={showOriginal ? 'orig' : resultUrl}
+                  src={showOriginal || !resultUrl ? photo! : resultUrl}
                   alt="Preview"
                   className={`w-full max-h-[62dvh] object-contain ${
                     phase === 'done' && view === 'result' ? 'lm-develop' : ''
@@ -192,7 +241,6 @@ export default function Studio() {
                   exit={{ opacity: 0 }}
                   className="absolute inset-0 z-20 bg-[#0d0d12]/72 backdrop-blur-md flex flex-col items-center justify-center gap-5"
                 >
-                  {/* aperture spinner */}
                   <motion.svg
                     viewBox="0 0 48 48"
                     className="w-14 h-14"
@@ -234,6 +282,26 @@ export default function Studio() {
             </AnimatePresence>
           </div>
 
+          {/* roll filmstrip */}
+          {roll.length > 1 && (
+            <div className="mt-3 flex gap-2 overflow-x-auto no-scrollbar py-1">
+              {roll.map((item, i) => (
+                <button
+                  key={`${item.name}-${i}`}
+                  onClick={() => setActiveIndex(i)}
+                  className={`relative shrink-0 w-14 aspect-4/5 rounded-lg overflow-hidden transition-all ${
+                    i === activeIndex
+                      ? 'ring-2 ring-violet scale-105'
+                      : 'ring-1 ring-cloud opacity-70 hover:opacity-100'
+                  }`}
+                  aria-label={`Photo ${i + 1} of ${roll.length}`}
+                >
+                  <img src={item.url} alt="" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* view toggles + actions under preview */}
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <div className="inline-flex rounded-full bg-mist p-1">
@@ -243,22 +311,26 @@ export default function Studio() {
                   { id: 'result', label: 'LensMood' },
                   { id: 'compare', label: 'Compare' },
                 ] as { id: View; label: string }[]
-              ).map((t) => (
-                <button
-                  key={t.id}
-                  disabled={!resultUrl && t.id !== 'original'}
-                  onClick={() => setView(t.id)}
-                  className={`px-4 py-1.5 rounded-full text-[13px] font-semibold transition-all disabled:opacity-40 ${
-                    view === t.id ? 'bg-paper shadow-sm text-ink' : 'text-fog hover:text-ink'
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
+              ).map((t) => {
+                const disabled =
+                  (t.id !== 'original' && phase !== 'done') || (t.id === 'compare' && !!video)
+                return (
+                  <button
+                    key={t.id}
+                    disabled={disabled}
+                    onClick={() => setView(t.id)}
+                    className={`px-4 py-1.5 rounded-full text-[13px] font-semibold transition-all disabled:opacity-40 ${
+                      view === t.id ? 'bg-paper shadow-sm text-ink' : 'text-fog hover:text-ink'
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                )
+              })}
             </div>
 
             <div className="flex items-center gap-2">
-              <button onClick={() => setPhoto(null)} className="pill-base pill-ghost px-4 py-2 text-[13px]">
+              <button onClick={clearMedia} className="pill-base pill-ghost px-4 py-2 text-[13px]">
                 New photo
               </button>
               <button
@@ -286,11 +358,13 @@ export default function Studio() {
             <p className="text-[13px] text-fog mb-3">
               {style ? style.description : 'Pick a style — we’ll develop your photo in it.'}
             </p>
-            <StyleCarousel
-              previewSrc={photo}
-              selectedId={styleId}
-              onSelect={(s) => beginGeneration(s)}
-            />
+            {carouselPreview && (
+              <StyleCarousel
+                previewSrc={carouselPreview}
+                selectedId={styleId}
+                onSelect={(s) => beginGeneration(s)}
+              />
+            )}
           </section>
 
           <AnimatePresence>
@@ -301,8 +375,13 @@ export default function Studio() {
                 exit={{ opacity: 0, y: 8 }}
                 className="card p-5"
               >
-                <h2 className="font-display text-lg font-semibold mb-4">Fine-tune</h2>
-                <AdjustmentPanel style={style} params={params} onChange={setParams} />
+                <h2 className="font-display text-lg font-semibold mb-1">Fine-tune</h2>
+                {video && (
+                  <p className="text-[12px] text-fog mb-3">Adjustments apply to the clip live.</p>
+                )}
+                <div className={video ? '' : 'mt-3'}>
+                  <AdjustmentPanel style={style} params={params} onChange={setParams} />
+                </div>
               </motion.section>
             )}
           </AnimatePresence>
@@ -315,6 +394,7 @@ export default function Studio() {
           open={exportOpen}
           onClose={() => setExportOpen(false)}
           source={source}
+          videoSrc={video}
           style={style}
           params={params}
           onTryAnother={() => {
@@ -336,7 +416,10 @@ export default function Studio() {
           <Link to="/pricing" className="pill-base pill-violet w-full px-5 py-3 text-sm mb-2.5">
             Upgrade — from $7/mo
           </Link>
-          <button onClick={() => setPaywall(false)} className="w-full text-[13px] font-medium text-fog hover:text-ink py-2 transition-colors">
+          <button
+            onClick={() => setPaywall(false)}
+            className="w-full text-[13px] font-medium text-fog hover:text-ink py-2 transition-colors"
+          >
             Maybe later
           </button>
         </div>

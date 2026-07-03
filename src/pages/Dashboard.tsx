@@ -18,7 +18,7 @@ export default function Dashboard() {
     toggleFavorite,
     setAuthOpen,
     signOut,
-    selectStyle,
+    setPendingPreset,
   } = useApp()
 
   const favStyles = CAMERA_STYLES.filter((s) => favorites.includes(s.id))
@@ -118,7 +118,7 @@ export default function Dashboard() {
                     <div className="flex items-center gap-2">
                       <Link
                         to="/studio"
-                        onClick={() => selectStyle(p.styleId, p.params)}
+                        onClick={() => setPendingPreset(p)}
                         className="pill-base pill-ghost px-4 py-1.5 text-[12px]"
                       >
                         Use

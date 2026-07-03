@@ -13,6 +13,7 @@ import { getStyle, type StyleParams } from './styles'
 export type Plan = 'free' | 'creator' | 'pro' | 'studio'
 
 export const FREE_CREDITS = 5
+export const MAX_ROLL = 6
 
 export interface HistoryEntry {
   id: string
@@ -32,6 +33,11 @@ export interface SavedPreset {
 export interface User {
   name: string
   email: string
+}
+
+export interface RollItem {
+  url: string
+  name: string
 }
 
 interface Persisted {
@@ -75,14 +81,24 @@ function loadPersisted(): Persisted {
 }
 
 interface AppState extends Persisted {
-  /** current working photo (data URL) — not persisted, sessions are fresh */
+  /** active image (data/object URL) — null when a video is loaded instead */
   photo: string | null
   photoName: string | null
+  /** loaded roll of images; more than one shows the filmstrip */
+  roll: RollItem[]
+  activeIndex: number
+  /** active video object URL — mutually exclusive with photo */
+  video: string | null
   styleId: string | null
   params: StyleParams | null
   authOpen: boolean
+  pendingPreset: SavedPreset | null
 
-  setPhoto: (dataUrl: string | null, name?: string) => void
+  setImage: (url: string, name?: string) => void
+  setRoll: (items: RollItem[]) => void
+  setActiveIndex: (i: number) => void
+  setVideo: (url: string, name?: string) => void
+  clearMedia: () => void
   selectStyle: (id: string, params?: StyleParams) => void
   clearStyle: () => void
   setParams: (p: StyleParams) => void
@@ -97,18 +113,23 @@ interface AppState extends Persisted {
   signIn: (u: User) => void
   signOut: () => void
   setAuthOpen: (open: boolean) => void
+  setPendingPreset: (p: SavedPreset | null) => void
   isPaid: boolean
+  hasVideoPlan: boolean
 }
 
 const Ctx = createContext<AppState | null>(null)
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [persisted, setPersisted] = useState<Persisted>(loadPersisted)
-  const [photo, setPhotoState] = useState<string | null>(null)
+  const [roll, setRollState] = useState<RollItem[]>([])
+  const [activeIndex, setActiveIndexState] = useState(0)
+  const [video, setVideoState] = useState<string | null>(null)
   const [photoName, setPhotoName] = useState<string | null>(null)
   const [styleId, setStyleId] = useState<string | null>(null)
   const [params, setParamsState] = useState<StyleParams | null>(null)
   const [authOpen, setAuthOpen] = useState(false)
+  const [pendingPreset, setPendingPreset] = useState<SavedPreset | null>(null)
 
   useEffect(() => {
     try {
@@ -126,12 +147,80 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [persisted])
 
-  const setPhoto = useCallback((dataUrl: string | null, name?: string) => {
-    setPhotoState(dataUrl)
-    setPhotoName(name ?? null)
+  const resetLook = useCallback(() => {
     setStyleId(null)
     setParamsState(null)
   }, [])
+
+  const releaseVideo = useCallback((current: string | null) => {
+    if (current?.startsWith('blob:')) URL.revokeObjectURL(current)
+  }, [])
+
+  const setImage = useCallback(
+    (url: string, name?: string) => {
+      setVideoState((v) => {
+        releaseVideo(v)
+        return null
+      })
+      setRollState([{ url, name: name ?? 'photo' }])
+      setActiveIndexState(0)
+      setPhotoName(name ?? null)
+      resetLook()
+    },
+    [resetLook, releaseVideo],
+  )
+
+  const setRoll = useCallback(
+    (items: RollItem[]) => {
+      if (items.length === 0) return
+      setVideoState((v) => {
+        releaseVideo(v)
+        return null
+      })
+      setRollState(items.slice(0, MAX_ROLL))
+      setActiveIndexState(0)
+      setPhotoName(items[0].name)
+      resetLook()
+    },
+    [resetLook, releaseVideo],
+  )
+
+  const setActiveIndex = useCallback(
+    (i: number) => {
+      setActiveIndexState(i)
+      setRollState((r) => {
+        setPhotoName(r[i]?.name ?? null)
+        return r
+      })
+      resetLook()
+    },
+    [resetLook],
+  )
+
+  const setVideo = useCallback(
+    (url: string, name?: string) => {
+      setVideoState((v) => {
+        releaseVideo(v)
+        return url
+      })
+      setRollState([])
+      setActiveIndexState(0)
+      setPhotoName(name ?? null)
+      resetLook()
+    },
+    [resetLook, releaseVideo],
+  )
+
+  const clearMedia = useCallback(() => {
+    setVideoState((v) => {
+      releaseVideo(v)
+      return null
+    })
+    setRollState([])
+    setActiveIndexState(0)
+    setPhotoName(null)
+    resetLook()
+  }, [resetLook, releaseVideo])
 
   const selectStyle = useCallback((id: string, p?: StyleParams) => {
     const style = getStyle(id)
@@ -140,15 +229,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setParamsState(p ?? { ...style.defaults })
   }, [])
 
-  const clearStyle = useCallback(() => {
-    setStyleId(null)
-    setParamsState(null)
-  }, [])
-
   const isPaid = persisted.plan !== 'free'
-  const creditsLeft = isPaid
-    ? Infinity
-    : Math.max(0, FREE_CREDITS - persisted.creditsUsed)
+  const hasVideoPlan = persisted.plan === 'pro' || persisted.plan === 'studio'
+  const creditsLeft = isPaid ? Infinity : Math.max(0, FREE_CREDITS - persisted.creditsUsed)
 
   const spendCredit = useCallback((): boolean => {
     if (persisted.plan !== 'free') return true
@@ -210,17 +293,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setPersisted((prev) => ({ ...prev, user: null, plan: 'free' }))
   }, [])
 
+  const photo = video ? null : (roll[activeIndex]?.url ?? null)
+
   const value = useMemo<AppState>(
     () => ({
       ...persisted,
       photo,
       photoName,
+      roll,
+      activeIndex,
+      video,
       styleId,
       params,
       authOpen,
-      setPhoto,
+      pendingPreset,
+      setImage,
+      setRoll,
+      setActiveIndex,
+      setVideo,
+      clearMedia,
       selectStyle,
-      clearStyle,
+      clearStyle: resetLook,
       setParams: setParamsState,
       creditsLeft,
       spendCredit,
@@ -233,18 +326,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
       signIn,
       signOut,
       setAuthOpen,
+      setPendingPreset,
       isPaid,
+      hasVideoPlan,
     }),
     [
       persisted,
       photo,
       photoName,
+      roll,
+      activeIndex,
+      video,
       styleId,
       params,
       authOpen,
-      setPhoto,
+      pendingPreset,
+      setImage,
+      setRoll,
+      setActiveIndex,
+      setVideo,
+      clearMedia,
       selectStyle,
-      clearStyle,
+      resetLook,
       creditsLeft,
       spendCredit,
       addHistory,
@@ -256,6 +359,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       signIn,
       signOut,
       isPaid,
+      hasVideoPlan,
     ],
   )
 
