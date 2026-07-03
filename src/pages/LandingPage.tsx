@@ -2,23 +2,54 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import BeforeAfterSlider from '../components/BeforeAfterSlider'
+import { IconDownload, IconFilm, IconUpload } from '../components/icons'
 import { loadImage, renderStyled } from '../lib/engine'
 import { CAMERA_STYLES, getStyle } from '../lib/styles'
-import sampleGolden from '../assets/sample-golden.svg'
-import sampleStreet from '../assets/sample-street.svg'
-import sampleNight from '../assets/sample-night.svg'
+import { useStyleThumbs } from '../lib/useStyleThumbs'
+import sampleGolden from '../assets/sample-golden.jpg'
+import sampleStreet from '../assets/sample-street.jpg'
+import sampleNight from '../assets/sample-night.jpg'
 
 const SAMPLES = [sampleGolden, sampleStreet, sampleNight]
 
 const fadeUp = {
-  initial: { opacity: 0, y: 24 },
+  initial: { opacity: 0, y: 12 },
   whileInView: { opacity: 1, y: 0 },
   viewport: { once: true, margin: '-80px' },
-  transition: { duration: 0.55, ease: 'easeOut' as const },
+  transition: { duration: 0.35, ease: 'easeOut' as const },
 }
+
+const STEPS = [
+  {
+    n: '01',
+    title: 'Upload',
+    body: 'Drop in any photo — a portrait, a night out, your dog. Processing runs in your browser; nothing is uploaded.',
+    icon: IconUpload,
+  },
+  {
+    n: '02',
+    title: 'Choose a mood',
+    body: 'Disposable flash, A24 still, Y2K digicam. Nine cameras, one photo. Pick the one it deserved.',
+    icon: IconFilm,
+  },
+  {
+    n: '03',
+    title: 'Develop and share',
+    body: 'Fine-tune grain and glow, compare against the original, export for TikTok and Reels.',
+    icon: IconDownload,
+  },
+]
+
+const CAPTIONS = [
+  'POV: your photo was shot on a $7,000 camera',
+  'I turned my photo into an A24 movie still',
+  'This was just a normal photo before LensMood',
+]
 
 export default function LandingPage() {
   const [heroAfter, setHeroAfter] = useState<string | null>(null)
+  // every marquee card shows its real developed look, not a CSS approximation
+  const marqueeThumbs = useStyleThumbs(sampleGolden, 480)
 
   /* develop the hero "after" image with the real engine */
   useEffect(() => {
@@ -37,145 +68,148 @@ export default function LandingPage() {
   return (
     <main className="pb-24 md:pb-0">
       {/* ================= hero ================= */}
-      <section className="relative overflow-hidden">
-        <div className="absolute -top-40 -left-32 w-[34rem] h-[34rem] rounded-full bg-violet/12 blur-3xl pointer-events-none" />
-        <div className="absolute top-24 -right-40 w-[30rem] h-[30rem] rounded-full bg-amber-flash/14 blur-3xl pointer-events-none" />
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-14 sm:pt-24 pb-16 grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
-          <div className="relative z-10 text-center lg:text-left">
+      <section>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-14 sm:pt-20 pb-16 grid lg:grid-cols-12 gap-12 lg:gap-10 items-center">
+          <div className="lg:col-span-6">
+            <motion.p
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+              className="label-mono mb-6"
+            >
+              The aesthetic camera
+            </motion.p>
+            <motion.h1
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05, duration: 0.35, ease: 'easeOut' }}
+              className="type-display text-[clamp(2.5rem,6vw,4.5rem)]"
+            >
+              Turn any photo into a cinematic camera shot.
+            </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              className="inline-flex items-center gap-2 text-[12px] font-semibold text-violet bg-violet-soft rounded-full px-3.5 py-1.5 mb-6"
+              transition={{ delay: 0.12, duration: 0.35, ease: 'easeOut' }}
+              className="mt-6 text-[15px] leading-[1.6] text-ink-soft max-w-[52ch]"
             >
-              ✦ The AI aesthetic camera
-            </motion.p>
-            <motion.h1
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.06 }}
-              className="font-display text-[2.6rem] leading-[1.05] sm:text-6xl lg:text-[4.2rem] font-semibold tracking-tight"
-            >
-              Turn any photo into a{' '}
-              <span className="italic bg-gradient-to-r from-violet to-[#b264ff] bg-clip-text text-transparent">
-                cinematic
-              </span>{' '}
-              camera shot.
-            </motion.h1>
-            <motion.p
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.14 }}
-              className="mt-5 text-fog text-base sm:text-lg leading-relaxed max-w-xl mx-auto lg:mx-0"
-            >
-              Upload a photo, choose a camera mood, and recreate the lighting, grain, color, and
-              vibe of iconic camera styles. See what your photo would look like shot on a $7,000
+              Upload a photo, choose a camera mood, and recreate the lighting, grain, and color of
+              the cameras that defined an era. See what your photo looks like shot on a $7,000
               camera.
             </motion.p>
             <motion.div
-              initial={{ opacity: 0, y: 18 }}
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.22 }}
-              className="mt-8 flex flex-wrap items-center justify-center lg:justify-start gap-3"
+              transition={{ delay: 0.18, duration: 0.35, ease: 'easeOut' }}
+              className="mt-8 flex flex-wrap items-center gap-3"
             >
-              <Link to="/studio" className="pill-base pill-violet px-7 py-3.5 text-base">
+              <Link to="/studio" className="btn btn-primary btn-lg">
                 Try it free
               </Link>
               <button
                 onClick={() => document.getElementById('styles')?.scrollIntoView({ behavior: 'smooth' })}
-                className="pill-base pill-ghost px-7 py-3.5 text-base"
+                className="btn btn-outline btn-lg"
               >
-                Explore camera styles
+                Explore camera moods
               </button>
             </motion.div>
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="mt-5 text-[13px] text-fog"
+              transition={{ delay: 0.3, duration: 0.35 }}
+              className="mt-10 pt-4 border-t border-hairline flex flex-wrap gap-x-5 gap-y-1 font-mono text-[11px] tracking-[0.1em] text-fog tabular-nums"
             >
-              5 free shots a month · no sign-up · photos never leave your browser
+              <span>5 FREE SHOTS/MO</span>
+              <span>NO SIGN-UP</span>
+              <span>ON-DEVICE PROCESSING</span>
             </motion.p>
           </div>
 
-          {/* hero before/after */}
+          {/* hero before/after — viewfinder frame */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 24 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ delay: 0.18, duration: 0.6, ease: 'easeOut' }}
-            className="relative mx-auto w-full max-w-md lg:max-w-none"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15, duration: 0.4, ease: 'easeOut' }}
+            className="lg:col-span-6 w-full max-w-md mx-auto lg:max-w-[460px] lg:ml-auto"
           >
-            <div className="absolute -inset-6 bg-gradient-to-tr from-violet/18 via-transparent to-amber-flash/18 rounded-[3rem] blur-2xl pointer-events-none" />
-            <div className="relative rounded-[2rem] overflow-hidden shadow-2xl ring-1 ring-ink/8 lm-float">
-              {heroAfter ? (
-                <BeforeAfterSlider
-                  before={sampleGolden}
-                  after={heroAfter}
-                  auto
-                  afterLabel="A24 Still"
-                  className="aspect-4/5"
-                />
-              ) : (
-                <img src={sampleGolden} alt="" className="aspect-4/5 w-full object-cover" />
-              )}
+            <div className="bg-vf">
+              <div className="h-8 px-3 flex items-center justify-between border-b border-white/10">
+                <span className="inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.14em] text-vf-chrome">
+                  <span className="w-1.5 h-1.5 rounded-full bg-signal lm-breathe" />
+                  LM ENGINE — LIVE
+                </span>
+                <span className="font-mono text-[10px] tracking-[0.14em] text-vf-chrome">A24 STILL</span>
+              </div>
+              <div className="vf-corners p-2 sm:p-3">
+                {heroAfter ? (
+                  <BeforeAfterSlider
+                    before={sampleGolden}
+                    after={heroAfter}
+                    auto
+                    afterLabel="A24 Still"
+                    className="aspect-4/5"
+                  />
+                ) : (
+                  <img src={sampleGolden} alt="" className="aspect-4/5 w-full object-cover" />
+                )}
+              </div>
             </div>
-            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-paper shadow-lg rounded-full px-4 py-2 text-[12px] font-semibold text-ink-soft flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-violet animate-pulse" />
-              Drag to compare
-            </div>
+            <p className="mt-3 font-mono text-[10px] tracking-[0.12em] text-fog">
+              DRAG TO COMPARE — A24 STILL applied by the LensMood engine, live
+            </p>
           </motion.div>
         </div>
       </section>
 
       {/* ================= style marquee ================= */}
-      <section id="styles" className="py-16 sm:py-24 scroll-mt-20">
-        <motion.div {...fadeUp} className="max-w-7xl mx-auto px-4 sm:px-6 mb-10 flex items-end justify-between gap-4">
+      <section id="styles" className="border-y border-hairline py-14 sm:py-20 scroll-mt-20">
+        <motion.div
+          {...fadeUp}
+          className="max-w-7xl mx-auto px-4 sm:px-6 mb-10 flex items-end justify-between gap-4"
+        >
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-violet mb-2">9 camera moods</p>
-            <h2 className="font-display text-3xl sm:text-5xl font-semibold tracking-tight">
-              One photo. Every era.
-            </h2>
+            <p className="label-mono mb-3 tabular-nums">
+              CAMERA MOODS · {String(CAMERA_STYLES.length).padStart(2, '0')}
+            </p>
+            <h2 className="type-display text-3xl sm:text-5xl">One photo. Every era.</h2>
           </div>
-          <Link to="/studio" className="hidden sm:inline-flex pill-base pill-primary px-5 py-2.5 text-sm shrink-0">
-            Open the studio
+          <Link to="/studio" className="btn btn-outline hidden sm:inline-flex shrink-0">
+            Try them on your photo
           </Link>
         </motion.div>
 
-        <div className="lm-marquee-pause overflow-hidden">
+        <div className="lm-marquee-pause overflow-hidden relative">
+          {/* bleed-edge fades so cards never appear chopped mid-label */}
+          <div className="absolute inset-y-0 left-0 w-12 sm:w-20 z-10 bg-gradient-to-r from-paper to-transparent pointer-events-none" />
+          <div className="absolute inset-y-0 right-0 w-12 sm:w-20 z-10 bg-gradient-to-l from-paper to-transparent pointer-events-none" />
           <div className="lm-marquee flex gap-4 w-max pr-4">
             {[...CAMERA_STYLES, ...CAMERA_STYLES].map((style, i) => (
               <Link
                 key={`${style.id}-${i}`}
                 to={`/studio?style=${style.id}`}
-                className="group relative w-52 sm:w-60 shrink-0 rounded-3xl overflow-hidden ring-1 ring-cloud shadow-md hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300"
+                className="group w-52 sm:w-60 shrink-0 bg-surface border border-hairline hover:border-ink hover:-translate-y-0.5 transition-[border-color,transform] duration-150 ease-out"
               >
-                <div className="aspect-4/5 bg-mist">
+                <div className="relative aspect-4/5 overflow-hidden rounded-xs bg-vf">
                   <img
-                    src={SAMPLES[i % SAMPLES.length]}
+                    src={marqueeThumbs[style.id] ?? SAMPLES[i % SAMPLES.length]}
                     alt={style.name}
                     loading="lazy"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    style={{ filter: style.cardFilter }}
+                    className="w-full h-full object-cover"
+                    style={marqueeThumbs[style.id] ? undefined : { filter: style.cardFilter }}
                     draggable={false}
                   />
+                  {style.tier === 'premium' && <span className="tag absolute top-2 right-2">PRO</span>}
                 </div>
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/85 via-ink/35 to-transparent p-4 pt-14">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="w-2.5 h-2.5 rounded-full" style={{ background: style.gradient }} />
-                    <p className="text-paper font-display font-semibold text-lg leading-none">{style.name}</p>
+                <div className="p-3.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="label-mono tabular-nums">
+                      LM·{String((i % CAMERA_STYLES.length) + 1).padStart(2, '0')}
+                    </span>
+                    {style.badge === 'trending' && <span className="tag">TRENDING</span>}
                   </div>
-                  <p className="text-paper/70 text-[12px] leading-snug">{style.tagline}</p>
+                  <p className="mt-1.5 text-[14px] font-semibold leading-snug">{style.name}</p>
+                  <p className="mt-0.5 text-[12px] text-fog leading-snug">{style.tagline}</p>
                 </div>
-                {style.tier === 'premium' && (
-                  <span className="absolute top-3 right-3 text-[10px] font-bold uppercase tracking-wide bg-violet text-paper px-2 py-1 rounded-full">
-                    Pro
-                  </span>
-                )}
-                {style.badge === 'trending' && (
-                  <span className="absolute top-3 left-3 text-[10px] font-bold uppercase tracking-wide bg-amber-flash text-ink px-2 py-1 rounded-full">
-                    🔥 Trending
-                  </span>
-                )}
               </Link>
             ))}
           </div>
@@ -184,111 +218,86 @@ export default function LandingPage() {
 
       {/* ================= how it works ================= */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
-        <motion.h2 {...fadeUp} className="font-display text-3xl sm:text-5xl font-semibold tracking-tight text-center mb-14">
-          Three steps to the shot.
-        </motion.h2>
-        <div className="grid sm:grid-cols-3 gap-5">
-          {[
-            {
-              n: '01',
-              title: 'Upload',
-              body: 'Drop in any photo — a selfie, a night out, your dog. It never leaves your browser.',
-              icon: '📤',
-            },
-            {
-              n: '02',
-              title: 'Choose a mood',
-              body: 'Disposable flash, A24 still, Y2K digicam… pick the camera your photo deserved.',
-              icon: '🎞️',
-            },
-            {
-              n: '03',
-              title: 'Develop & share',
-              body: 'Fine-tune the grain and glow, compare before/after, export for TikTok and Reels.',
-              icon: '✨',
-            },
-          ].map((step, i) => (
+        <motion.div {...fadeUp} className="mb-12">
+          <p className="label-mono mb-3">How it works</p>
+          <h2 className="type-display text-3xl sm:text-5xl">Three steps to the shot.</h2>
+        </motion.div>
+        <div className="grid sm:grid-cols-3 gap-y-10 sm:gap-y-0">
+          {STEPS.map((step, i) => (
             <motion.div
               key={step.n}
               {...fadeUp}
-              transition={{ ...fadeUp.transition, delay: i * 0.1 }}
-              className="card p-7 hover:-translate-y-1 transition-transform duration-300"
+              transition={{ ...fadeUp.transition, delay: i * 0.08 }}
+              className={
+                i > 0
+                  ? 'border-t border-hairline pt-8 sm:border-t-0 sm:pt-0 sm:border-l sm:border-hairline sm:pl-8'
+                  : 'sm:pr-8'
+              }
             >
-              <div className="flex items-center justify-between mb-5">
-                <span className="text-3xl">{step.icon}</span>
-                <span className="font-mono text-[12px] text-fog">{step.n}</span>
-              </div>
-              <h3 className="font-display text-xl font-semibold mb-2">{step.title}</h3>
-              <p className="text-[14px] text-fog leading-relaxed">{step.body}</p>
+              <span className="font-mono text-[12px] text-fog tabular-nums">{step.n}</span>
+              <step.icon size={22} className="block mt-6 text-ink" />
+              <h3 className="mt-4 text-[17px] font-semibold">{step.title}</h3>
+              <p className="mt-2 text-[14px] text-fog leading-relaxed">{step.body}</p>
             </motion.div>
           ))}
         </div>
       </section>
 
-      {/* ================= viral captions ================= */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
-        <motion.div
-          {...fadeUp}
-          className="relative overflow-hidden rounded-[2.5rem] bg-[#0d0d12] text-paper px-6 sm:px-14 py-14 sm:py-18"
-        >
-          <div className="absolute -top-24 right-0 w-96 h-96 rounded-full bg-violet/25 blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-32 -left-16 w-96 h-96 rounded-full bg-amber-flash/15 blur-3xl pointer-events-none" />
-          <div className="relative grid lg:grid-cols-2 gap-10 items-center">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-[#a88bff] mb-3">Made to be posted</p>
-              <h2 className="font-display text-3xl sm:text-4xl font-semibold tracking-tight mb-4">
-                Captions included.
-                <br />
-                Clout not guaranteed*
-              </h2>
-              <p className="text-paper/60 text-[15px] leading-relaxed mb-8 max-w-md">
-                Every export ships with a share card, an auto-written caption, and a link your
-                friends can steal the style from. *It kind of is, though.
-              </p>
-              <Link to="/studio" className="pill-base bg-paper text-ink px-6 py-3 text-sm font-semibold hover:-translate-y-0.5 transition-transform">
-                Make one now
-              </Link>
-            </div>
-            <div className="space-y-3">
-              {[
-                'POV: your photo was shot on a $7,000 camera',
-                'I turned my photo into an A24 movie still',
-                'This was just a normal photo before LensMood',
-              ].map((caption, i) => (
-                <motion.div
-                  key={caption}
-                  initial={{ opacity: 0, x: 24 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.15 + i * 0.12 }}
-                  className="bg-white/8 backdrop-blur border border-white/10 rounded-2xl px-5 py-4 text-[14px] flex items-center gap-3"
-                >
-                  <span className="text-lg shrink-0">💬</span>
-                  <span className="text-paper/90">“{caption}”</span>
-                </motion.div>
-              ))}
-            </div>
+      {/* ================= captions band ================= */}
+      <section className="bg-vf">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-20 grid lg:grid-cols-2 gap-12 items-center">
+          <motion.div {...fadeUp}>
+            <p className="font-mono text-[11px] font-medium tracking-[0.14em] uppercase text-vf-chrome mb-3">
+              Made to be posted
+            </p>
+            <h2 className="type-display text-3xl sm:text-4xl text-paper mb-4">Captions included.</h2>
+            <p className="text-[15px] leading-[1.6] text-vf-chrome max-w-md mb-8">
+              Every export ships with a share card, an auto-written caption, and a link your friends
+              can copy the style from. The jokes live in the captions, not the interface.
+            </p>
+            <Link to="/studio" className="btn btn-lg bg-paper text-ink border border-paper hover:bg-white">
+              Make one now
+            </Link>
+          </motion.div>
+          <div className="space-y-3">
+            {CAPTIONS.map((caption, i) => (
+              <motion.div
+                key={caption}
+                initial={{ opacity: 0, y: 8 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 + i * 0.08, duration: 0.3, ease: 'easeOut' }}
+                className="border border-white/15 px-4 py-3.5 flex items-baseline gap-3"
+              >
+                <span className="font-mono text-[11px] tracking-[0.1em] text-vf-chrome tabular-nums shrink-0">
+                  C·{String(i + 1).padStart(2, '0')}
+                </span>
+                <span className="text-[14px] text-paper/90">“{caption}”</span>
+              </motion.div>
+            ))}
           </div>
-        </motion.div>
+        </div>
       </section>
 
       {/* ================= featured mood ================= */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
-        <motion.div {...fadeUp} className="card p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-6">
-          <div className="relative w-36 shrink-0 rounded-2xl overflow-hidden shadow-md">
-            <img src={sampleNight} alt="" className="aspect-4/5 object-cover" style={{ filter: getStyle('a24-still')!.cardFilter }} />
-            <span className="absolute top-2 left-2 text-[10px] font-bold uppercase tracking-wide bg-paper/90 text-ink px-2 py-0.5 rounded-full">
-              ★ This week
-            </span>
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
+        <motion.div {...fadeUp} className="panel p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center gap-6">
+          <div className="w-28 sm:w-32 shrink-0 rounded-xs overflow-hidden">
+            <img
+              src={marqueeThumbs['a24-still'] ?? sampleNight}
+              alt="A24 Movie Still sample"
+              className="aspect-4/5 w-full object-cover"
+              style={marqueeThumbs['a24-still'] ? undefined : { filter: getStyle('a24-still')!.cardFilter }}
+            />
           </div>
-          <div className="text-center sm:text-left">
-            <p className="text-xs font-bold uppercase tracking-widest text-violet mb-1.5">Featured camera mood</p>
-            <h3 className="font-display text-2xl font-semibold mb-1.5">A24 Movie Still</h3>
-            <p className="text-[14px] text-fog leading-relaxed max-w-lg mb-4">
-              Muted palette, cinematic shadows, soft highlights. The internet’s favorite mood this
-              week — quiet, moody, devastating.
+          <div>
+            <p className="label-mono mb-2">Featured this week</p>
+            <h3 className="text-2xl font-semibold tracking-[-0.01em] mb-1.5">A24 Movie Still</h3>
+            <p className="text-[14px] text-ink-soft leading-relaxed max-w-lg mb-4">
+              Muted palette, cinematic shadows, soft highlights. This week’s most-developed mood —
+              quiet, moody, devastating.
             </p>
-            <Link to="/studio?style=a24-still" className="pill-base pill-primary px-5 py-2.5 text-sm">
+            <Link to="/studio?style=a24-still" className="btn btn-outline">
               Shoot it
             </Link>
           </div>
@@ -296,22 +305,46 @@ export default function LandingPage() {
       </section>
 
       {/* ================= pricing teaser ================= */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24 text-center">
-        <motion.h2 {...fadeUp} className="font-display text-3xl sm:text-5xl font-semibold tracking-tight mb-4">
-          Free to start. <span className="italic text-violet">$7</span> to go unlimited.
-        </motion.h2>
-        <motion.p {...fadeUp} className="text-fog max-w-xl mx-auto mb-8">
-          5 free developments every month. Creators get unlimited exports, zero watermarks, and
-          every premium camera pack.
-        </motion.p>
-        <motion.div {...fadeUp} className="flex justify-center gap-3">
-          <Link to="/pricing" className="pill-base pill-violet px-7 py-3.5 text-base">
-            See pricing
-          </Link>
-          <Link to="/studio" className="pill-base pill-ghost px-7 py-3.5 text-base">
-            Try it free
-          </Link>
-        </motion.div>
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 pb-16 sm:pb-24">
+        <div className="border-t border-hairline pt-12 sm:pt-16 grid lg:grid-cols-12 gap-10 items-start">
+          <div className="lg:col-span-7">
+            <motion.h2 {...fadeUp} className="type-display text-3xl sm:text-5xl mb-4 max-w-3xl">
+              Free to start.
+              <br />
+              $7&#8202;/&#8202;month to go unlimited.
+            </motion.h2>
+            <motion.p {...fadeUp} className="text-[15px] leading-[1.6] text-ink-soft max-w-xl mb-8">
+              5 free developments every month. Creators get unlimited exports, no watermarks, and
+              every premium camera pack.
+            </motion.p>
+            <motion.div {...fadeUp} className="flex flex-wrap gap-3">
+              <Link to="/studio" className="btn btn-primary btn-lg">
+                Try it free
+              </Link>
+              <Link to="/pricing" className="btn btn-outline btn-lg">
+                See pricing
+              </Link>
+            </motion.div>
+          </div>
+          {/* spec sheet */}
+          <motion.dl
+            {...fadeUp}
+            className="lg:col-span-5 grid grid-cols-2 border border-hairline bg-surface divide-x divide-hairline [&>div:nth-child(n+3)]:border-t [&>div:nth-child(n+3)]:border-hairline [&>div:nth-child(3)]:border-l-0"
+          >
+            {[
+              { v: '09', k: 'Camera moods' },
+              { v: '30s', k: 'Video clips' },
+              { v: '00', k: 'Uploads — on-device' },
+              { v: '∞', k: 'Retakes' },
+            ].map((s) => (
+              <div key={s.k} className="p-5">
+                <dt className="sr-only">{s.k}</dt>
+                <dd className="font-mono text-3xl tabular-nums leading-none mb-2">{s.v}</dd>
+                <dd className="label-mono">{s.k}</dd>
+              </div>
+            ))}
+          </motion.dl>
+        </div>
       </section>
     </main>
   )

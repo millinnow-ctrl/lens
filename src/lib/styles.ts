@@ -38,6 +38,8 @@ export interface CameraStyle {
   character: StyleCharacter
   /** cheap CSS approximation for card thumbnails */
   cardFilter: string
+  /** plausible viewfinder readout for this camera */
+  exif: string
   /** small accent gradient used on chips / selected glow */
   gradient: string
 }
@@ -56,6 +58,7 @@ const P = (p: Partial<StyleParams>): StyleParams => ({
 export const CAMERA_STYLES: CameraStyle[] = [
   {
     id: 'disposable',
+    exif: 'F/11 · 400 FILM · FLASH',
     name: 'Disposable Camera',
     tagline: 'Warm flash. Zero regrets.',
     description: 'Warm flash, soft blur, imperfect exposure and that unmistakable nostalgic grain.',
@@ -76,6 +79,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
   },
   {
     id: 'iphone-flash',
+    exif: 'F/1.8 · ISO 640 · FLASH',
     name: 'iPhone Flash',
     tagline: 'Nightlife, documented.',
     description: 'Bright direct flash, sharp subject, background falling into darkness. Social-night energy.',
@@ -91,8 +95,9 @@ export const CAMERA_STYLES: CameraStyle[] = [
   },
   {
     id: 'camcorder-90s',
+    exif: 'REC · 30FPS · AUTO',
     name: "90s Camcorder",
-    tagline: 'REC ● 00:00:01',
+    tagline: 'Tape is rolling.',
     description: 'Lo-fi video softness, timestamp, scanlines, muted color and a hiss of analog noise.',
     tier: 'premium',
     defaults: P({ grain: 46, contrast: 47, warmth: 52, flash: 8, shadows: 28 }),
@@ -110,6 +115,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
   },
   {
     id: 'leica-street',
+    exif: 'F/2 · ISO 400 · 35MM',
     name: 'Leica Street',
     tagline: 'The decisive moment.',
     description: 'Clean contrast, honest skin tones, a whisper of film grain. Pure editorial street.',
@@ -125,6 +131,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
   },
   {
     id: 'gq-editorial',
+    exif: 'F/8 · ISO 100 · STROBE',
     name: 'GQ Editorial',
     tagline: 'Cover-shoot energy.',
     description: 'Luxury magazine lighting, crisp shadows, polished skin. You, but on a newsstand.',
@@ -142,6 +149,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
   },
   {
     id: 'a24-still',
+    exif: 'F/2.8 · ISO 800 · 1/48',
     name: 'A24 Movie Still',
     tagline: 'Frame from a film that broke you.',
     description: 'Cinematic shadows, muted palette, soft highlights. Quiet, moody, devastating.',
@@ -160,6 +168,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
   },
   {
     id: 'film-noir',
+    exif: 'F/5.6 · ISO 400 · B&W',
     name: 'Film Noir',
     tagline: 'Trust no one.',
     description: 'Black and white, hard shadows, dramatic contrast. Vintage mystery in every frame.',
@@ -176,6 +185,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
   },
   {
     id: 'y2k-digicam',
+    exif: 'F/2.6 · ISO 200 · FLASH',
     name: 'Y2K Digicam',
     tagline: 'It’s 2003 and life is good.',
     description: 'Harsh flash, glossy highlights, slight overexposure. Early-2000s party immortality.',
@@ -194,6 +204,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
   },
   {
     id: 'polaroid',
+    exif: 'F/8 · 600 FILM · INSTANT',
     name: 'Polaroid',
     tagline: 'Shake it like a—you know.',
     description: 'Creamy highlights, soft faded color, instant-film frame. Warmth you can hold.',
@@ -218,7 +229,6 @@ export const getStyle = (id: string | null | undefined): CameraStyle | undefined
 export interface QuickPreset {
   id: string
   name: string
-  emoji: string
   apply: (d: StyleParams) => StyleParams
 }
 
@@ -228,7 +238,6 @@ export const QUICK_PRESETS: QuickPreset[] = [
   {
     id: 'natural',
     name: 'Natural',
-    emoji: '🌿',
     apply: (d) => ({
       ...d,
       intensity: 52,
@@ -239,7 +248,6 @@ export const QUICK_PRESETS: QuickPreset[] = [
   {
     id: 'strong',
     name: 'Strong',
-    emoji: '⚡',
     apply: (d) => ({
       ...d,
       intensity: 100,
@@ -251,7 +259,6 @@ export const QUICK_PRESETS: QuickPreset[] = [
   {
     id: 'viral',
     name: 'Viral',
-    emoji: '🔥',
     apply: (d) => ({
       ...d,
       intensity: 92,
@@ -264,7 +271,6 @@ export const QUICK_PRESETS: QuickPreset[] = [
   {
     id: 'cinematic',
     name: 'Cinematic',
-    emoji: '🎬',
     apply: (d) => ({
       ...d,
       intensity: 86,
@@ -277,7 +283,6 @@ export const QUICK_PRESETS: QuickPreset[] = [
   {
     id: 'editorial',
     name: 'Editorial',
-    emoji: '🗞️',
     apply: (d) => ({
       ...d,
       intensity: 74,

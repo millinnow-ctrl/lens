@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { IconPause, IconPlay } from './icons'
 import { renderStyled } from '../lib/engine'
 import { videoSafeStyle } from '../lib/video'
 import type { CameraStyle, StyleParams } from '../lib/styles'
@@ -85,21 +86,13 @@ export default function VideoPreview({ src, style, params, className = '', onPos
       <button
         onClick={togglePlay}
         aria-label={playing ? 'Pause' : 'Play'}
-        className="absolute bottom-3 left-3 w-10 h-10 rounded-full bg-ink/55 backdrop-blur text-paper flex items-center justify-center hover:bg-ink/75 transition-colors"
+        className="absolute bottom-3 left-3 w-9 h-9 rounded-xs bg-vf/70 text-paper flex items-center justify-center hover:bg-vf/90 transition-colors"
       >
-        {playing ? (
-          <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor">
-            <rect x="6" y="5" width="4" height="14" rx="1" />
-            <rect x="14" y="5" width="4" height="14" rx="1" />
-          </svg>
-        ) : (
-          <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor">
-            <path d="M8 5.5v13l11-6.5Z" />
-          </svg>
-        )}
+        {playing ? <IconPause size={14} /> : <IconPlay size={14} />}
       </button>
-      <span className="absolute bottom-3 right-3 text-[10px] font-mono uppercase tracking-widest bg-ink/55 text-paper/90 backdrop-blur px-2.5 py-1 rounded-full pointer-events-none">
-        Video · live
+      <span className="absolute bottom-3 right-3 font-mono text-[10px] font-medium tracking-[0.12em] uppercase bg-vf/70 text-paper/90 px-2 py-1 rounded-xs pointer-events-none inline-flex items-center gap-1.5">
+        <span className="w-1.5 h-1.5 rounded-full bg-signal inline-block lm-breathe" aria-hidden />
+        Live
       </span>
     </div>
   )

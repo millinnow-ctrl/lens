@@ -1,6 +1,7 @@
-import { motion } from 'framer-motion'
 import { CAMERA_STYLES, type CameraStyle } from '../lib/styles'
+import { IconHeart } from './icons'
 import { useApp } from '../lib/store'
+import { useStyleThumbs } from '../lib/useStyleThumbs'
 
 interface Props {
   /** image shown inside each card (the user's photo, or a sample) */
@@ -11,57 +12,42 @@ interface Props {
 }
 
 function Badge({ badge, tier }: { badge?: CameraStyle['badge']; tier: CameraStyle['tier'] }) {
-  if (badge === 'trending')
-    return (
-      <span className="text-[10px] font-bold uppercase tracking-wide bg-amber-flash/90 text-ink px-2 py-0.5 rounded-full">
-        🔥 Trending
-      </span>
-    )
-  if (badge === 'featured')
-    return (
-      <span className="text-[10px] font-bold uppercase tracking-wide bg-paper/90 text-ink px-2 py-0.5 rounded-full">
-        ★ This week
-      </span>
-    )
-  if (tier === 'premium')
-    return (
-      <span className="text-[10px] font-bold uppercase tracking-wide bg-violet/90 text-paper px-2 py-0.5 rounded-full">
-        Pro
-      </span>
-    )
+  if (badge === 'trending') return <span className="tag tag-chrome">Trending</span>
+  if (badge === 'featured') return <span className="tag tag-chrome">This week</span>
+  if (tier === 'premium') return <span className="tag tag-chrome">Pro</span>
   return null
 }
 
 export default function StyleCarousel({ previewSrc, selectedId, onSelect, showFavorites = true }: Props) {
   const { favorites, toggleFavorite } = useApp()
+  // every card demonstrates its real look — rendered through the engine
+  const thumbs = useStyleThumbs(previewSrc, 300)
 
   return (
     <div className="flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory -mx-1 px-1 py-2">
-      {CAMERA_STYLES.map((style) => {
+      {CAMERA_STYLES.map((style, i) => {
         const selected = style.id === selectedId
         const fav = favorites.includes(style.id)
+        const index = `LM·${String(i + 1).padStart(2, '0')}`
         return (
-          <motion.button
+          <button
             key={style.id}
             onClick={() => onSelect(style)}
-            whileHover={{ y: -3 }}
-            whileTap={{ scale: 0.97 }}
-            className={`relative shrink-0 w-32 sm:w-36 snap-start rounded-2xl overflow-hidden text-left transition-shadow duration-300 ${
-              selected ? 'ring-3 ring-violet shadow-[var(--shadow-glow)]' : 'ring-1 ring-cloud shadow-sm hover:shadow-md'
+            className={`group relative shrink-0 w-36 snap-start bg-surface border text-left transition-colors duration-150 ${
+              selected ? 'border-signal' : 'border-hairline hover:border-ink'
             }`}
             aria-pressed={selected}
           >
-            <div className="relative aspect-4/5 bg-mist">
+            <div className="relative aspect-4/5 overflow-hidden rounded-xs">
               <img
-                src={previewSrc}
+                src={thumbs[style.id] ?? previewSrc}
                 alt=""
                 loading="lazy"
                 className="w-full h-full object-cover"
-                style={{ filter: style.cardFilter }}
+                style={thumbs[style.id] ? undefined : { filter: style.cardFilter }}
                 draggable={false}
               />
-              <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-ink/75 via-ink/25 to-transparent" />
-              <div className="absolute top-2 left-2">
+              <div className="absolute top-1.5 right-1.5">
                 <Badge badge={style.badge} tier={style.tier} />
               </div>
               {showFavorites && (
@@ -80,31 +66,23 @@ export default function StyleCarousel({ previewSrc, selectedId, onSelect, showFa
                     }
                   }}
                   aria-label={fav ? 'Remove from favorites' : 'Add to favorites'}
-                  className={`absolute top-2 right-2 w-7 h-7 rounded-full backdrop-blur flex items-center justify-center transition-all ${
-                    fav ? 'bg-paper text-red-500 scale-110' : 'bg-ink/35 text-paper/85 hover:bg-ink/55'
+                  className={`absolute top-1.5 left-1.5 w-6 h-6 rounded-xs bg-vf/60 flex items-center justify-center transition-opacity duration-150 focus:opacity-100 ${
+                    fav ? 'opacity-100 text-signal' : 'opacity-0 group-hover:opacity-100 text-paper'
                   }`}
                 >
-                  <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill={fav ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
-                    <path d="M12 21s-7.5-4.9-9.7-9A5.4 5.4 0 0 1 12 6.2 5.4 5.4 0 0 1 21.7 12c-2.2 4.1-9.7 9-9.7 9Z" />
-                  </svg>
+                  <IconHeart size={13} fill={fav ? 'currentColor' : 'none'} />
                 </span>
               )}
-              <div className="absolute bottom-0 inset-x-0 p-2.5">
-                <p className="text-paper font-semibold text-[13px] leading-tight">{style.name}</p>
-                <p className="text-paper/70 text-[10px] leading-snug mt-0.5 line-clamp-2">{style.tagline}</p>
-              </div>
-              {selected && (
-                <motion.div
-                  layoutId="style-selected-check"
-                  className="absolute bottom-2 right-2 w-5 h-5 rounded-full bg-violet flex items-center justify-center"
-                >
-                  <svg viewBox="0 0 12 12" className="w-3 h-3 text-paper" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M2.5 6.5l2.5 2.5 4.5-5" />
-                  </svg>
-                </motion.div>
-              )}
             </div>
-          </motion.button>
+            <div className="px-2.5 pt-2 pb-2.5">
+              <p className="flex items-center gap-1.5 font-mono text-[10px] font-medium tracking-[0.1em] uppercase text-fog">
+                {index}
+                {selected && <span className="w-1.5 h-1.5 rounded-full bg-signal inline-block" aria-hidden />}
+              </p>
+              <p className="font-semibold text-[13px] leading-tight mt-1 text-ink">{style.name}</p>
+              <p className="text-fog text-[11px] leading-snug mt-0.5 line-clamp-2 min-h-[2.6em]">{style.tagline}</p>
+            </div>
+          </button>
         )
       })}
     </div>

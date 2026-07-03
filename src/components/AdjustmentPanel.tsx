@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { IconCheck } from './icons'
 import { QUICK_PRESETS, type CameraStyle, type StyleParams } from '../lib/styles'
 import { useApp } from '../lib/store'
 
@@ -32,8 +33,8 @@ export default function AdjustmentPanel({ style, params, onChange }: Props) {
     <div className="space-y-5">
       {/* quick presets */}
       <div>
-        <p className="text-xs font-bold uppercase tracking-widest text-fog mb-2.5">Quick presets</p>
-        <div className="flex flex-wrap gap-2">
+        <p className="label-mono mb-2.5">Quick presets</p>
+        <div className="grid grid-cols-3 gap-2">
           {QUICK_PRESETS.map((p) => (
             <button
               key={p.id}
@@ -41,11 +42,9 @@ export default function AdjustmentPanel({ style, params, onChange }: Props) {
                 setActivePreset(p.id)
                 onChange(p.apply({ ...style.defaults }))
               }}
-              className={`pill-base px-3.5 py-1.5 text-[13px] ${
-                activePreset === p.id ? 'pill-primary' : 'pill-ghost'
-              }`}
+              className={`btn btn-sm w-full ${activePreset === p.id ? 'btn-primary' : 'btn-outline'}`}
             >
-              <span aria-hidden>{p.emoji}</span> {p.name}
+              {p.name}
             </button>
           ))}
         </div>
@@ -57,7 +56,7 @@ export default function AdjustmentPanel({ style, params, onChange }: Props) {
           <label key={key} className="block">
             <span className="flex items-baseline justify-between mb-1">
               <span className="text-[13px] font-medium text-ink-soft">{label}</span>
-              <span className="text-[11px] font-mono text-fog tabular-nums">{params[key]}</span>
+              <span className="value-mono">{params[key]}</span>
             </span>
             <input
               type="range"
@@ -89,9 +88,15 @@ export default function AdjustmentPanel({ style, params, onChange }: Props) {
             setSaved(true)
             setTimeout(() => setSaved(false), 1600)
           }}
-          className="pill-base pill-ghost px-4 py-2 text-[13px]"
+          className="btn btn-sm btn-outline"
         >
-          {saved ? '✓ Saved' : 'Save preset'}
+          {saved ? (
+            <>
+              <IconCheck size={13} /> Saved
+            </>
+          ) : (
+            'Save preset'
+          )}
         </button>
       </div>
     </div>

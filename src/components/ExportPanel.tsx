@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Modal from './Modal'
+import { IconDownload, IconShare } from './icons'
 import { canvasToBlob, renderStyled } from '../lib/engine'
 import { renderStyledVideo, videoExportSupported } from '../lib/video'
 import { deliverFile, haptic } from '../lib/native'
@@ -115,10 +116,10 @@ export default function ExportPanel({
       if (res.ok) {
         setDelivered(
           res.via === 'download'
-            ? '✓ Saved to downloads'
+            ? 'Saved to downloads'
             : res.via === 'open'
-              ? '✓ Opened — long-press to save'
-              : '✓ Sent to share sheet',
+              ? 'Opened — long-press to save'
+              : 'Sent to share sheet',
         )
         setTimeout(() => setDelivered(null), 2400)
       }
@@ -145,33 +146,40 @@ export default function ExportPanel({
   return (
     <Modal open={open} onClose={onClose} wide>
       <div className="p-6 sm:p-8">
-        <p className="text-xs font-bold uppercase tracking-widest text-violet mb-1">Developed ✦</p>
-        <h3 className="font-display text-2xl sm:text-3xl font-semibold mb-5">
+        <p className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-signal mb-1.5">
+          Developed
+        </p>
+        <h3 className="type-display text-2xl sm:text-3xl mb-5">
           Your {style.name} {isVideo ? 'clip' : 'shot'}
         </h3>
 
         <div className="grid sm:grid-cols-[1fr_260px] gap-6">
           {/* final preview */}
-          <div className="relative rounded-2xl overflow-hidden bg-mist flex items-center justify-center min-h-64">
+          <div className="relative bg-vf flex items-center justify-center min-h-64">
             {url ? (
               isVideo ? (
-                <video src={url} controls autoPlay loop playsInline className="lm-develop w-full max-h-[46dvh] object-contain bg-ink" />
+                <video src={url} controls autoPlay loop playsInline className="lm-develop w-full max-h-[46dvh] object-contain bg-vf" />
               ) : (
                 <img src={url} alt="Final export" className="lm-develop w-full max-h-[46dvh] object-contain" />
               )
             ) : renderError ? (
-              <div className="py-16 px-6 text-center text-sm text-fog">{renderError}</div>
+              <div className="py-16 px-6 text-center text-sm text-vf-chrome">{renderError}</div>
             ) : (
               <div className="py-20 px-8 w-full text-center">
-                <p className="text-fog text-sm lm-breathe mb-4">
+                <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-vf-chrome lm-breathe mb-4">
                   {isVideo ? 'Re-shooting every frame…' : 'Developing final export…'}
                 </p>
                 {isVideo && (
-                  <div className="w-full max-w-56 mx-auto h-1.5 rounded-full bg-cloud overflow-hidden">
-                    <div
-                      className="h-full bg-violet rounded-full transition-[width] duration-200"
-                      style={{ width: `${Math.round(progress * 100)}%` }}
-                    />
+                  <div className="w-full max-w-56 mx-auto flex items-center gap-3">
+                    <div className="flex-1 h-0.5 bg-hairline/30 overflow-hidden">
+                      <div
+                        className="h-full bg-signal transition-[width] duration-200"
+                        style={{ width: `${Math.round(progress * 100)}%` }}
+                      />
+                    </div>
+                    <span className="font-mono text-[11px] tabular-nums text-vf-chrome">
+                      {Math.round(progress * 100)}%
+                    </span>
                   </div>
                 )}
               </div>
@@ -180,42 +188,45 @@ export default function ExportPanel({
 
           {/* actions */}
           <div className="flex flex-col gap-2.5">
-            <button onClick={() => send(false)} disabled={rendering || !url} className="pill-base pill-violet px-5 py-3 text-sm disabled:opacity-50">
-              <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5M4 20h16" />
-              </svg>
+            <button onClick={() => send(false)} disabled={rendering || !url} className="btn btn-primary w-full">
+              <IconDownload size={15} />
               {isVideo ? `Save video (.${extension})` : hd ? 'Save HD photo' : 'Save photo'}
             </button>
-            <button onClick={() => send(true)} disabled={rendering || !url} className="pill-base pill-primary px-5 py-3 text-sm disabled:opacity-50">
+            <button onClick={() => send(true)} disabled={rendering || !url} className="btn btn-outline w-full">
+              <IconShare size={15} />
               Share to TikTok / Reels
             </button>
-            <button onClick={() => copy('caption')} className="pill-base pill-ghost px-5 py-3 text-sm">
-              {copied === 'caption' ? '✓ Caption copied' : 'Copy caption'}
-            </button>
-            <button onClick={() => copy('link')} className="pill-base pill-ghost px-5 py-3 text-sm">
-              {copied === 'link' ? '✓ Style link copied' : 'Copy style link'}
-            </button>
+            <div className="border-t border-hairline mt-1 pt-1.5 grid grid-cols-2">
+              <button onClick={() => copy('caption')} className="btn btn-quiet text-[12.5px]">
+                {copied === 'caption' ? 'Copied' : 'Copy caption'}
+              </button>
+              <button onClick={() => copy('link')} className="btn btn-quiet text-[12.5px]">
+                {copied === 'link' ? 'Copied' : 'Copy style link'}
+              </button>
+            </div>
             <button
               onClick={() => {
                 onClose()
                 onTryAnother()
               }}
-              className="pill-base pill-ghost px-5 py-3 text-sm"
+              className="btn btn-quiet w-full"
             >
               Try another style
             </button>
 
-            {delivered && <p className="text-center text-[13px] font-semibold text-violet">{delivered}</p>}
+            {delivered && (
+              <p className="text-center font-mono text-[12px] text-signal">{delivered}</p>
+            )}
 
-            <div className="mt-1 rounded-2xl bg-mist p-4">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-fog mb-1.5">Caption</p>
+            <div className="mt-1 panel p-4">
+              <p className="label-mono mb-1.5">Caption</p>
               <p className="text-[13px] text-ink-soft leading-relaxed">“{caption}”</p>
             </div>
 
             {!isPaid && (
               <p className="text-[12px] text-fog leading-relaxed">
                 Free exports carry a small “Shot on LensMood” mark.{' '}
-                <Link to="/pricing" onClick={onClose} className="text-violet font-semibold hover:underline">
+                <Link to="/pricing" onClick={onClose} className="text-ink underline underline-offset-2">
                   Go Creator
                 </Link>{' '}
                 to remove it.

@@ -275,38 +275,38 @@ export function renderStyled(
     out = fc
   }
 
-  /* 12 — watermark for free exports */
+  /* 12 — watermark for free exports: engraved mono plate, bottom-right */
   if (watermark) {
     const W = out.width
     const H = out.height
     const wx = out.getContext('2d')!
-    const fs = Math.max(11, Math.round(Math.max(W, H) * 0.02))
-    const pad = fs * 0.9
-    const text = 'Shot on LensMood'
+    const fs = Math.max(10, Math.round(Math.max(W, H) * 0.016))
+    const pad = fs * 0.8
+    const text = 'SHOT ON LENSMOOD'
     wx.save()
-    wx.font = `600 ${fs}px 'Inter Variable', system-ui, sans-serif`
-    const tw = wx.measureText(text).width
-    const bw = tw + pad * 2 + fs * 1.1
-    const bh = fs * 2.1
+    wx.font = `500 ${fs}px 'IBM Plex Mono', ui-monospace, monospace`
+    const letterSpace = fs * 0.12
+    const tw = wx.measureText(text).width + letterSpace * (text.length - 1)
+    const dot = fs * 0.34
+    const bw = tw + pad * 2 + dot * 2 + fs * 0.5
+    const bh = fs * 2.2
     const x = W - bw - fs
     const y = H - bh - fs
-    wx.fillStyle = 'rgba(12,12,16,0.55)'
+    wx.fillStyle = 'rgba(16,16,16,0.62)'
+    wx.fillRect(x, y, bw, bh)
+    // record dot
+    wx.fillStyle = '#E1251B'
     wx.beginPath()
-    wx.roundRect(x, y, bw, bh, bh / 2)
+    wx.arc(x + pad + dot, y + bh / 2, dot, 0, Math.PI * 2)
     wx.fill()
-    wx.fillStyle = '#fff'
+    // letter-spaced mono text
+    wx.fillStyle = 'rgba(246,245,241,0.95)'
     wx.textBaseline = 'middle'
-    wx.fillText(text, x + pad + fs * 1.1, y + bh / 2 + fs * 0.06)
-    // aperture dot
-    wx.strokeStyle = '#fff'
-    wx.lineWidth = Math.max(1.5, fs * 0.14)
-    wx.beginPath()
-    wx.arc(x + pad + fs * 0.42, y + bh / 2, fs * 0.42, 0, Math.PI * 2)
-    wx.stroke()
-    wx.fillStyle = '#a88bff'
-    wx.beginPath()
-    wx.arc(x + pad + fs * 0.42, y + bh / 2, fs * 0.18, 0, Math.PI * 2)
-    wx.fill()
+    let cx2 = x + pad + dot * 2 + fs * 0.5
+    for (const chch of text) {
+      wx.fillText(chch, cx2, y + bh / 2 + fs * 0.06)
+      cx2 += wx.measureText(chch).width + letterSpace
+    }
     wx.restore()
   }
 

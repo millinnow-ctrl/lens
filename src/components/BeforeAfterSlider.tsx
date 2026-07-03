@@ -77,25 +77,22 @@ export default function BeforeAfterSlider({
         <img src={after} alt="After" className="absolute inset-0 w-full h-full object-cover" draggable={false} />
       </div>
 
-      {/* labels */}
-      <span className="absolute top-3 left-3 text-[11px] font-semibold uppercase tracking-wider bg-ink/50 text-paper/95 backdrop-blur px-2.5 py-1 rounded-full pointer-events-none">
+      {/* labels — mono chrome slates */}
+      <span className="absolute top-3 left-3 font-mono text-[10px] font-medium tracking-[0.12em] uppercase bg-vf/65 text-paper/90 px-2 py-1 rounded-xs pointer-events-none">
         {beforeLabel}
       </span>
-      <span className="absolute top-3 right-3 text-[11px] font-semibold uppercase tracking-wider bg-violet/85 text-paper backdrop-blur px-2.5 py-1 rounded-full pointer-events-none inline-flex items-center gap-1">
-        <svg viewBox="0 0 12 12" className="w-2.5 h-2.5" fill="currentColor" aria-hidden>
-          <circle cx="6" cy="6" r="5" fill="none" stroke="currentColor" strokeWidth="1.4" />
-          <circle cx="6" cy="6" r="2" />
-        </svg>
+      <span className="absolute top-3 right-3 font-mono text-[10px] font-medium tracking-[0.12em] uppercase bg-vf/65 text-paper px-2 py-1 rounded-xs pointer-events-none inline-flex items-center gap-1.5">
+        <span className="w-1.5 h-1.5 rounded-full bg-signal inline-block" aria-hidden />
         {afterLabel}
       </span>
 
       {/* divider + handle */}
       <div
-        className="absolute top-0 bottom-0 w-0.5 bg-paper/90 shadow-[0_0_12px_rgba(0,0,0,0.35)] pointer-events-none"
+        className="absolute top-0 bottom-0 w-px bg-paper pointer-events-none"
         style={{ left: `${pos}%` }}
       >
-        <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-11 h-11 rounded-full bg-paper shadow-lg flex items-center justify-center text-ink">
-          <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-10 h-10 rounded-xs bg-surface border border-ink flex items-center justify-center text-ink">
+          <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square">
             <path d="M8 7l-5 5 5 5M16 7l5 5-5 5" />
           </svg>
         </div>

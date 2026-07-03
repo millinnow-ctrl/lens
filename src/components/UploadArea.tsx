@@ -2,13 +2,14 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import Modal from './Modal'
+import { IconCamera, IconFilm, IconUpload } from './icons'
 import { fileToDataURL } from '../lib/engine'
 import { MAX_VIDEO_SECONDS, probeVideo } from '../lib/video'
 import { captureWithNativeCamera, haptic, isNative } from '../lib/native'
 import { MAX_ROLL, useApp } from '../lib/store'
-import sampleGolden from '../assets/sample-golden.svg'
-import sampleStreet from '../assets/sample-street.svg'
-import sampleNight from '../assets/sample-night.svg'
+import sampleGolden from '../assets/sample-golden.jpg'
+import sampleStreet from '../assets/sample-street.jpg'
+import sampleNight from '../assets/sample-night.jpg'
 
 const SAMPLES = [
   { src: sampleGolden, label: 'Golden hour' },
@@ -104,10 +105,10 @@ export default function UploadArea() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="max-w-2xl mx-auto"
+      transition={{ duration: 0.15, ease: 'easeOut' }}
+      className="max-w-2xl"
     >
       <div
         onDragOver={(e) => {
@@ -121,35 +122,26 @@ export default function UploadArea() {
           acceptFiles(e.dataTransfer.files)
         }}
         onClick={() => inputRef.current?.click()}
-        className={`relative cursor-pointer rounded-[2rem] border-2 border-dashed transition-all duration-300 px-6 py-14 sm:py-18 text-center overflow-hidden ${
-          dragOver
-            ? 'border-violet bg-violet-soft scale-[1.01] shadow-[var(--shadow-glow)]'
-            : 'border-cloud bg-mist/60 hover:border-violet/50 hover:bg-violet-soft/40'
+        className={`relative cursor-pointer border border-dashed transition-colors duration-150 px-6 py-14 sm:py-18 text-center ${
+          dragOver ? 'border-signal bg-surface' : 'border-hairline bg-paper hover:border-ink'
         }`}
       >
-        {/* soft aperture glow */}
-        <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full bg-violet/10 blur-3xl pointer-events-none" />
+        <IconCamera size={40} className="mx-auto text-ink mb-6" />
 
-        <motion.div
-          animate={dragOver ? { scale: 1.08, rotate: 3 } : { scale: 1, rotate: 0 }}
-          className="mx-auto w-20 h-20 rounded-3xl bg-paper shadow-lg flex items-center justify-center mb-6"
-        >
-          <svg viewBox="0 0 24 24" className="w-9 h-9 text-violet" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="6" width="18" height="14" rx="3" />
-            <circle cx="12" cy="13" r="4" />
-            <path d="M8 6l1.2-2h5.6L16 6" />
-          </svg>
-        </motion.div>
-
-        <h2 className="font-display text-2xl sm:text-3xl font-semibold mb-2">Drop photos or a clip in</h2>
-        <p className="text-fog text-sm sm:text-base mb-6 max-w-sm mx-auto">
+        <h2 className="text-2xl sm:text-3xl font-semibold tracking-[-0.01em] mb-2">
+          Drop photos or a clip in
+        </h2>
+        <p className="text-ink-soft text-sm sm:text-[15px] leading-relaxed mb-6 max-w-sm mx-auto">
           Up to {MAX_ROLL} photos at once, or a short video (Pro). You can also paste a screenshot.
           Nothing leaves your device — the darkroom is your browser.
         </p>
         <div className="flex items-center justify-center gap-2.5 pointer-events-none">
-          <span className="pill-base pill-violet px-6 py-3 text-sm">Choose photos</span>
+          <span className="btn btn-primary">
+            <IconUpload size={16} />
+            Choose photos
+          </span>
           <span
-            className="pill-base pill-ghost bg-paper px-5 py-3 text-sm pointer-events-auto"
+            className="btn btn-outline pointer-events-auto"
             role="button"
             tabIndex={0}
             onClick={(e) => {
@@ -164,11 +156,7 @@ export default function UploadArea() {
               }
             }}
           >
-            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="6" width="18" height="14" rx="3" />
-              <circle cx="12" cy="13" r="4" />
-              <path d="M8 6l1.2-2h5.6L16 6" />
-            </svg>
+            <IconCamera size={16} />
             Take a photo
           </span>
         </div>
@@ -197,46 +185,45 @@ export default function UploadArea() {
         />
       </div>
 
-      {error && <p className="mt-4 text-center text-sm text-red-500 font-medium">{error}</p>}
+      {error && <p className="mt-4 text-[13px] text-signal font-medium">{error}</p>}
 
       <div className="mt-8">
-        <p className="text-center text-xs font-semibold uppercase tracking-widest text-fog mb-4">
-          No photo handy? Try a sample
-        </p>
-        <div className="flex justify-center gap-3 sm:gap-4">
-          {SAMPLES.map((sample, i) => (
-            <motion.button
+        <p className="label-mono mb-4">No photo handy — try a sample</p>
+        <div className="flex gap-3 sm:gap-4">
+          {SAMPLES.map((sample) => (
+            <button
               key={sample.label}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 + i * 0.08 }}
-              whileHover={{ y: -4, scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
               onClick={() => setImage(sample.src, sample.label)}
-              className="group relative w-24 sm:w-28 aspect-4/5 rounded-2xl overflow-hidden shadow-md"
+              className="group text-left"
             >
-              <img src={sample.src} alt={sample.label} className="w-full h-full object-cover" />
-              <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/70 to-transparent text-paper text-[11px] font-semibold py-2 text-center">
+              <span className="block w-24 sm:w-28 aspect-4/5 rounded-xs overflow-hidden ring-1 ring-hairline group-hover:ring-ink transition-shadow">
+                <img src={sample.src} alt={sample.label} className="w-full h-full object-cover" draggable={false} />
+              </span>
+              <span className="block mt-1.5 font-mono text-[10px] tracking-[0.1em] uppercase text-fog group-hover:text-ink transition-colors">
                 {sample.label}
               </span>
-            </motion.button>
+            </button>
           ))}
         </div>
       </div>
 
       {/* video is a Pro feature */}
       <Modal open={videoUpsell} onClose={() => setVideoUpsell(false)}>
-        <div className="p-8 text-center">
-          <div className="text-4xl mb-3">🎬</div>
-          <h3 className="font-display text-2xl font-semibold mb-2">Video moods are a Pro thing</h3>
-          <p className="text-sm text-fog mb-6 leading-relaxed">
+        <div className="p-8">
+          <IconFilm size={32} className="text-ink mb-4" />
+          <h3 className="text-2xl font-semibold tracking-[-0.01em] mb-2">Video moods are a Pro thing</h3>
+          <p className="text-sm text-ink-soft leading-relaxed mb-6">
             Restyle short clips frame-by-frame — camcorder timestamps, film grain that dances, the
             works. Included with Pro and Studio.
           </p>
-          <Link to="/pricing" onClick={() => setVideoUpsell(false)} className="pill-base pill-violet w-full px-5 py-3 text-sm mb-2.5">
+          <Link
+            to="/pricing"
+            onClick={() => setVideoUpsell(false)}
+            className="btn btn-primary w-full mb-2"
+          >
             See Pro — $15/mo
           </Link>
-          <button onClick={() => setVideoUpsell(false)} className="w-full text-[13px] font-medium text-fog hover:text-ink py-2 transition-colors">
+          <button onClick={() => setVideoUpsell(false)} className="btn btn-quiet w-full">
             Maybe later
           </button>
         </div>

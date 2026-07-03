@@ -8,6 +8,7 @@ import BeforeAfterSlider from '../components/BeforeAfterSlider'
 import VideoPreview from '../components/VideoPreview'
 import ExportPanel from '../components/ExportPanel'
 import Modal from '../components/Modal'
+import { IconFilm } from '../components/icons'
 import { loadImage, renderStyled, thumbnail } from '../lib/engine'
 import { haptic } from '../lib/native'
 import {
@@ -168,13 +169,14 @@ export default function Studio() {
   if (!hasMedia) {
     return (
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20 pb-28">
-        <div className="text-center mb-10">
-          <p className="text-xs font-bold uppercase tracking-widest text-violet mb-2">The Studio</p>
-          <h1 className="font-display text-3xl sm:text-5xl font-semibold tracking-tight">
+        <div className="mb-10">
+          <p className="label-mono mb-3">The Studio</p>
+          <h1 className="type-display text-3xl sm:text-5xl">
             Every photo has a mood.
             <br className="hidden sm:block" /> Let’s find yours.
           </h1>
         </div>
+        <hr className="rule mb-10" />
         <UploadArea />
       </main>
     )
@@ -189,17 +191,19 @@ export default function Studio() {
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_400px] gap-6 lg:gap-8 items-start">
         {/* ---------- preview column ---------- */}
         <div className="lg:sticky lg:top-20 min-w-0">
-          <div className="relative rounded-[2rem] overflow-hidden bg-[#0d0d12] shadow-lg min-h-[320px] flex items-center justify-center">
-            {/* subtle viewfinder chrome */}
-            <div className="absolute top-3.5 left-4 z-20 flex items-center gap-2 pointer-events-none">
-              <span className="font-mono text-[10px] tracking-widest text-white/50 uppercase">
+          <div className="bg-vf">
+            {/* viewfinder chrome strip */}
+            <div className="h-9 px-4 flex items-center justify-between gap-3 border-b border-white/12">
+              <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-vf-chrome truncate">
                 {style ? style.name : 'Original'}
               </span>
-            </div>
-            <div className="absolute top-3.5 right-4 z-20 font-mono text-[10px] tracking-widest text-white/40 pointer-events-none">
-              {video ? 'REC · 30fps' : 'f/1.4 · ISO 400'}
+              <span className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.14em] uppercase text-vf-chrome tabular-nums shrink-0">
+                {video && <span className="w-1.5 h-1.5 rounded-full bg-signal inline-block" aria-hidden />}
+                {video ? 'REC · 30FPS' : (style?.exif ?? 'READY · NO MOOD')}
+              </span>
             </div>
 
+            <div className="relative vf-corners overflow-hidden min-h-[320px] flex items-center justify-center">
             {/* media area */}
             {video ? (
               <VideoPreview
@@ -239,7 +243,7 @@ export default function Studio() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="absolute inset-0 z-20 bg-[#0d0d12]/72 backdrop-blur-md flex flex-col items-center justify-center gap-5"
+                  className="absolute inset-0 z-20 bg-vf/85 flex flex-col items-center justify-center gap-5"
                 >
                   <motion.svg
                     viewBox="0 0 48 48"
@@ -251,12 +255,12 @@ export default function Studio() {
                       <path
                         key={i}
                         d="M24 6 A18 18 0 0 1 39.6 15 L27 21.6 A6 6 0 0 0 24 21 Z"
-                        fill="#a88bff"
+                        fill="#f0efeb"
                         opacity={0.35 + (i / 6) * 0.65}
                         transform={`rotate(${i * 60} 24 24)`}
                       />
                     ))}
-                    <circle cx="24" cy="24" r="5" fill="#fff" />
+                    <circle cx="24" cy="24" r="5" fill="#E1251B" />
                   </motion.svg>
                   <AnimatePresence mode="wait">
                     <motion.p
@@ -264,14 +268,14 @@ export default function Studio() {
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -8 }}
-                      className="text-white/90 text-sm font-medium tracking-wide"
+                      className="font-mono text-[11px] tracking-[0.14em] uppercase text-white/90"
                     >
                       {GENERATION_STEPS[stepIndex]}
                     </motion.p>
                   </AnimatePresence>
-                  <div className="w-44 h-1 rounded-full bg-white/15 overflow-hidden">
+                  <div className="w-44 h-0.5 bg-white/15 overflow-hidden">
                     <motion.div
-                      className="h-full bg-violet rounded-full"
+                      className="h-full bg-signal"
                       initial={{ width: '4%' }}
                       animate={{ width: '96%' }}
                       transition={{ duration: 2.2, ease: 'easeInOut' }}
@@ -280,31 +284,45 @@ export default function Studio() {
                 </motion.div>
               )}
             </AnimatePresence>
+            </div>
           </div>
 
           {/* roll filmstrip */}
           {roll.length > 1 && (
-            <div className="mt-3 flex gap-2 overflow-x-auto no-scrollbar py-1">
-              {roll.map((item, i) => (
-                <button
-                  key={`${item.name}-${i}`}
-                  onClick={() => setActiveIndex(i)}
-                  className={`relative shrink-0 w-14 aspect-4/5 rounded-lg overflow-hidden transition-all ${
-                    i === activeIndex
-                      ? 'ring-2 ring-violet scale-105'
-                      : 'ring-1 ring-cloud opacity-70 hover:opacity-100'
-                  }`}
-                  aria-label={`Photo ${i + 1} of ${roll.length}`}
-                >
-                  <img src={item.url} alt="" className="w-full h-full object-cover" />
-                </button>
-              ))}
+            <div className="mt-3 flex gap-2.5 overflow-x-auto no-scrollbar py-1">
+              {roll.map((item, i) => {
+                const active = i === activeIndex
+                return (
+                  <button
+                    key={`${item.name}-${i}`}
+                    onClick={() => setActiveIndex(i)}
+                    className="shrink-0 flex flex-col items-stretch gap-1 group"
+                    aria-label={`Photo ${i + 1} of ${roll.length}`}
+                  >
+                    <span
+                      className={`block w-14 aspect-4/5 rounded-xs overflow-hidden border transition-opacity ${
+                        active ? 'border-ink' : 'border-hairline opacity-70 group-hover:opacity-100'
+                      }`}
+                    >
+                      <img src={item.url} alt="" className="w-full h-full object-cover" draggable={false} />
+                    </span>
+                    <span className={`block h-0.5 ${active ? 'bg-signal' : 'bg-transparent'}`} aria-hidden />
+                    <span
+                      className={`font-mono text-[10px] tracking-[0.1em] tabular-nums text-center ${
+                        active ? 'text-ink' : 'text-fog'
+                      }`}
+                    >
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
+                  </button>
+                )
+              })}
             </div>
           )}
 
           {/* view toggles + actions under preview */}
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="inline-flex rounded-full bg-mist p-1">
+            <div className="flex w-full sm:w-auto sm:inline-flex border border-hairline bg-surface divide-x divide-hairline">
               {(
                 [
                   { id: 'original', label: 'Original' },
@@ -314,13 +332,18 @@ export default function Studio() {
               ).map((t) => {
                 const disabled =
                   (t.id !== 'original' && phase !== 'done') || (t.id === 'compare' && !!video)
+                const active = view === t.id
                 return (
                   <button
                     key={t.id}
                     disabled={disabled}
                     onClick={() => setView(t.id)}
-                    className={`px-4 py-1.5 rounded-full text-[13px] font-semibold transition-all disabled:opacity-40 ${
-                      view === t.id ? 'bg-paper shadow-sm text-ink' : 'text-fog hover:text-ink'
+                    className={`px-4 h-8 text-[13px] font-semibold transition-colors flex-1 sm:flex-none ${
+                      active
+                        ? 'bg-ink text-surface' // selected stays ink even while others disable
+                        : disabled
+                          ? 'text-fog/60'
+                          : 'text-ink-soft hover:text-ink'
                     }`}
                   >
                     {t.label}
@@ -329,16 +352,16 @@ export default function Studio() {
               })}
             </div>
 
-            <div className="flex items-center gap-2">
-              <button onClick={clearMedia} className="pill-base pill-ghost px-4 py-2 text-[13px]">
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+              <button onClick={clearMedia} className="btn btn-quiet">
                 New photo
               </button>
               <button
                 onClick={() => setExportOpen(true)}
                 disabled={phase !== 'done'}
-                className="pill-base pill-violet px-5 py-2 text-[13px] disabled:opacity-40"
+                className="btn btn-primary"
               >
-                Export & share
+                Export
               </button>
             </div>
           </div>
@@ -346,11 +369,11 @@ export default function Studio() {
 
         {/* ---------- controls column ---------- */}
         <div className="space-y-6 min-w-0">
-          <section className="card p-5">
+          <section className="panel p-5">
             <div className="flex items-baseline justify-between mb-1">
-              <h2 className="font-display text-lg font-semibold">Camera mood</h2>
+              <h2 className="text-lg font-semibold tracking-[-0.01em]">Camera mood</h2>
               {!isPaid && (
-                <span className="text-[11px] font-semibold text-fog">
+                <span className="font-mono text-[10px] tracking-[0.1em] uppercase text-fog tabular-nums">
                   {creditsLeft} free {creditsLeft === 1 ? 'shot' : 'shots'} left
                 </span>
               )}
@@ -373,9 +396,9 @@ export default function Studio() {
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 8 }}
-                className="card p-5"
+                className="panel p-5"
               >
-                <h2 className="font-display text-lg font-semibold mb-1">Fine-tune</h2>
+                <h2 className="text-lg font-semibold tracking-[-0.01em] mb-1">Fine-tune</h2>
                 {video && (
                   <p className="text-[12px] text-fog mb-3">Adjustments apply to the clip live.</p>
                 )}
@@ -406,20 +429,17 @@ export default function Studio() {
 
       {/* paywall */}
       <Modal open={paywall} onClose={() => setPaywall(false)}>
-        <div className="p-8 text-center">
-          <div className="text-4xl mb-3">🎞️</div>
-          <h3 className="font-display text-2xl font-semibold mb-2">You’re out of free shots</h3>
-          <p className="text-sm text-fog mb-6 leading-relaxed">
+        <div className="p-8">
+          <IconFilm size={32} className="text-ink mb-4" />
+          <h3 className="text-2xl font-semibold tracking-[-0.01em] mb-2">You’re out of free shots</h3>
+          <p className="text-sm text-ink-soft leading-relaxed mb-6">
             Your 5 free developments reset next month — or go Creator for unlimited shots, no
             watermark, and every premium camera mood.
           </p>
-          <Link to="/pricing" className="pill-base pill-violet w-full px-5 py-3 text-sm mb-2.5">
+          <Link to="/pricing" className="btn btn-primary w-full mb-2">
             Upgrade — from $7/mo
           </Link>
-          <button
-            onClick={() => setPaywall(false)}
-            className="w-full text-[13px] font-medium text-fog hover:text-ink py-2 transition-colors"
-          >
+          <button onClick={() => setPaywall(false)} className="btn btn-quiet w-full">
             Maybe later
           </button>
         </div>

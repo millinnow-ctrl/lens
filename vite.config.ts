@@ -27,8 +27,8 @@ export default defineConfig({
         short_name: 'LensMood',
         description:
           'Upload a photo, choose a camera mood, and recreate the lighting, grain, color and vibe of iconic camera styles.',
-        theme_color: '#ffffff',
-        background_color: '#ffffff',
+        theme_color: '#f6f5f1',
+        background_color: '#f6f5f1',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',

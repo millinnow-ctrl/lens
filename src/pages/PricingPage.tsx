@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import Modal from '../components/Modal'
+import { IconCheck } from '../components/icons'
 import { useApp, type Plan } from '../lib/store'
 
 interface Tier {
@@ -78,6 +79,9 @@ export default function PricingPage() {
   const [checkout, setCheckout] = useState<Tier | null>(null)
   const [done, setDone] = useState(false)
 
+  // "Current plan" only makes sense once you actually have an account
+  const isCurrent = (tier: Tier) => plan === tier.id && (tier.id !== 'free' || !!user)
+
   const choose = (tier: Tier) => {
     if (tier.id === 'free') {
       navigate('/studio')
@@ -99,113 +103,125 @@ export default function PricingPage() {
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 py-14 sm:py-20 pb-28">
-      <div className="text-center mb-12">
-        <p className="text-xs font-bold uppercase tracking-widest text-violet mb-2">Pricing</p>
-        <h1 className="font-display text-4xl sm:text-6xl font-semibold tracking-tight mb-4">
-          Rent the camera bag.
-        </h1>
-        <p className="text-fog max-w-xl mx-auto">
+      <div className="mb-12 max-w-2xl">
+        <p className="label-mono mb-3">Pricing</p>
+        <h1 className="type-display text-4xl sm:text-6xl mb-4">Rent the camera bag.</h1>
+        <p className="text-ink-soft">
           Every plan is month-to-month. Cancel whenever — your photos keep the mood forever.
         </p>
       </div>
 
-      <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-4 border border-hairline bg-surface">
         {TIERS.map((tier, i) => {
-          const current = plan === tier.id
+          const current = isCurrent(tier)
           return (
             <motion.div
               key={tier.id}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.07 }}
-              className={`relative flex flex-col rounded-3xl p-6 ${
-                tier.highlight
-                  ? 'bg-ink text-paper shadow-2xl ring-1 ring-ink xl:-translate-y-3'
-                  : 'card'
+              transition={{ duration: 0.15, ease: 'easeOut', delay: i * 0.05 }}
+              className={`relative flex flex-col p-6 border-hairline border-t first:border-t-0 lg:border-t-0 lg:border-l lg:first:border-l-0 ${
+                tier.highlight ? 'bg-ink text-paper' : ''
               }`}
             >
-              {tier.highlight && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[11px] font-bold uppercase tracking-wide bg-violet text-paper px-3 py-1 rounded-full whitespace-nowrap">
-                  Most popular
-                </span>
-              )}
-              <h2 className={`font-display text-xl font-semibold ${tier.highlight ? '' : 'text-ink'}`}>
-                {tier.name}
-              </h2>
-              <p className={`text-[13px] mb-4 ${tier.highlight ? 'text-paper/60' : 'text-fog'}`}>
+              {/* reserved badge slot keeps titles/prices on shared baselines */}
+              <div className="h-5 mb-4">
+                {tier.highlight && (
+                  <span className="inline-flex items-center font-mono text-[10px] font-semibold tracking-[0.1em] uppercase px-1.5 py-0.5 rounded-xs border border-paper/70 text-paper">
+                    Most popular
+                  </span>
+                )}
+              </div>
+              <h2 className="font-sans font-semibold text-[16px]">{tier.name}</h2>
+              <p className={`text-[13px] mb-5 ${tier.highlight ? 'text-paper/60' : 'text-fog'}`}>
                 {tier.blurb}
               </p>
-              <p className="mb-5">
-                <span className="font-display text-4xl font-semibold">${tier.price}</span>
-                <span className={`text-sm ${tier.highlight ? 'text-paper/60' : 'text-fog'}`}>/month</span>
+              <p className="mb-6">
+                <span className="font-mono text-4xl tabular-nums">${tier.price}</span>
+                <span className={`text-[13px] ${tier.highlight ? 'text-paper/60' : 'text-fog'}`}>
+                  /month
+                </span>
               </p>
-              <ul className="space-y-2.5 mb-7 flex-1">
-                {tier.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2.5 text-[13.5px]">
-                    <svg viewBox="0 0 16 16" className={`w-4 h-4 mt-0.5 shrink-0 ${tier.highlight ? 'text-[#a88bff]' : 'text-violet'}`} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M3 8.5l3.5 3.5L13 5" />
-                    </svg>
-                    <span className={tier.highlight ? 'text-paper/85' : 'text-ink-soft'}>{f}</span>
-                  </li>
-                ))}
+              <ul className="mb-7 flex-1 divide-y divide-hairline/60 border-y border-hairline/60">
+                {tier.features.map((f) => {
+                  const caveat = f.toLowerCase().includes('watermark included') || f.includes('” watermark')
+                  return (
+                    <li key={f} className="flex items-start gap-2.5 text-[13px] py-2">
+                      {caveat ? (
+                        <span className={`mt-px shrink-0 font-mono text-[12px] leading-none ${tier.highlight ? 'text-paper/50' : 'text-fog'}`}>
+                          —
+                        </span>
+                      ) : (
+                        <IconCheck
+                          size={13}
+                          className={`mt-0.5 shrink-0 ${tier.highlight ? 'text-paper' : 'text-ink'}`}
+                        />
+                      )}
+                      <span className={tier.highlight ? 'text-paper/85' : 'text-ink-soft'}>{f}</span>
+                    </li>
+                  )
+                })}
               </ul>
               <button
                 onClick={() => choose(tier)}
                 disabled={current}
-                className={`pill-base w-full px-5 py-3 text-sm ${
+                className={`btn w-full ${
                   current
-                    ? 'bg-cloud text-fog cursor-default'
+                    ? tier.highlight
+                      ? 'border border-paper/50 text-paper/60 cursor-default'
+                      : 'btn-outline'
                     : tier.highlight
-                      ? 'pill-violet'
-                      : 'pill-primary'
+                      ? 'bg-paper text-ink hover:bg-white'
+                      : 'btn-primary'
                 }`}
               >
-                {current ? '✓ Current plan' : tier.cta}
+                {current ? 'Current plan' : tier.cta}
               </button>
             </motion.div>
           )
         })}
       </div>
 
-      <p className="text-center text-[13px] text-fog mt-10">
+      <p className="text-[13px] text-fog mt-8">
         Prices in USD. This is a demo — checkout is simulated and no card is ever asked for.
       </p>
 
       {/* mock checkout */}
       <Modal open={!!checkout} onClose={() => setCheckout(null)}>
-        <div className="p-8 text-center">
+        <div className="p-8">
           {!done ? (
             <>
-              <div className="text-4xl mb-3">🛒</div>
-              <h3 className="font-display text-2xl font-semibold mb-2">
-                {checkout?.name} — ${checkout?.price}/mo
+              <p className="label-mono mb-3">Checkout</p>
+              <h3 className="type-display text-2xl mb-2">
+                {checkout?.name} —{' '}
+                <span className="font-mono tabular-nums">${checkout?.price}</span>/mo
               </h3>
-              <p className="text-sm text-fog mb-6">
+              <p className="text-[13px] text-fog mb-6">
                 Demo checkout: one click, no card. In production this is where Stripe takes the
                 wheel.
               </p>
-              <button onClick={confirm} className="w-full pill-base pill-violet px-5 py-3 text-sm mb-2.5">
+              <button onClick={confirm} className="btn btn-primary w-full mb-2.5">
                 Confirm upgrade
               </button>
-              <button onClick={() => setCheckout(null)} className="w-full text-[13px] font-medium text-fog hover:text-ink py-2 transition-colors">
+              <button onClick={() => setCheckout(null)} className="btn btn-quiet w-full">
                 Cancel
               </button>
             </>
           ) : (
             <>
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 18 }} className="text-5xl mb-3">
-                🎉
-              </motion.div>
-              <h3 className="font-display text-2xl font-semibold mb-2">Welcome to {checkout?.name}</h3>
-              <p className="text-sm text-fog mb-6">
-                Watermarks off. Premium moods unlocked. Go make something worth posting.
+              <div className="w-12 h-12 mb-4 rounded-xs border border-signal text-signal flex items-center justify-center">
+                <IconCheck size={28} />
+              </div>
+              <h3 className="type-display text-2xl mb-2">Welcome to {checkout?.name}</h3>
+              <p className="text-[13px] text-fog mb-6">
+                Watermarks off. Premium moods unlocked.
               </p>
               <button
                 onClick={() => {
                   setCheckout(null)
                   navigate('/studio')
                 }}
-                className="w-full pill-base pill-primary px-5 py-3 text-sm"
+                className="btn btn-primary w-full"
               >
                 Open the studio
               </button>
