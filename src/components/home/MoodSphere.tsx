@@ -20,8 +20,10 @@ const CARD_W = 112
 const GAP = 14
 /** signed-distance clamp — cards beyond this ride the ring's far edge */
 const REACH = 2.2
-/** resting opacity of the wide elliptical ground shadow */
-const GROUND_OPACITY = 0.32
+/** resting opacity of the wide elliptical ground shadow — softness comes
+    from the gradient falloff itself (filter:blur on translucent layers
+    fails to rasterize on some GPUs, so the blur is baked into the stops) */
+const GROUND_OPACITY = 1
 
 /**
  * Look picker — the hero carousel. Native scroll-snap with a 3D ring
@@ -299,14 +301,15 @@ export default function MoodSphere({
             fades with scroll velocity (written directly in paint()) */}
         <div
           ref={groundRef}
-          className="absolute w-[260px] h-[26px] pointer-events-none rounded-[50%]"
+          className="absolute w-[280px] h-[30px] pointer-events-none rounded-[50%]"
           style={{
             left: '50%',
-            marginLeft: '-130px',
+            marginLeft: '-140px',
             bottom: '-9px',
-            background: 'radial-gradient(ellipse at center, rgb(0 0 0 / 0.9) 0%, transparent 70%)',
+            zIndex: 1, // paints above the scroller layer, below the cards (z ≥ 78)
+            background:
+              'radial-gradient(ellipse 50% 50% at center, rgb(0 0 0 / 0.30) 0%, rgb(0 0 0 / 0.22) 40%, rgb(0 0 0 / 0.09) 72%, rgb(0 0 0 / 0) 100%)',
             opacity: GROUND_OPACITY,
-            filter: 'blur(10px)',
             transition: 'transform 180ms ease-out, opacity 180ms ease-out',
             willChange: 'transform, opacity',
           }}
@@ -316,9 +319,9 @@ export default function MoodSphere({
         <div
           className="absolute left-1/2 -translate-x-1/2 bottom-[6px] w-[130px] h-[12px] pointer-events-none rounded-[50%]"
           style={{
-            background: 'radial-gradient(ellipse at center, rgb(76 29 149 / 0.9) 0%, transparent 70%)',
-            opacity: 0.24,
-            filter: 'blur(5px)',
+            zIndex: 1,
+            background:
+              'radial-gradient(ellipse 50% 50% at center, rgb(76 29 149 / 0.38) 0%, rgb(76 29 149 / 0.24) 55%, rgb(76 29 149 / 0) 100%)',
           }}
           aria-hidden
         />
