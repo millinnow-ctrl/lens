@@ -5,7 +5,7 @@ import { IconCheck, IconClose, IconFilm, IconTrash } from '../components/icons'
 import { loadImage, renderStyled } from '../lib/engine'
 import { CAMERA_STYLES, getStyle } from '../lib/styles'
 import { FREE_CREDITS, useApp } from '../lib/store'
-import sampleGolden from '../assets/sample-golden.jpg'
+import sampleFriends from '../assets/sample-friends.jpg'
 
 export default function Dashboard() {
   const {
@@ -28,14 +28,14 @@ export default function Dashboard() {
   const favStyles = CAMERA_STYLES.filter((s) => favorites.includes(s.id))
   const usedPct = isPaid ? 100 : ((FREE_CREDITS - creditsLeft) / FREE_CREDITS) * 100
 
-  // the featured card shows the real A24 grade, developed by the engine
+  // the featured card shows the real Tokyo Neon grade, developed by the engine
   const [featuredThumb, setFeaturedThumb] = useState<string | null>(null)
   useEffect(() => {
     let cancelled = false
-    loadImage(sampleGolden).then((img) => {
+    loadImage(sampleFriends).then((img) => {
       if (cancelled) return
-      const a24 = getStyle('a24-still')!
-      const canvas = renderStyled(img, a24, a24.defaults, { maxSize: 560 })
+      const neon = getStyle('tokyo-neon')!
+      const canvas = renderStyled(img, neon, neon.defaults, { maxSize: 560 })
       setFeaturedThumb(canvas.toDataURL('image/jpeg', 0.8))
     })
     return () => {
@@ -209,7 +209,11 @@ export default function Dashboard() {
                     {shot && thumb ? (
                       <>
                         <img src={thumb} alt={s.name} className="w-full h-full object-cover" />
-                        <span className="absolute bottom-1.5 right-1.5 w-[18px] h-[18px] rounded-full bg-white/95 shadow-sm flex items-center justify-center text-violet">
+                        <span className="absolute inset-x-0 bottom-0 h-[42%] bg-gradient-to-t from-black/65 to-transparent" />
+                        <span className="absolute bottom-1.5 inset-x-1.5 text-[10px] font-medium text-white leading-tight line-clamp-1">
+                          {s.name}
+                        </span>
+                        <span className="absolute top-1.5 right-1.5 w-[18px] h-[18px] rounded-full bg-white/95 shadow-sm flex items-center justify-center text-violet">
                           <IconCheck size={10} />
                         </span>
                       </>
@@ -228,10 +232,10 @@ export default function Dashboard() {
                       LM·{String(i + 1).padStart(2, '0')}
                     </span>
                     {!shot && s.tier === 'premium' && (
-                      <span className="absolute bottom-1.5 right-1.5 tag text-[8px]">PRO</span>
+                      <span className="absolute top-1.5 right-1.5 tag text-[8px]">PRO</span>
                     )}
                     {!shot && (
-                      <span className="absolute bottom-1.5 left-1.5 text-[10px] text-fog leading-tight pr-1 truncate max-w-[80%]">
+                      <span className="absolute bottom-1.5 inset-x-1.5 text-[10px] text-fog leading-tight line-clamp-2">
                         {s.name}
                       </span>
                     )}
@@ -314,14 +318,18 @@ export default function Dashboard() {
           {/* weekly mood */}
           <section className="bg-vf rounded-[24px] p-6 aura-soft">
             <p className="text-[12px] font-semibold grad-text mb-2">Featured this week</p>
-            <h3 className="font-sans font-semibold text-[18px] text-paper mb-3">A24 Movie Still</h3>
+            <h3 className="font-sans font-semibold text-[18px] text-paper mb-3">Tokyo Neon</h3>
             <img
-              src={featuredThumb ?? sampleGolden}
+              src={featuredThumb ?? sampleFriends}
               alt=""
               className="rounded-[14px] aspect-video object-cover w-full mb-4"
-              style={featuredThumb ? undefined : { filter: 'saturate(0.72) contrast(1.05) brightness(0.98)' }}
+              style={
+                featuredThumb
+                  ? undefined
+                  : { filter: 'saturate(1.35) contrast(1.2) hue-rotate(-10deg) brightness(0.96)' }
+              }
             />
-            <Link to="/studio?style=a24-still" className="btn w-full bg-white text-ink hover:bg-white/90">
+            <Link to="/studio?style=tokyo-neon" className="btn w-full bg-white text-ink hover:bg-white/90">
               Shoot it
             </Link>
           </section>

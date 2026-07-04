@@ -58,7 +58,9 @@ export default function Studio() {
   const style = getStyle(styleId)
   const generationTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const renderRaf = useRef(0)
-  const deepLinkUsed = useRef(false)
+  /** the exact search string already honored — lets a NEW deep link fire even
+   *  when a style from earlier in the session is still selected */
+  const deepLinkHandled = useRef<string | null>(null)
   const hasMedia = !!photo || !!video
 
   /* load the active photo into an Image element */
@@ -121,10 +123,16 @@ export default function Studio() {
   /* deep link: /studio?style=a24-still&p=90.30.55.46.0.58.0 (&daily=1 = today's free stock) */
   useEffect(() => {
     const pendingStyle = searchParams.get('style')
-    if (pendingStyle && (source || video) && !styleId && !deepLinkUsed.current) {
+    const key = searchParams.toString()
+    if (
+      pendingStyle &&
+      (source || video) &&
+      styleId !== pendingStyle &&
+      deepLinkHandled.current !== key
+    ) {
       const s = getStyle(pendingStyle)
       if (s) {
-        deepLinkUsed.current = true
+        deepLinkHandled.current = key
         const freeShot =
           searchParams.get('daily') === '1' && s.id === dailyStyle().id && !isDailyClaimed()
         if (freeShot) claimDaily()

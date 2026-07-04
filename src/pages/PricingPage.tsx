@@ -131,8 +131,9 @@ export default function PricingPage() {
               }
             >
               <div className="relative flex flex-col h-full p-6 bg-surface rounded-[24px]">
-                {/* reserved badge slot keeps titles/prices on shared baselines */}
-                <div className="h-5 mb-4">
+                {/* reserved badge slot keeps titles/prices on shared baselines —
+                    only where cards actually sit side by side */}
+                <div className={tier.highlight ? 'h-5 mb-4' : 'hidden lg:block h-5 mb-4'}>
                   {tier.highlight && (
                     <span className="inline-flex items-center text-[10px] font-semibold tracking-[0.08em] uppercase px-2.5 py-1 rounded-full grad-fill text-white">
                       Most popular
@@ -180,9 +181,7 @@ export default function PricingPage() {
         })}
       </div>
 
-      <p className="text-[13px] text-fog mt-8">
-        Prices in USD. This is a demo — checkout is simulated and no card is ever asked for.
-      </p>
+      <p className="text-[13px] text-fog mt-8">Prices in USD. Month-to-month, cancel anytime.</p>
 
       {/* mock checkout */}
       <Modal open={!!checkout} onClose={() => setCheckout(null)}>

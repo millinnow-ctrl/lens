@@ -262,7 +262,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
   {
     id: 'kodachrome',
     exif: 'F/5.6 · K64 SLIDE · 1/125',
-    name: 'Kodachrome 64',
+    name: 'Kodachrome',
     tagline: 'Rich color, clean shadows',
     description: 'The slide film that shot the sixties — dense reds, honest light, shadows that hold.',
     tier: 'premium',

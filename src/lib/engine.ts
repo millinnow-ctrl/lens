@@ -91,7 +91,8 @@ export function renderStyled(
   /* 1 — base color pass via canvas filters */
   const contrastAmt = 0.72 + (params.contrast / 100) * 0.62 // 0.72..1.34
   const filters = [
-    ch.bw ? `grayscale(${s})` : '',
+    // full mono by default intensity (80+); only easing below that keeps color
+    ch.bw ? `grayscale(${Math.min(1, s * 1.25).toFixed(3)})` : '',
     ch.sepia ? `sepia(${(ch.sepia * s).toFixed(3)})` : '',
     ch.hue ? `hue-rotate(${(ch.hue * s).toFixed(1)}deg)` : '',
     `saturate(${lerp(1, ch.saturate ?? 1, s).toFixed(3)})`,

@@ -101,12 +101,11 @@ export default function MoodSphere({
     })
   }, [])
 
-  /* rest on today's featured look */
+  /* rest on today's featured look — or the middle of a filtered deck, so
+     the stage never opens with a bare left half */
   useEffect(() => {
-    const idx = Math.max(
-      0,
-      styles.findIndex((s) => s.id === dailyId),
-    )
+    const found = styles.findIndex((s) => s.id === dailyId)
+    const idx = found > 0 ? found : Math.floor(n / 2)
     lastFront.current = -1
     requestAnimationFrame(() => {
       scrollToIndex(idx, false)
@@ -157,21 +156,21 @@ export default function MoodSphere({
           </defs>
           <ellipse cx="200" cy="45" rx="192" ry="38" fill="none" stroke="url(#orbit)" strokeWidth="2" />
         </svg>
-        {/* drifting sparkles around the stage */}
+        {/* drifting sparkles around the stage — behind the cards, off the captions */}
         <IconSparkle
           size={15}
-          className="lm-twinkle absolute top-1 left-[calc(50%+86px)] text-orchid pointer-events-none z-[110]"
+          className="lm-twinkle absolute top-2 left-[calc(50%+92px)] text-orchid pointer-events-none z-[5]"
         />
         <IconSparkle
           size={12}
-          className="lm-twinkle absolute bottom-9 left-[calc(50%-118px)] text-magenta pointer-events-none z-[110]"
+          className="lm-twinkle absolute bottom-0 left-[calc(50%-158px)] text-magenta pointer-events-none z-[5]"
           style={{ animationDelay: '1.2s' }}
         />
 
         <div
           ref={scrollerRef}
           onScroll={onScroll}
-          className="flex items-center gap-[14px] overflow-x-auto no-scrollbar snap-x snap-mandatory pt-12 pb-7"
+          className="flex items-center gap-[14px] overflow-x-auto no-scrollbar snap-x snap-mandatory pt-11 pb-6"
           style={{ paddingInline: `calc(50% - ${CARD_W / 2}px)` }}
           role="listbox"
           aria-label="Camera styles — swipe to browse"

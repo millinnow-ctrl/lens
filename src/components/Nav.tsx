@@ -67,9 +67,19 @@ export default function Nav() {
                 Sign in
               </button>
             )}
-            <Link to="/studio" className="btn btn-primary">
+            {/* the mobile tab bar already routes to the studio — avoid double CTAs
+                (and the pill shearing off the 390px viewport edge) */}
+            <Link to="/studio" className="btn btn-primary hidden sm:inline-flex">
               Open studio
             </Link>
+            {!isPaid && (
+              <Link
+                to="/pricing"
+                className="sm:hidden inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-violet/10 text-violet text-[12px] font-semibold tabular-nums"
+              >
+                Roll {creditsLeft}/{FREE_CREDITS}
+              </Link>
+            )}
           </div>
         </div>
       </header>
