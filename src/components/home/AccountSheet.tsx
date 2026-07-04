@@ -108,6 +108,8 @@ export default function AccountSheet({ open, onClose, container }: Props) {
                 { label: 'Your library', to: '/dashboard' },
                 { label: 'Plans & pricing', to: '/pricing' },
                 { label: 'Open the studio', to: '/studio' },
+                { label: 'Privacy', to: '/privacy' },
+                { label: 'Terms', to: '/terms' },
               ].map((l) => (
                 <Link
                   key={l.label}
@@ -130,6 +132,22 @@ export default function AccountSheet({ open, onClose, container }: Props) {
                   Sign out
                 </button>
               )}
+              {/* App Store 5.1.1(v): account creation requires in-app deletion */}
+              <button
+                onClick={() => {
+                  if (!window.confirm('Delete your account and all local data? This cannot be undone.'))
+                    return
+                  try {
+                    localStorage.clear()
+                  } catch {
+                    /* storage unavailable */
+                  }
+                  window.location.assign('/')
+                }}
+                className="w-full text-left py-3 text-[14px] font-medium text-[#c62828]"
+              >
+                Delete account & data
+              </button>
             </div>
           </motion.div>
         </motion.div>

@@ -115,6 +115,11 @@ const sectionIn = {
   animate: { opacity: 1, y: 0 },
 }
 
+/** the hero loop steps aside for reduced-motion users (and single-file previews) */
+const heroVideoEnabled = () =>
+  !import.meta.env.VITE_SINGLEFILE &&
+  !(typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+
 function HomeContent({
   onAccount,
   onUpload,
@@ -187,14 +192,7 @@ function HomeContent({
       {/* hero — the product itself, playing. gradient lives in the footage */}
       <motion.section {...sectionIn} transition={{ duration: 0.3 }} className="mt-2 px-5">
         <div className="relative rounded-[28px] overflow-hidden aspect-[4/3] bg-vf">
-          {import.meta.env.VITE_SINGLEFILE ? (
-            <img
-              src={heroPoster}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover"
-              draggable={false}
-            />
-          ) : (
+          {heroVideoEnabled() ? (
             <video
               src="/hero.mp4"
               poster={heroPoster}
@@ -202,7 +200,15 @@ function HomeContent({
               muted
               loop
               playsInline
+              aria-hidden
               className="absolute inset-0 w-full h-full object-cover"
+            />
+          ) : (
+            <img
+              src={heroPoster}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover"
+              draggable={false}
             />
           )}
           {/* heavy scrim — the footage is fast and bright, the words stay still */}

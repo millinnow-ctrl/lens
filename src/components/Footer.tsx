@@ -29,11 +29,10 @@ export default function Footer() {
             ],
           },
           {
-            title: 'Social',
+            title: 'Legal',
             links: [
-              { label: 'TikTok', to: '#' },
-              { label: 'Instagram', to: '#' },
-              { label: 'X', to: '#' },
+              { label: 'Privacy', to: '/privacy' },
+              { label: 'Terms', to: '/terms' },
             ],
           },
         ].map((col) => (
@@ -57,7 +56,7 @@ export default function Footer() {
         ))}
       </div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 border-t border-ink/5 flex items-center justify-between text-[12px] text-fog">
-        <span>© 2026 LensMood</span>
+        <span>© 2026 LensMood · Photos never leave your device</span>
         <span className="value-mono tabular-nums">f/1.4 · ISO 400 · 1/125</span>
       </div>
     </footer>

@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import Modal from '../components/Modal'
 import { IconCheck } from '../components/icons'
 import { useApp, type Plan } from '../lib/store'
+import { purchaseNative, requiresAppStoreBilling, restorePurchases } from '../lib/purchases'
 
 interface Tier {
   id: Plan
@@ -78,11 +79,13 @@ export default function PricingPage() {
   const navigate = useNavigate()
   const [checkout, setCheckout] = useState<Tier | null>(null)
   const [done, setDone] = useState(false)
+  const [restoreMsg, setRestoreMsg] = useState<string | null>(null)
+  const appStore = requiresAppStoreBilling()
 
   // "Current plan" only makes sense once you actually have an account
   const isCurrent = (tier: Tier) => plan === tier.id && (tier.id !== 'free' || !!user)
 
-  const choose = (tier: Tier) => {
+  const choose = async (tier: Tier) => {
     if (tier.id === 'free') {
       navigate('/studio')
       return
@@ -91,8 +94,27 @@ export default function PricingPage() {
       setAuthOpen(true)
       return
     }
+    // on iOS, subscriptions must go through Apple In-App Purchase (3.1.1)
+    if (appStore) {
+      const res = await purchaseNative(tier.id)
+      if (res.ok) setPlan(res.plan)
+      else if (res.reason === 'unavailable')
+        setRestoreMsg('Subscriptions arrive with the App Store release.')
+      return
+    }
     setCheckout(tier)
     setDone(false)
+  }
+
+  const restore = async () => {
+    const restored = await restorePurchases()
+    if (restored) {
+      setPlan(restored)
+      setRestoreMsg('Purchases restored.')
+    } else {
+      setRestoreMsg('Nothing to restore on this Apple ID.')
+    }
+    setTimeout(() => setRestoreMsg(null), 3000)
   }
 
   const confirm = () => {
@@ -181,7 +203,19 @@ export default function PricingPage() {
         })}
       </div>
 
-      <p className="text-[13px] text-fog mt-8">Prices in USD. Month-to-month, cancel anytime.</p>
+      <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2">
+        <p className="text-[13px] text-fog">
+          {appStore
+            ? 'Billed through your Apple ID. Manage or cancel in Settings.'
+            : 'Prices in USD. Month-to-month, cancel anytime.'}
+        </p>
+        {appStore && (
+          <button onClick={restore} className="text-[13px] font-semibold text-violet">
+            Restore purchases
+          </button>
+        )}
+        {restoreMsg && <p className="text-[13px] font-semibold text-ink-soft">{restoreMsg}</p>}
+      </div>
 
       {/* mock checkout */}
       <Modal open={!!checkout} onClose={() => setCheckout(null)}>

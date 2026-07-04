@@ -11,6 +11,7 @@ import Home from './pages/Home'
 import Studio from './pages/Studio'
 import PricingPage from './pages/PricingPage'
 import Dashboard from './pages/Dashboard'
+import { PrivacyPage, TermsPage } from './pages/LegalPage'
 import { isNative } from './lib/native'
 
 function ScrollManager() {
@@ -61,6 +62,8 @@ export default function App() {
           <Route path="/studio" element={<Studio />} />
           <Route path="/pricing" element={<PricingPage />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
           <Route path="*" element={<RootRoute />} />
         </Routes>
       </div>
