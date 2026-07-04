@@ -83,7 +83,7 @@ export default function StyleCarousel({ previewSrc, selectedId, onSelect, showFa
               <p className="font-semibold text-[13px] leading-tight mt-1 text-ink">
                 {style.name}
                 {style.tier === 'premium' && (
-                  <span className="text-fog text-[10px] font-medium"> · Pro</span>
+                  <span className="text-fog text-[10px] font-medium whitespace-nowrap"> · Pro</span>
                 )}
               </p>
               <p className="text-fog text-[11px] leading-snug mt-0.5 line-clamp-2 min-h-[2.6em]">{style.tagline}</p>

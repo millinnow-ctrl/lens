@@ -251,7 +251,7 @@ export default function MoodSphere({
                     <p className="text-white font-semibold text-[12.5px] leading-tight drop-shadow-sm">
                       {s.name}
                       {s.tier === 'premium' && (
-                        <span className="text-white/60 text-[10px] font-medium"> · Pro</span>
+                        <span className="text-white/60 text-[10px] font-medium whitespace-nowrap"> · Pro</span>
                       )}
                     </p>
                     <p className="text-white/70 text-[9.5px] leading-tight mt-0.5">{s.tagline}</p>

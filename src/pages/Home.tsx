@@ -186,7 +186,7 @@ function HomeContent({
 
       {/* hero — the product itself, playing. gradient lives in the footage */}
       <motion.section {...sectionIn} transition={{ duration: 0.3 }} className="mt-2 px-5">
-        <div className="relative rounded-[28px] overflow-hidden aspect-[4/5] bg-vf">
+        <div className="relative rounded-[28px] overflow-hidden aspect-[4/3] bg-vf">
           {import.meta.env.VITE_SINGLEFILE ? (
             <img
               src={heroPoster}
@@ -205,17 +205,26 @@ function HomeContent({
               className="absolute inset-0 w-full h-full object-cover"
             />
           )}
-          <div className="absolute inset-x-0 bottom-0 h-[58%] bg-gradient-to-t from-black/75 via-black/30 to-transparent" />
-          <div className="absolute inset-x-0 bottom-0 p-5">
-            <h1 className="type-display text-[30px] text-white">Every photo has a mood.</h1>
-            <p className="text-[13.5px] text-white/75 mt-1">
+          {/* heavy scrim — the footage is fast and bright, the words stay still */}
+          <div className="absolute inset-x-0 bottom-0 h-[68%] bg-gradient-to-t from-black/85 via-black/45 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 p-4">
+            <h1
+              className="type-display text-[24px] text-white"
+              style={{ textShadow: '0 1px 12px rgb(0 0 0 / 0.5)' }}
+            >
+              Every photo has a mood.
+            </h1>
+            <p
+              className="text-[12.5px] text-white/85 mt-0.5"
+              style={{ textShadow: '0 1px 8px rgb(0 0 0 / 0.55)' }}
+            >
               {CAMERA_STYLES.length} camera looks, developed on your phone.
             </p>
             <button
               onClick={onUpload}
-              className="btn btn-lg gap-2.5 border-0 grad-fill text-white mt-4 shadow-[0_6px_20px_rgb(139_92_246/0.35)]"
+              className="btn gap-2 border-0 bg-white text-ink mt-3 shadow-[0_4px_18px_rgb(0_0_0/0.4)]"
             >
-              <IconUpload size={17} />
+              <IconUpload size={16} />
               Start with a photo
             </button>
           </div>
