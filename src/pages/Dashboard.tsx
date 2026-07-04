@@ -22,6 +22,7 @@ export default function Dashboard() {
     setAuthOpen,
     signOut,
     setPendingPreset,
+    tried,
   } = useApp()
 
   const favStyles = CAMERA_STYLES.filter((s) => favorites.includes(s.id))
@@ -181,6 +182,61 @@ export default function Dashboard() {
                 ))}
               </ul>
             )}
+          </section>
+
+          {/* the case — 9-mood collection */}
+          <section className="panel p-6">
+            <div className="flex items-baseline justify-between mb-4">
+              <h2 className="font-sans font-semibold text-[16px]">The case</h2>
+              <span className="value-mono uppercase tracking-[0.08em] tabular-nums">
+                {tried.length}/{CAMERA_STYLES.length} stocks shot
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2.5">
+              {CAMERA_STYLES.map((s, i) => {
+                const shot = tried.includes(s.id)
+                const thumb = history.find((h) => h.styleId === s.id)?.thumb
+                return (
+                  <Link
+                    key={s.id}
+                    to={`/studio?style=${s.id}`}
+                    className={`relative aspect-4/5 rounded-xs overflow-hidden border transition-colors ${
+                      shot ? 'border-ink' : 'border-dashed border-hairline hover:border-ink'
+                    }`}
+                  >
+                    {shot && thumb ? (
+                      <img src={thumb} alt={s.name} className="w-full h-full object-cover" />
+                    ) : shot ? (
+                      <span className="absolute inset-0 bg-ink flex items-center justify-center">
+                        <svg viewBox="0 0 12 12" width="14" height="14" fill="none" stroke="#F6F5F1" strokeWidth="2" strokeLinecap="square">
+                          <path d="M2.5 6.5l2.5 2.5 4.5-5" />
+                        </svg>
+                      </span>
+                    ) : null}
+                    <span
+                      className={`absolute top-1.5 left-1.5 font-mono text-[9px] tracking-[0.08em] ${
+                        shot ? 'text-white bg-vf/60 px-1 py-0.5 rounded-xs' : 'text-fog'
+                      }`}
+                    >
+                      LM·{String(i + 1).padStart(2, '0')}
+                    </span>
+                    {!shot && s.tier === 'premium' && (
+                      <span className="absolute bottom-1.5 right-1.5 tag text-[8px]">PRO</span>
+                    )}
+                    {!shot && (
+                      <span className="absolute bottom-1.5 left-1.5 text-[10px] text-fog leading-tight pr-1 truncate max-w-[80%]">
+                        {s.name}
+                      </span>
+                    )}
+                  </Link>
+                )
+              })}
+            </div>
+            <p className="text-fog text-[12px] mt-3">
+              {tried.length === CAMERA_STYLES.length
+                ? 'Full case. Every stock, shot.'
+                : 'The case doesn’t fill itself.'}
+            </p>
           </section>
 
           {/* favorite styles */}

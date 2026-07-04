@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import Header from '../components/home/Header'
 import SearchBar from '../components/home/SearchBar'
 import CategoryChips, { CATEGORY_STYLES, type CategoryId } from '../components/home/CategoryChips'
 import RecentProjectCard from '../components/home/RecentProjectCard'
+import MoodSphere from '../components/home/MoodSphere'
 import ToolCard from '../components/home/ToolCard'
 import FloatingCTA from '../components/home/FloatingCTA'
 import BottomNav from '../components/home/BottomNav'
@@ -12,9 +13,10 @@ import UploadModal from '../components/home/UploadModal'
 import AccountSheet from '../components/home/AccountSheet'
 import PhoneFrame from '../components/home/PhoneFrame'
 import BeforeAfterSlider from '../components/BeforeAfterSlider'
-import { IconChevronRight } from '../components/icons'
+import { IconChevronRight, IconSparkle } from '../components/icons'
 import { loadImage, renderStyled } from '../lib/engine'
-import { CAMERA_STYLES, getStyle } from '../lib/styles'
+import { dailyRecipe, dailyStyle, isDailyClaimed, jitterParams } from '../lib/lab'
+import { CAMERA_STYLES, encodeParams, getStyle, type CameraStyle } from '../lib/styles'
 import { useStyleThumbs } from '../lib/useStyleThumbs'
 import { useApp } from '../lib/store'
 import sampleGolden from '../assets/sample-golden.jpg'
@@ -63,8 +65,20 @@ function HomeContent({
   category: CategoryId
   setCategory: (c: CategoryId) => void
 }) {
-  const { history } = useApp()
+  const { history, tried, streak } = useApp()
   const thumbs = useStyleThumbs(THUMB_SOURCES, 360)
+  const navigate = useNavigate()
+  const [spinSeed, setSpinSeed] = useState(0)
+  const daily = dailyStyle()
+  const dailyDone = isDailyClaimed()
+
+  const openMood = (style: CameraStyle) => navigate(`/studio?style=${style.id}`)
+  const onSpinEnd = (style: CameraStyle) => {
+    // let the landing read for a beat, then develop with a surprise recipe
+    setTimeout(() => {
+      navigate(`/studio?style=${style.id}&p=${encodeParams(jitterParams(style))}`)
+    }, 550)
+  }
 
   /* hero demo: the golden sample developed as an A24 still, by the real engine */
   const [demoAfter, setDemoAfter] = useState<string | null>(null)
@@ -101,20 +115,83 @@ function HomeContent({
       <SearchBar value={query} onChange={setQuery} />
       <CategoryChips active={category} onSelect={setCategory} />
 
-      {/* keep creating */}
-      <motion.section {...sectionIn} transition={{ duration: 0.3, delay: 0.05 }} className="mt-6">
-        <div className="flex items-center justify-between px-4 mb-2.5">
-          <h2 className="text-[17px] font-bold tracking-[-0.01em]">
-            {showResume ? 'Keep creating' : 'Camera moods'}
-          </h2>
-          <Link to="/studio" className="flex items-center gap-0.5 text-[13px] font-semibold text-ink-soft">
-            See all
-            <IconChevronRight size={12} />
-          </Link>
+      {/* the mood sphere */}
+      <motion.section {...sectionIn} transition={{ duration: 0.3, delay: 0.05 }} className="mt-5">
+        <div className="flex items-center justify-between px-4 mb-1">
+          <h2 className="text-[17px] font-bold tracking-[-0.01em]">Camera moods</h2>
+          <button
+            onClick={() => setSpinSeed((v) => v + 1)}
+            className="flex items-center gap-1.5 text-[13px] font-semibold text-ink"
+          >
+            <IconSparkle size={14} className="text-signal" />
+            Surprise me
+          </button>
         </div>
-        <div className="flex gap-3 overflow-x-auto no-scrollbar snap-x px-4 pb-1">
-          {showResume &&
-            history.slice(0, 3).map((h) => (
+        {moods.length > 0 ? (
+          <MoodSphere
+            styles={moods}
+            thumbs={thumbs}
+            fallbackImage={sampleGolden}
+            tried={tried}
+            dailyId={daily.id}
+            onOpen={openMood}
+            spinSeed={spinSeed}
+            onSpinEnd={onSpinEnd}
+          />
+        ) : (
+          <div className="mx-4 hm-tile px-4 py-5 text-[13px] text-ink-soft">
+            Nothing matches “{query}” here yet.
+          </div>
+        )}
+      </motion.section>
+
+      {/* today's stock — free daily develop, gone at midnight */}
+      <motion.section {...sectionIn} transition={{ duration: 0.3, delay: 0.08 }} className="mt-5 px-4">
+        <div className="bg-vf rounded-[20px] p-4 flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2.5">
+              <p className="font-mono text-[10px] font-semibold tracking-[0.14em] uppercase text-signal">
+                Today’s stock — gone at midnight
+              </p>
+              {streak.count >= 1 && (
+                <p className="flex items-center gap-1 font-mono text-[10px] tracking-[0.1em] uppercase text-vf-chrome tabular-nums">
+                  <span className="w-1.5 h-1.5 rounded-full bg-signal inline-block" />
+                  Day {String(streak.count).padStart(2, '0')} on roll
+                </p>
+              )}
+            </div>
+            <p className="text-white font-bold text-[15px] mt-1 leading-tight truncate">{daily.name}</p>
+            <p className="font-mono text-[10px] tracking-[0.06em] text-vf-chrome mt-0.5 tabular-nums truncate">
+              INT {String(dailyRecipe().intensity).padStart(2, '0')} · GRN{' '}
+              {String(dailyRecipe().grain).padStart(2, '0')} · WRM{' '}
+              {String(dailyRecipe().warmth).padStart(2, '0')}
+            </p>
+          </div>
+          <button
+            onClick={() =>
+              navigate(`/studio?style=${daily.id}&p=${encodeParams(dailyRecipe())}${dailyDone ? '' : '&daily=1'}`)
+            }
+            className={`hm-press shrink-0 h-10 px-4 rounded-full text-[13px] font-semibold ${
+              dailyDone ? 'bg-white/12 text-white/80' : 'bg-white text-ink'
+            }`}
+          >
+            {dailyDone ? 'Shot today' : 'Shoot free'}
+          </button>
+        </div>
+      </motion.section>
+
+      {/* keep creating — resume shelf (only when there's history) */}
+      {showResume && (
+        <motion.section {...sectionIn} transition={{ duration: 0.3, delay: 0.08 }} className="mt-6">
+          <div className="flex items-center justify-between px-4 mb-2.5">
+            <h2 className="text-[17px] font-bold tracking-[-0.01em]">Keep creating</h2>
+            <Link to="/dashboard" className="flex items-center gap-0.5 text-[13px] font-semibold text-ink-soft">
+              See all
+              <IconChevronRight size={12} />
+            </Link>
+          </div>
+          <div className="flex gap-3 overflow-x-auto no-scrollbar snap-x px-4 pb-1">
+            {history.slice(0, 6).map((h) => (
               <RecentProjectCard
                 key={h.id}
                 to={`/studio?style=${h.styleId}`}
@@ -123,23 +200,9 @@ function HomeContent({
                 sublabel="Resume"
               />
             ))}
-          {moods.map((s) => (
-            <RecentProjectCard
-              key={s.id}
-              to={`/studio?style=${s.id}`}
-              image={thumbs[s.id] ?? sampleGolden}
-              filter={thumbs[s.id] ? undefined : s.cardFilter}
-              label={s.name}
-              sublabel={s.tier === 'premium' ? 'Pro' : 'Free'}
-            />
-          ))}
-          {moods.length === 0 && (
-            <div className="hm-tile px-4 py-5 text-[13px] text-ink-soft">
-              Nothing matches “{query}” here yet.
-            </div>
-          )}
-        </div>
-      </motion.section>
+          </div>
+        </motion.section>
+      )}
 
       {/* start with a tool */}
       <motion.section {...sectionIn} transition={{ duration: 0.3, delay: 0.1 }} className="mt-6 px-4">

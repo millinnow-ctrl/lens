@@ -45,7 +45,7 @@ export default function Nav() {
                 className="hidden sm:inline font-mono text-[11px] tracking-[0.08em] text-ink-soft hover:text-ink transition-colors tabular-nums"
                 title="Free shots remaining this month"
               >
-                {creditsLeft}/{FREE_CREDITS} FREE
+                ROLL {creditsLeft}/{FREE_CREDITS}
               </Link>
             )}
             {isPaid && (

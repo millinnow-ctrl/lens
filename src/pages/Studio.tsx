@@ -10,6 +10,7 @@ import ExportPanel from '../components/ExportPanel'
 import Modal from '../components/Modal'
 import { IconFilm } from '../components/icons'
 import { loadImage, renderStyled, thumbnail } from '../lib/engine'
+import { claimDaily, dailyStyle, isDailyClaimed } from '../lib/lab'
 import { haptic } from '../lib/native'
 import {
   GENERATION_STEPS,
@@ -83,9 +84,9 @@ export default function Studio() {
   }, [video])
 
   const beginGeneration = useCallback(
-    (s: CameraStyle, presetParams?: StyleParams) => {
+    (s: CameraStyle, presetParams?: StyleParams, freeShot = false) => {
       if (!source && !video) return
-      if (!spendCredit()) {
+      if (!freeShot && !spendCredit()) {
         setPaywall(true)
         return
       }
@@ -117,14 +118,17 @@ export default function Studio() {
     [source, video, videoPoster, spendCredit, selectStyle, addHistory],
   )
 
-  /* deep link: /studio?style=a24-still&p=90.30.55.46.0.58.0 */
+  /* deep link: /studio?style=a24-still&p=90.30.55.46.0.58.0 (&daily=1 = today's free stock) */
   useEffect(() => {
     const pendingStyle = searchParams.get('style')
     if (pendingStyle && (source || video) && !styleId && !deepLinkUsed.current) {
       const s = getStyle(pendingStyle)
       if (s) {
         deepLinkUsed.current = true
-        beginGeneration(s, decodeParams(searchParams.get('p')) ?? undefined)
+        const freeShot =
+          searchParams.get('daily') === '1' && s.id === dailyStyle().id && !isDailyClaimed()
+        if (freeShot) claimDaily()
+        beginGeneration(s, decodeParams(searchParams.get('p')) ?? undefined, freeShot)
       }
     }
   }, [source, video, searchParams, styleId, beginGeneration])

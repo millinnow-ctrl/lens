@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import Modal from './Modal'
 import { ApertureMark } from './Logo'
-import { IconGoogle } from './icons'
+import { IconApple, IconGoogle } from './icons'
+import { haptic } from '../lib/native'
 import { useApp } from '../lib/store'
 
 export default function AuthModal() {
@@ -9,6 +10,7 @@ export default function AuthModal() {
   const [email, setEmail] = useState('')
 
   const submit = (name: string, mail: string) => {
+    haptic('light')
     signIn({ name, email: mail })
     setAuthOpen(false)
   }
@@ -24,6 +26,14 @@ export default function AuthModal() {
           Save your shots, presets and favorite moods across devices.
         </p>
 
+        {/* Apple first — HIG requires prominence when offered on iOS */}
+        <button
+          onClick={() => submit('Alex', 'alex@icloud.com')}
+          className="btn w-full mb-2.5 bg-black text-white border border-black hover:bg-[#1a1a1a]"
+        >
+          <IconApple size={17} className="-mt-0.5" />
+          Continue with Apple
+        </button>
         <button
           onClick={() => submit('Alex', 'alex@example.com')}
           className="btn btn-outline w-full mb-4"

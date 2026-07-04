@@ -48,6 +48,10 @@ interface Persisted {
   presets: SavedPreset[]
   favorites: string[]
   user: User | null
+  /** every mood ever developed — fuels the collection meter */
+  tried: string[]
+  /** consecutive-day shooting streak */
+  streak: { count: number; last: string }
 }
 
 const KEY = 'lensmood.v1'
@@ -65,6 +69,8 @@ function loadPersisted(): Persisted {
     presets: [],
     favorites: [],
     user: null,
+    tried: [],
+    streak: { count: 0, last: '' },
   }
   try {
     const raw = localStorage.getItem(KEY)
@@ -241,13 +247,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [persisted.plan, persisted.creditsUsed])
 
   const addHistory = useCallback((e: Omit<HistoryEntry, 'id' | 'date'>) => {
-    setPersisted((prev) => ({
-      ...prev,
-      history: [
-        { ...e, id: Math.random().toString(36).slice(2, 10), date: Date.now() },
-        ...prev.history,
-      ].slice(0, 12),
-    }))
+    setPersisted((prev) => {
+      const today = new Date().toISOString().slice(0, 10)
+      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+      const streak =
+        prev.streak.last === today
+          ? prev.streak
+          : { count: prev.streak.last === yesterday ? prev.streak.count + 1 : 1, last: today }
+      return {
+        ...prev,
+        history: [
+          { ...e, id: Math.random().toString(36).slice(2, 10), date: Date.now() },
+          ...prev.history,
+        ].slice(0, 12),
+        tried: prev.tried.includes(e.styleId) ? prev.tried : [...prev.tried, e.styleId],
+        streak,
+      }
+    })
   }, [])
 
   const removeHistory = useCallback((id: string) => {

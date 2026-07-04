@@ -79,9 +79,9 @@ export default function AccountSheet({ open, onClose, container }: Props) {
             {!isPaid && (
               <div className="rounded-2xl bg-[#F2F2EF] p-4 mb-3">
                 <div className="flex items-baseline justify-between mb-2">
-                  <span className="text-[13px] font-semibold">Free shots</span>
+                  <span className="text-[13px] font-semibold">This month’s roll</span>
                   <span className="text-[12px] tabular-nums text-ink-soft">
-                    {creditsLeft} of {FREE_CREDITS} left
+                    {creditsLeft} of {FREE_CREDITS} frames left
                   </span>
                 </div>
                 <div className="h-1 rounded-full bg-[#E4E4DF] overflow-hidden mb-3">
