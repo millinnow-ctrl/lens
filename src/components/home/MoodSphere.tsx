@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { haptic } from '../../lib/native'
-import { IconSparkle } from '../icons'
 import type { CameraStyle } from '../../lib/styles'
 
 interface Props {
@@ -197,24 +196,14 @@ export default function MoodSphere({
           <defs>
             <linearGradient id="orbit" x1="0" y1="0" x2="1" y2="0">
               <stop offset="0" stopColor="#60a5fa" stopOpacity="0" />
-              <stop offset="0.2" stopColor="#8b5cf6" stopOpacity="0.55" />
-              <stop offset="0.5" stopColor="#d946ef" stopOpacity="0.7" />
-              <stop offset="0.8" stopColor="#ec4899" stopOpacity="0.55" />
+              <stop offset="0.2" stopColor="#8b5cf6" stopOpacity="0.275" />
+              <stop offset="0.5" stopColor="#d946ef" stopOpacity="0.35" />
+              <stop offset="0.8" stopColor="#ec4899" stopOpacity="0.275" />
               <stop offset="1" stopColor="#ec4899" stopOpacity="0" />
             </linearGradient>
           </defs>
           <ellipse cx="200" cy="45" rx="192" ry="38" fill="none" stroke="url(#orbit)" strokeWidth="2" />
         </svg>
-        {/* drifting sparkles around the stage — behind the cards, off the captions */}
-        <IconSparkle
-          size={15}
-          className="lm-twinkle absolute top-2 left-[calc(50%+92px)] text-orchid pointer-events-none z-[5]"
-        />
-        <IconSparkle
-          size={12}
-          className="lm-twinkle absolute bottom-0 left-[calc(50%-158px)] text-magenta pointer-events-none z-[5]"
-          style={{ animationDelay: '1.2s' }}
-        />
 
         <div
           ref={scrollerRef}
@@ -259,17 +248,17 @@ export default function MoodSphere({
                   {/* label scrim */}
                   <div className="absolute inset-x-0 bottom-0 h-[52%] bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
                   <div className="absolute inset-x-0 bottom-0 px-2 pb-2 text-center">
-                    <p className="text-white font-semibold text-[12.5px] leading-tight drop-shadow-sm">{s.name}</p>
+                    <p className="text-white font-semibold text-[12.5px] leading-tight drop-shadow-sm">
+                      {s.name}
+                      {s.tier === 'premium' && (
+                        <span className="text-white/60 text-[10px] font-medium"> · Pro</span>
+                      )}
+                    </p>
                     <p className="text-white/70 text-[9.5px] leading-tight mt-0.5">{s.tagline}</p>
                   </div>
                   {dailyId === s.id && (
                     <span className="absolute top-1.5 left-1.5 rounded-full grad-fill text-white text-[8.5px] font-bold tracking-[0.05em] uppercase px-1.5 py-0.5">
                       Today
-                    </span>
-                  )}
-                  {s.tier === 'premium' && (
-                    <span className="absolute top-1.5 right-1.5 rounded-full bg-black/50 backdrop-blur-sm text-white text-[8.5px] font-semibold tracking-[0.04em] uppercase px-1.5 py-0.5">
-                      Pro
                     </span>
                   )}
                   {tried.includes(s.id) && (

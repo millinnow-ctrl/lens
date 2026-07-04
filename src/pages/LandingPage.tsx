@@ -29,7 +29,7 @@ const STEPS = [
   {
     n: '02',
     title: 'Choose a mood',
-    body: 'Disposable flash, Tokyo neon, tintype, Y2K digicam. Eighteen cameras, one photo. Pick the one it deserved.',
+    body: 'Disposable flash, Tokyo neon, tintype, Y2K digicam. Eighteen cameras, one photo.',
     icon: IconFilm,
   },
   {
@@ -43,7 +43,7 @@ const STEPS = [
 const CAPTIONS = [
   'POV: your photo was shot on a $7,000 camera',
   'I turned my photo into an A24 movie still',
-  'This was just a normal photo before LensMood',
+  'this used to be a normal photo',
 ]
 
 export default function LandingPage() {
@@ -85,7 +85,7 @@ export default function LandingPage() {
               transition={{ delay: 0.05, duration: 0.35, ease: 'easeOut' }}
               className="type-display text-[clamp(2.5rem,6vw,4.5rem)]"
             >
-              Turn any photo into a <span className="grad-text">cinematic</span> camera shot.
+              Any photo, shot on the <span className="grad-text">camera</span> it deserved.
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 12 }}
@@ -93,8 +93,8 @@ export default function LandingPage() {
               transition={{ delay: 0.12, duration: 0.35, ease: 'easeOut' }}
               className="mt-6 text-[15px] leading-[1.6] text-ink-soft max-w-[52ch]"
             >
-              Upload a photo, choose a camera mood, and recreate the lighting, grain, and color of
-              the cameras that defined an era. See what your photo looks like shot on a $7,000
+              Upload a photo and pick a camera mood. LensMood rebuilds the lighting, grain, and
+              color of the cameras that defined an era. The $7,000 look, without the $7,000
               camera.
             </motion.p>
             <motion.div
@@ -315,8 +315,7 @@ export default function LandingPage() {
             </p>
             <h3 className="text-2xl font-semibold tracking-[-0.01em] mb-1.5">A24 Movie Still</h3>
             <p className="text-[14px] text-ink-soft leading-relaxed max-w-lg mb-4">
-              Muted palette, cinematic shadows, soft highlights. This week’s most-developed mood —
-              quiet, moody, devastating.
+              Muted palette, cinematic shadows, soft highlights. This week’s most-developed mood.
             </p>
             <Link to="/studio?style=a24-still" className="btn btn-outline">
               Shoot it

@@ -57,7 +57,7 @@ export default function Nav() {
             {user ? (
               <Link
                 to="/dashboard"
-                className="w-8 h-8 rounded-full grad-fill text-white font-semibold text-[12px] flex items-center justify-center shadow-[0_2px_8px_rgb(139_92_246/0.35)] hover:opacity-90 transition-opacity"
+                className="w-8 h-8 rounded-full bg-ink text-white font-semibold text-[12px] flex items-center justify-center hover:opacity-90 transition-opacity"
                 title={user.name}
               >
                 {user.name.charAt(0).toUpperCase()}

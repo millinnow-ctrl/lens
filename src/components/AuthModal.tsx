@@ -68,7 +68,7 @@ export default function AuthModal() {
         </form>
 
         <p className="mt-5 text-[11px] text-fog">
-          Demo sign-in — no emails are sent. By continuing you agree to make better photos.
+          Demo sign-in. No emails are sent.
         </p>
       </div>
     </Modal>

@@ -11,12 +11,13 @@ import UploadModal from '../components/home/UploadModal'
 import AccountSheet from '../components/home/AccountSheet'
 import PhoneFrame from '../components/home/PhoneFrame'
 import BeforeAfterSlider from '../components/BeforeAfterSlider'
-import { IconCheck, IconChevronRight, IconClose, IconImagePlus, IconUpload } from '../components/icons'
+import { IconCheck, IconChevronRight, IconClose, IconUpload } from '../components/icons'
 import { loadImage, renderStyled } from '../lib/engine'
 import { dailyRecipe, dailyStyle, isDailyClaimed, jitterParams } from '../lib/lab'
 import { CAMERA_STYLES, encodeParams, getStyle, type CameraStyle } from '../lib/styles'
 import { useApp } from '../lib/store'
 import sampleGolden from '../assets/sample-golden.jpg'
+import heroPoster from '../assets/hero-poster.jpg'
 import sampleFriends from '../assets/sample-friends.jpg'
 import sampleDog from '../assets/sample-dog.jpg'
 import samplePrints from '../assets/sample-prints.jpg'
@@ -61,13 +62,6 @@ const STYLE_ART: Record<string, string> = {
   photobooth: artPhotobooth,
   tintype: artTintype,
 }
-
-const TOOLS = [
-  { title: 'All looks', sub: `${CAMERA_STYLES.length} styles`, image: artLomo, to: '/studio' },
-  { title: 'Video', sub: 'Restyle clips', image: artCamcorder, to: '/studio', tag: 'Pro' },
-  { title: 'Batch roll', sub: 'Up to 6 photos', image: samplePrints, to: '/studio?batch=1' },
-  { title: 'Presets', sub: 'Saved looks', image: sampleHandprint, to: '/dashboard' },
-]
 
 /* collection milestones — celebrated once each, positive framing only */
 const MILESTONE_KEY = 'lensmood.milestone.v1'
@@ -190,27 +184,48 @@ function HomeContent({
     <div className="pb-[112px]">
       <Header onAccount={onAccount} />
 
-      {/* start with a photo — the hero drop zone */}
+      {/* hero — the product itself, playing. gradient lives in the footage */}
       <motion.section {...sectionIn} transition={{ duration: 0.3 }} className="mt-2 px-5">
-        <div className="hm-drop overflow-hidden">
-          <button onClick={onUpload} className="relative z-10 w-full flex flex-col items-center px-6 pt-7 pb-7">
-            <IconImagePlus size={44} strokeWidth={1.5} className="text-violet" />
-            <h1 className="type-display text-[26px] mt-3.5">Start with a photo</h1>
-            <p className="text-[14px] text-ink-soft mt-1.5">Drop in a photo and choose a camera mood.</p>
-            <span className="glow-ring mt-5 inline-block">
-              <span className="btn btn-hero btn-lg gap-2.5 border-0">
-                <IconUpload size={17} />
-                Upload photo
-              </span>
-            </span>
-          </button>
+        <div className="relative rounded-[28px] overflow-hidden aspect-[4/5] bg-vf">
+          {import.meta.env.VITE_SINGLEFILE ? (
+            <img
+              src={heroPoster}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover"
+              draggable={false}
+            />
+          ) : (
+            <video
+              src="/hero.mp4"
+              poster={heroPoster}
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          )}
+          <div className="absolute inset-x-0 bottom-0 h-[58%] bg-gradient-to-t from-black/75 via-black/30 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 p-5">
+            <h1 className="type-display text-[30px] text-white">Every photo has a mood.</h1>
+            <p className="text-[13.5px] text-white/75 mt-1">
+              {CAMERA_STYLES.length} camera looks, developed on your phone.
+            </p>
+            <button
+              onClick={onUpload}
+              className="btn btn-lg gap-2.5 border-0 grad-fill text-white mt-4 shadow-[0_6px_20px_rgb(139_92_246/0.35)]"
+            >
+              <IconUpload size={17} />
+              Start with a photo
+            </button>
+          </div>
         </div>
       </motion.section>
 
       {/* camera styles — the deck */}
       <motion.section {...sectionIn} transition={{ duration: 0.3, delay: 0.05 }} className="mt-7">
         <div className="flex items-center justify-between px-5">
-          <h2 className="text-[19px] font-bold tracking-[-0.02em]">Camera styles</h2>
+          <h2 className="text-[19px] font-bold tracking-[-0.02em]">Looks</h2>
           <button
             onClick={() => setSpinSeed((s) => s + 1)}
             className="hm-pill hm-press h-8 px-3.5 text-[13px] font-semibold text-ink-soft"
@@ -257,7 +272,7 @@ function HomeContent({
       {/* recent edits */}
       <motion.section {...sectionIn} transition={{ duration: 0.3, delay: 0.08 }} className="mt-7 px-5">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-[19px] font-bold tracking-[-0.02em]">Recent edits</h2>
+          <h2 className="text-[19px] font-bold tracking-[-0.02em]">Your roll</h2>
           <Link to="/dashboard" className="flex items-center gap-0.5 text-[13.5px] font-semibold text-ink-soft">
             See all
             <IconChevronRight size={13} />
@@ -282,7 +297,7 @@ function HomeContent({
                 label="iPhone Flash"
                 sublabel="Try this look"
                 filter={getStyle('iphone-flash')?.cardFilter}
-                chip="Example"
+                chip="Sample"
               />
               <div className="-rotate-[0.6deg]">
                 <RecentProjectCard
@@ -291,7 +306,7 @@ function HomeContent({
                   label="A24 Still"
                   sublabel="Try this look"
                   filter={getStyle('a24-still')?.cardFilter}
-                  chip="Example"
+                  chip="Sample"
                 />
               </div>
             </>
@@ -299,53 +314,58 @@ function HomeContent({
         </div>
       </motion.section>
 
-      {/* today's free look */}
+      {/* today's free look — the look's own artwork is the surface */}
       <motion.section {...sectionIn} transition={{ duration: 0.3, delay: 0.1 }} className="mt-7 px-5">
-        <div className="relative overflow-hidden bg-vf rounded-[24px] p-4 flex items-center gap-3">
-          <div
-            className="absolute -top-10 -right-8 w-40 h-40 rounded-full pointer-events-none"
-            style={{
-              background:
-                'radial-gradient(closest-side, rgb(139 92 246 / 0.4), rgb(236 72 153 / 0.16), transparent)',
-              filter: 'blur(10px)',
-            }}
-            aria-hidden
+        <div className="relative overflow-hidden rounded-[22px] bg-vf">
+          <img
+            src={STYLE_ART[daily.id] ?? sampleGolden}
+            alt=""
+            draggable={false}
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ objectPosition: 'center 30%' }}
           />
-          <div className="relative flex-1 min-w-0">
-            <div className="flex items-center gap-2.5">
-              <p className="text-[11px] font-bold tracking-[0.1em] uppercase grad-text">Free look of the day</p>
-              {streak.count >= 1 && (
-                <p className="text-[10.5px] font-semibold text-vf-chrome tabular-nums">
-                  Day {streak.count} streak
-                </p>
-              )}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-black/10" />
+          <div className="relative flex items-center gap-3 p-4 min-h-[104px]">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2.5">
+                <p className="text-[11px] font-bold tracking-[0.1em] uppercase text-white/85">Free today</p>
+                {streak.count >= 1 && (
+                  <p className="text-[10.5px] font-semibold text-white/55 tabular-nums">Day {streak.count}</p>
+                )}
+              </div>
+              <p className="text-white font-bold text-[18px] mt-0.5 leading-tight truncate">{daily.name}</p>
+              <p className="text-[11.5px] text-white/60 mt-0.5 tabular-nums truncate">
+                Ends at midnight · {tried.length}/{CAMERA_STYLES.length} in the case
+              </p>
             </div>
-            <p className="text-white font-bold text-[16px] mt-1 leading-tight truncate">{daily.name}</p>
-            <p className="text-[11px] text-vf-chrome mt-0.5 tabular-nums truncate">
-              The case: {tried.length}/{CAMERA_STYLES.length}
-            </p>
-            <p className="text-[12px] text-vf-chrome mt-0.5 truncate">Ends at midnight</p>
+            <button
+              onClick={() =>
+                navigate(`/studio?style=${daily.id}&p=${encodeParams(dailyRecipe())}${dailyDone ? '' : '&daily=1'}`)
+              }
+              className={`hm-press relative shrink-0 h-10 px-5 rounded-full text-[13.5px] font-semibold ${
+                dailyDone ? 'bg-white/15 text-white/80' : 'bg-white text-ink'
+              }`}
+            >
+              {dailyDone ? 'Shot today' : 'Shoot it'}
+            </button>
           </div>
-          <button
-            onClick={() =>
-              navigate(`/studio?style=${daily.id}&p=${encodeParams(dailyRecipe())}${dailyDone ? '' : '&daily=1'}`)
-            }
-            className={`hm-press relative shrink-0 h-10 px-5 rounded-full text-[13.5px] font-semibold ${
-              dailyDone ? 'bg-white/12 text-white/80' : 'bg-white text-ink'
-            }`}
-          >
-            {dailyDone ? 'Shot today' : 'Shoot free'}
-          </button>
         </div>
       </motion.section>
 
-      {/* tools */}
+      {/* tools — one wide, two small; shapes vary on purpose */}
       <motion.section {...sectionIn} transition={{ duration: 0.3, delay: 0.12 }} className="mt-7 px-5">
         <h2 className="text-[19px] font-bold tracking-[-0.02em] mb-3">Tools</h2>
-        <div className="grid grid-cols-2 gap-3">
-          {TOOLS.map((t) => (
-            <ToolCard key={t.title} {...t} />
-          ))}
+        <ToolCard
+          to="/studio"
+          title="Video"
+          sub="Restyle a clip, frame by frame"
+          image={artCamcorder}
+          tag="Pro"
+          ratio="aspect-[21/9]"
+        />
+        <div className="grid grid-cols-2 gap-3 mt-3">
+          <ToolCard to="/studio?batch=1" title="Batch roll" sub="Up to 6 photos" image={samplePrints} />
+          <ToolCard to="/dashboard" title="Presets" sub="Saved looks" image={sampleHandprint} />
         </div>
       </motion.section>
 

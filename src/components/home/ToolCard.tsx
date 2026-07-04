@@ -9,10 +9,12 @@ interface Props {
   image: string
   /** small neutral tag over the image, e.g. PRO */
   tag?: string
+  /** tailwind aspect class — lets the grid vary tile shapes */
+  ratio?: string
 }
 
 /** image-led tool tile — the photo is the surface, text sits on a scrim */
-export default function ToolCard({ to, title, sub, image, tag }: Props) {
+export default function ToolCard({ to, title, sub, image, tag, ratio = 'aspect-[16/10]' }: Props) {
   const navigate = useNavigate()
   const [active, setActive] = useState(false)
 
@@ -27,7 +29,7 @@ export default function ToolCard({ to, title, sub, image, tag }: Props) {
     <button
       onClick={go}
       aria-pressed={active}
-      className={`hm-press relative block w-full text-left aspect-[16/10] rounded-[18px] overflow-hidden bg-vf ${
+      className={`hm-press relative block w-full text-left ${ratio} rounded-[18px] overflow-hidden bg-vf ${
         active ? 'ring-2 ring-ink/70 ring-offset-2 ring-offset-paper' : ''
       }`}
     >

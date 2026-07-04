@@ -22,24 +22,19 @@ export default function Header({ onAccount }: Props) {
 
       <div className="relative">
         {isPaid ? (
-          <span className="hm-pill aura-soft h-9 inline-flex items-center gap-1.5 px-4 text-[14px] font-semibold text-ink">
+          <span className="h-9 inline-flex items-center gap-1.5 rounded-full bg-white border border-ink/[0.08] px-4 text-[14px] font-semibold text-ink">
             <span className="capitalize">{plan}</span>
             <IconSparkle size={14} className="text-violet" />
           </span>
         ) : (
           <Link
             to="/pricing"
-            className="hm-pill aura-soft hm-press h-9 inline-flex items-center gap-1.5 px-4 text-[14px] font-semibold text-ink"
+            className="hm-press h-9 inline-flex items-center gap-1.5 rounded-full bg-white border border-ink/[0.08] px-4 text-[14px] font-semibold text-ink"
           >
             Pro
             <IconSparkle size={14} className="text-violet" />
           </Link>
         )}
-        {/* the little sparkle drifting off the pill, like the reference */}
-        <IconSparkle
-          size={11}
-          className="lm-twinkle absolute -top-1.5 -right-1 text-magenta pointer-events-none"
-        />
       </div>
     </header>
   )

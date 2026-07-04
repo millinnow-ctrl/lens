@@ -1,18 +1,18 @@
 const GENERIC = [
   'POV: your photo was shot on a $7,000 camera',
-  'This was just a normal photo before LensMood',
-  'me discovering my photos had a cinematic era all along',
+  'this used to be a normal photo',
+  'my camera roll entered its cinematic era',
   'no new camera. just a new mood.',
 ]
 
 const BY_STYLE: Record<string, string[]> = {
   disposable: [
-    'found this on a disposable from a night that never happened',
+    'from a night that never happened',
     'the flash did what the flash does best',
   ],
   'iphone-flash': [
     'flash on. standards up.',
-    '2:47am and the flash understood the assignment',
+    '2:47am. the flash showed up.',
   ],
   'camcorder-90s': [
     'home video from a memory I just invented',

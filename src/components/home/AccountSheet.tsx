@@ -96,7 +96,7 @@ export default function AccountSheet({ open, onClose, container }: Props) {
                   className="flex items-center justify-between text-[13px] font-semibold text-ink"
                 >
                   <span>
-                    Upgrade to <span className="grad-text">Pro</span> — from $7/mo
+                    Go <span className="grad-text">Creator</span> — $7/mo
                   </span>
                   <IconChevronRight size={13} className="text-fog" />
                 </Link>

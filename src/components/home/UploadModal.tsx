@@ -101,7 +101,7 @@ export default function UploadModal({ open, onClose, container }: Props) {
                 </span>
                 <span className="text-left">
                   <span className="block text-[14px] font-semibold">Take a photo</span>
-                  <span className="block text-[11px] text-white/75">Shoot and restyle it instantly</span>
+                  <span className="block text-[11px] text-white/75">Shoot one, develop it here</span>
                 </span>
               </button>
               <button

@@ -415,22 +415,6 @@ input[type='range'].lm-slider::-moz-range-thumb {
   animation: lm-breathe 1.6s ease-in-out infinite;
 }
 
-/* slow rotation for the carousel orbit ring sparkle */
-@keyframes lm-twinkle {
-  0%,
-  100% {
-    opacity: 0.5;
-    transform: scale(0.9);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.08);
-  }
-}
-.lm-twinkle {
-  animation: lm-twinkle 2.4s ease-in-out infinite;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .lm-marquee {
     animation-play-state: paused;
@@ -438,9 +422,6 @@ input[type='range'].lm-slider::-moz-range-thumb {
   .lm-develop,
   .lm-shutter-flash {
     animation-duration: 0.01s;
-  }
-  .lm-twinkle {
-    animation: none;
   }
 }
 
@@ -514,34 +495,12 @@ input[type='range'].lm-slider::-moz-range-thumb {
   font-weight: 600;
 }
 
-/* dashed drop-zone card with soft gradient halos at opposite corners */
+/* drop-zone card — quiet hairline, no decoration */
 .hm-drop {
   position: relative;
   border-radius: 28px;
-  border: 1.5px dashed rgb(23 19 31 / 0.16);
+  border: 1px solid rgb(23 19 31 / 0.08);
   background: rgb(255 255 255 / 0.55);
-}
-.hm-drop::before,
-.hm-drop::after {
-  content: '';
-  position: absolute;
-  width: 130px;
-  height: 130px;
-  border-radius: 999px;
-  pointer-events: none;
-  filter: blur(26px);
-  opacity: 0.5;
-  z-index: 0;
-}
-.hm-drop::before {
-  top: -34px;
-  left: -30px;
-  background: radial-gradient(closest-side, rgb(96 165 250 / 0.55), rgb(139 92 246 / 0.28), transparent);
-}
-.hm-drop::after {
-  bottom: -34px;
-  right: -30px;
-  background: radial-gradient(closest-side, rgb(236 72 153 / 0.5), rgb(217 70 239 / 0.25), transparent);
 }
 
 .hm-cta {

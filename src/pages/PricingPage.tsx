@@ -23,7 +23,7 @@ const TIERS: Tier[] = [
     blurb: 'For trying the vibe on.',
     cta: 'Start free',
     features: [
-      '5 transformations / month',
+      '5 developments / month',
       'Standard quality exports',
       'Basic camera styles',
       '“Shot on LensMood” watermark',
@@ -61,7 +61,7 @@ const TIERS: Tier[] = [
     id: 'studio',
     name: 'Studio',
     price: 29,
-    blurb: 'For brands & creators at scale.',
+    blurb: 'For brands and small teams.',
     cta: 'Go Studio',
     features: [
       'Everything in Pro',
@@ -111,7 +111,7 @@ export default function PricingPage() {
           Rent the <span className="grad-text">camera bag.</span>
         </h1>
         <p className="text-ink-soft">
-          Every plan is month-to-month. Cancel whenever — your photos keep the mood forever.
+          Every plan is month-to-month. What you export is yours to keep.
         </p>
       </div>
 
@@ -195,8 +195,7 @@ export default function PricingPage() {
                 {checkout?.name} — <span className="tabular-nums">${checkout?.price}</span>/mo
               </h3>
               <p className="text-[13px] text-fog mb-6">
-                Demo checkout: one click, no card. In production this is where Stripe takes the
-                wheel.
+                Demo checkout. One click, no card, nothing charged.
               </p>
               <button onClick={confirm} className="btn btn-primary w-full mb-2.5">
                 Confirm upgrade
@@ -212,7 +211,7 @@ export default function PricingPage() {
               </div>
               <h3 className="type-display text-2xl mb-2">Welcome to {checkout?.name}</h3>
               <p className="text-[13px] text-fog mb-6">
-                Watermarks off. Premium moods unlocked.
+                Watermarks off. The whole case is yours.
               </p>
               <button
                 onClick={() => {

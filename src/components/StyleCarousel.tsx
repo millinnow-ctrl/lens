@@ -11,10 +11,9 @@ interface Props {
   showFavorites?: boolean
 }
 
-function Badge({ badge, tier }: { badge?: CameraStyle['badge']; tier: CameraStyle['tier'] }) {
+function Badge({ badge }: { badge?: CameraStyle['badge'] }) {
   if (badge === 'trending') return <span className="tag tag-chrome">Trending</span>
   if (badge === 'featured') return <span className="tag tag-chrome">This week</span>
-  if (tier === 'premium') return <span className="tag tag-chrome">Pro</span>
   return null
 }
 
@@ -50,7 +49,7 @@ export default function StyleCarousel({ previewSrc, selectedId, onSelect, showFa
                 draggable={false}
               />
               <div className="absolute top-1.5 right-1.5">
-                <Badge badge={style.badge} tier={style.tier} />
+                <Badge badge={style.badge} />
               </div>
               {showFavorites && (
                 <span
@@ -81,7 +80,12 @@ export default function StyleCarousel({ previewSrc, selectedId, onSelect, showFa
                 {index}
                 {selected && <span className="w-1.5 h-1.5 rounded-full grad-fill inline-block" aria-hidden />}
               </p>
-              <p className="font-semibold text-[13px] leading-tight mt-1 text-ink">{style.name}</p>
+              <p className="font-semibold text-[13px] leading-tight mt-1 text-ink">
+                {style.name}
+                {style.tier === 'premium' && (
+                  <span className="text-fog text-[10px] font-medium"> · Pro</span>
+                )}
+              </p>
               <p className="text-fog text-[11px] leading-snug mt-0.5 line-clamp-2 min-h-[2.6em]">{style.tagline}</p>
             </div>
           </button>
