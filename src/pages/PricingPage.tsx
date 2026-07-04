@@ -148,7 +148,7 @@ export default function PricingPage() {
               transition={{ duration: 0.15, ease: 'easeOut', delay: i * 0.05 }}
               className={
                 tier.highlight
-                  ? 'relative z-10 grad-fill rounded-[26px] p-[2px] aura-soft shadow-[0_18px_44px_-14px_rgb(139_92_246/0.45)] lg:scale-[1.04] lg:-translate-y-1.5'
+                  ? 'relative z-10 grad-fill rounded-[26px] p-[2px] shadow-[0_12px_32px_-16px_rgb(23_19_31/0.3)] lg:scale-[1.04] lg:-translate-y-1.5'
                   : 'relative bg-surface rounded-[24px] border border-ink/5 shadow-[0_2px_12px_rgb(23_19_31/0.05)]'
               }
             >
@@ -157,7 +157,7 @@ export default function PricingPage() {
                     only where cards actually sit side by side */}
                 <div className={tier.highlight ? 'h-5 mb-4' : 'hidden lg:block h-5 mb-4'}>
                   {tier.highlight && (
-                    <span className="inline-flex items-center text-[10px] font-semibold tracking-[0.08em] uppercase px-2.5 py-1 rounded-full grad-fill text-white">
+                    <span className="inline-flex items-center text-[10px] font-semibold tracking-[0.08em] uppercase px-2.5 py-1 rounded-full bg-ink text-white">
                       Most popular
                     </span>
                   )}

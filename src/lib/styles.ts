@@ -467,7 +467,7 @@ export const QUICK_PRESETS: QuickPreset[] = [
   },
   {
     id: 'strong',
-    name: 'Strong',
+    name: 'Push',
     apply: (d) => ({
       ...d,
       intensity: 100,
@@ -478,7 +478,7 @@ export const QUICK_PRESETS: QuickPreset[] = [
   },
   {
     id: 'viral',
-    name: 'Viral',
+    name: 'Punch',
     apply: (d) => ({
       ...d,
       intensity: 92,

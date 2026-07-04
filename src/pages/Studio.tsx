@@ -211,20 +211,20 @@ export default function Studio() {
 
   /* ------------------------------------------------ editor */
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10 pb-28 md:pb-16">
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10 pb-[calc(env(safe-area-inset-bottom)+132px)] md:pb-16">
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_400px] gap-6 lg:gap-8 items-start">
         {/* ---------- preview column ---------- */}
         <div className="lg:sticky lg:top-20 min-w-0">
-          <div className="bg-vf rounded-[24px] overflow-hidden shadow-[0_2px_12px_rgb(23_19_31/0.10)]">
-            {/* viewfinder chrome strip */}
-            <div className="h-9 px-4 flex items-center justify-between gap-3 border-b border-white/12">
-              <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-vf-chrome truncate">
+          <div className="bg-vf rounded-[24px] overflow-hidden shadow-[0_2px_12px_rgb(23_19_31/0.10),inset_0_1px_0_rgb(255_255_255/0.07)]">
+            {/* viewfinder chrome strip — etched machined bezel */}
+            <div className="h-9 px-4 flex items-center justify-between gap-3 border-b border-white/[0.08]">
+              <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-vf-chrome truncate">
                 {style ? style.name : 'Original'}
               </span>
-              <span className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.14em] uppercase text-vf-chrome tabular-nums shrink-0">
+              <span className="flex items-center gap-2 font-mono text-[10px] tracking-[0.16em] uppercase text-vf-chrome tabular-nums shrink-0">
                 {video && <span className="w-1.5 h-1.5 rounded-full bg-[#E1251B] inline-block" aria-hidden />}
                 {focal && !video && <span className="text-violet">AF·FACE</span>}
-                {video ? 'REC · 30FPS' : (style?.exif ?? 'READY · NO MOOD')}
+                <span>{video ? 'REC · 30FPS' : (style?.exif ?? 'READY · NO MOOD')}</span>
               </span>
             </div>
 
@@ -368,7 +368,7 @@ export default function Studio() {
 
           {/* view toggles + actions under preview */}
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex w-full sm:w-auto sm:inline-flex items-center gap-0.5 rounded-full bg-black/5 p-1">
+            <div className="flex w-full sm:w-auto sm:inline-flex items-center gap-0.5 rounded-full bg-black/5 p-1 shadow-[inset_0_1px_2px_rgb(23_19_31/0.08)]">
               {(
                 [
                   { id: 'original', label: 'Original' },
@@ -384,9 +384,10 @@ export default function Studio() {
                     key={t.id}
                     disabled={disabled}
                     onClick={() => setView(t.id)}
-                    className={`px-4 h-8 text-[13px] font-semibold rounded-full transition-colors flex-1 sm:flex-none ${
+                    className={`px-4 h-8 font-mono text-[11px] tracking-[0.12em] uppercase rounded-full transition-[background-color,color,box-shadow,transform] duration-150 flex-1 sm:flex-none ${
                       active
-                        ? 'bg-white text-ink shadow-[0_1px_3px_rgb(23_19_31/0.12)]' // selected pill stays lifted even while others disable
+                        ? // solid machined pill — fill + scale + soft shadow, stays lifted even while siblings disable
+                          'bg-white text-ink shadow-[0_1px_4px_rgb(23_19_31/0.16)] scale-[1.02]'
                         : disabled
                           ? 'text-fog/60'
                           : 'text-ink-soft hover:text-ink'
@@ -399,7 +400,10 @@ export default function Studio() {
             </div>
 
             <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
-              <button onClick={clearMedia} className="btn btn-quiet">
+              <button
+                onClick={clearMedia}
+                className="btn btn-quiet font-mono text-[11px] tracking-[0.14em] uppercase"
+              >
                 New photo
               </button>
               {phase === 'done' ? (

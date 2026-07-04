@@ -35,7 +35,7 @@ export default function StyleCarousel({ previewSrc, selectedId, onSelect, showFa
             onClick={() => onSelect(style)}
             className={`group relative shrink-0 w-36 snap-start rounded-[18px] bg-surface border text-left transition-all duration-150 ${
               selected
-                ? 'border-violet ring-2 ring-violet/60 aura-soft scale-[1.02]'
+                ? 'border-violet ring-2 ring-violet/60 scale-[1.02] shadow-[0_4px_14px_-4px_rgb(23_19_31/0.25)]'
                 : 'border-black/[0.06] hover:border-black/20 shadow-[0_1px_6px_rgb(23_19_31/0.04)]'
             }`}
             aria-pressed={selected}

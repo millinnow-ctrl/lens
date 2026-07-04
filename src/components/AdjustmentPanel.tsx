@@ -1,17 +1,9 @@
 import { useState } from 'react'
 import { IconCheck } from './icons'
+import StepControl from './StepControl'
+import { LEVEL_SCALES } from '../lib/levels'
 import { QUICK_PRESETS, type CameraStyle, type StyleParams } from '../lib/styles'
 import { useApp } from '../lib/store'
-
-const SLIDERS: { key: keyof StyleParams; label: string }[] = [
-  { key: 'intensity', label: 'Style intensity' },
-  { key: 'grain', label: 'Grain' },
-  { key: 'contrast', label: 'Contrast' },
-  { key: 'warmth', label: 'Warmth' },
-  { key: 'flash', label: 'Flash strength' },
-  { key: 'shadows', label: 'Shadow depth' },
-  { key: 'smoothing', label: 'Skin smoothing' },
-]
 
 interface Props {
   style: CameraStyle
@@ -24,60 +16,55 @@ export default function AdjustmentPanel({ style, params, onChange }: Props) {
   const [activePreset, setActivePreset] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
 
-  const set = (key: keyof StyleParams, value: number) => {
-    setActivePreset(null)
-    onChange({ ...params, [key]: value })
-  }
-
   return (
-    <div className="space-y-5">
-      {/* quick presets */}
+    <div className="space-y-6">
+      {/* recipes — recessed engraved plates milled into the panel, not pills */}
       <div>
         <p className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-fog [text-shadow:0_1px_0_rgba(255,255,255,0.7)] mb-2.5">
-          Quick presets
+          Recipes
         </p>
-        <div className="grid grid-cols-3 gap-2">
-          {QUICK_PRESETS.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => {
-                setActivePreset(p.id)
-                onChange(p.apply({ ...style.defaults }))
-              }}
-              className={`btn btn-sm w-full ${activePreset === p.id ? 'btn-primary' : 'btn-outline'}`}
-            >
-              {p.name}
-            </button>
-          ))}
+        <div className="grid grid-cols-3 gap-1.5 rounded-[12px] bg-[rgb(23_19_31_/_0.04)] p-1.5 shadow-[inset_0_1px_2px_rgb(23_19_31_/_0.07)]">
+          {QUICK_PRESETS.map((p) => {
+            const on = activePreset === p.id
+            return (
+              <button
+                key={p.id}
+                onClick={() => {
+                  setActivePreset(p.id)
+                  onChange(p.apply({ ...style.defaults }))
+                }}
+                aria-pressed={on}
+                className={`h-8 rounded-[8px] font-mono text-[10.5px] font-medium uppercase tracking-[0.1em] transition-all duration-150 active:scale-[0.97] ${
+                  on
+                    ? 'bg-violet text-white shadow-[0_1px_3px_rgb(76_29_149_/_0.4),inset_0_1px_0_rgb(255_255_255_/_0.3)]'
+                    : 'text-ink-soft [text-shadow:0_1px_0_rgba(255,255,255,0.7)] hover:bg-[rgb(255_255_255_/_0.6)]'
+                }`}
+              >
+                {p.name}
+              </button>
+            )
+          })}
         </div>
       </div>
 
-      {/* sliders */}
-      <div className="space-y-3.5">
-        {SLIDERS.map(({ key, label }) => (
-          <label key={key} className="block">
-            <span className="flex items-baseline justify-between mb-1">
-              <span className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-ink-soft [text-shadow:0_1px_0_rgba(255,255,255,0.7)]">
-                {label}
-              </span>
-              <span className="value-mono tabular-nums">{params[key]}</span>
-            </span>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              value={params[key]}
-              onChange={(e) => set(key, Number(e.target.value))}
-              className="lm-slider"
-              style={{ ['--fill' as string]: `${params[key]}%` }}
-              aria-label={label}
-            />
-            {/* machined tick rail — a mark every 10 units */}
-            <span
-              aria-hidden
-              className="block h-[5px] mt-[3px] mx-[9px] bg-[repeating-linear-gradient(to_right,rgba(23,19,31,0.22)_0,rgba(23,19,31,0.22)_1px,transparent_1px,transparent_calc((100%_-_1px)/10))]"
-            />
-          </label>
+      {/* etched divider between preset shelf and the dials */}
+      <div
+        aria-hidden
+        className="h-px bg-[rgb(23_19_31_/_0.08)] shadow-[0_1px_0_rgba(255,255,255,0.7)]"
+      />
+
+      {/* detented dials — fixed order, never reflow (muscle memory) */}
+      <div className="space-y-5">
+        {LEVEL_SCALES.map((scale) => (
+          <StepControl
+            key={scale.param}
+            scale={scale}
+            value={params[scale.param]}
+            onChange={(v) => {
+              setActivePreset(null)
+              onChange({ ...params, [scale.param]: v })
+            }}
+          />
         ))}
       </div>
 

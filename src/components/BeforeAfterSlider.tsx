@@ -82,37 +82,38 @@ export default function BeforeAfterSlider({
 
       {variant === 'instrument' ? (
         <>
-          {/* labels — mono chrome slates */}
-          <span className="absolute top-3 left-3 font-mono text-[10px] font-medium tracking-[0.12em] uppercase bg-vf/65 text-paper/90 px-2.5 py-1 rounded-full pointer-events-none">
+          {/* labels — mono chrome slates, machined edge */}
+          <span className="absolute top-3 left-3 font-mono text-[10px] font-medium tracking-[0.12em] uppercase bg-vf/65 text-paper/90 px-2.5 py-1 rounded-full pointer-events-none shadow-[inset_0_1px_0_rgb(255_255_255/0.12)]">
             {beforeLabel}
           </span>
-          <span className="absolute top-3 right-3 font-mono text-[10px] font-medium tracking-[0.12em] uppercase bg-vf/65 text-paper px-2.5 py-1 rounded-full pointer-events-none inline-flex items-center gap-1.5">
+          <span className="absolute top-3 right-3 font-mono text-[10px] font-medium tracking-[0.12em] uppercase bg-vf/65 text-paper px-2.5 py-1 rounded-full pointer-events-none shadow-[inset_0_1px_0_rgb(255_255_255/0.12)] inline-flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-signal inline-block" aria-hidden />
             {afterLabel}
           </span>
         </>
       ) : (
         <>
-          {/* labels — soft pills */}
-          <span className="absolute top-2.5 left-2.5 text-[11px] font-semibold bg-vf/60 text-white px-2.5 py-1 rounded-full pointer-events-none">
+          {/* labels — soft mono pills, machined edge */}
+          <span className="absolute top-2.5 left-2.5 font-mono text-[10px] font-medium tracking-[0.12em] uppercase bg-vf/60 text-white/90 px-2.5 py-1 rounded-full pointer-events-none shadow-[inset_0_1px_0_rgb(255_255_255/0.10)]">
             {beforeLabel}
           </span>
-          <span className="absolute top-2.5 right-2.5 text-[11px] font-semibold bg-vf/60 text-white px-2.5 py-1 rounded-full pointer-events-none">
+          <span className="absolute top-2.5 right-2.5 font-mono text-[10px] font-medium tracking-[0.12em] uppercase bg-vf/60 text-white px-2.5 py-1 rounded-full pointer-events-none shadow-[inset_0_1px_0_rgb(255_255_255/0.10)] inline-flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-signal inline-block" aria-hidden />
             {afterLabel}
           </span>
         </>
       )}
 
-      {/* divider + handle */}
+      {/* divider + handle — a machined disc riding a hairline rail */}
       <div
-        className="absolute top-0 bottom-0 w-px bg-paper pointer-events-none"
+        className="absolute top-0 bottom-0 w-px bg-paper/90 pointer-events-none shadow-[0_0_0_0.5px_rgb(23_19_31/0.25)]"
         style={{ left: `${pos}%` }}
       >
         <div
-          className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-10 h-10 flex items-center justify-center text-ink ${
+          className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-10 h-10 flex items-center justify-center text-ink rounded-full bg-white ring-1 ${
             variant === 'instrument'
-              ? 'rounded-full bg-white aura-soft'
-              : 'rounded-full bg-white shadow-[0_1px_2px_rgb(23_19_31/0.08),0_6px_20px_-6px_rgb(23_19_31/0.3)]'
+              ? 'ring-ink/10 shadow-[inset_0_1px_0_rgb(255_255_255/0.9),inset_0_-1px_0_rgb(23_19_31/0.06),0_1px_2px_rgb(23_19_31/0.25),0_8px_20px_-8px_rgb(23_19_31/0.5)]'
+              : 'ring-ink/[0.06] shadow-[inset_0_1px_0_rgb(255_255_255/0.9),0_1px_2px_rgb(23_19_31/0.08),0_6px_20px_-6px_rgb(23_19_31/0.3)]'
           }`}
         >
           <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

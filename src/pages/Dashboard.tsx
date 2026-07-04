@@ -48,7 +48,7 @@ export default function Dashboard() {
       {/* header */}
       <div className="flex flex-wrap items-end justify-between gap-4 mb-10">
         <div>
-          <p className="text-[13px] font-semibold grad-text mb-2">Your library</p>
+          <p className="text-[13px] font-semibold text-violet mb-2">Your library</p>
           <h1 className="type-display text-3xl sm:text-4xl">
             {user ? `Welcome back, ${user.name}.` : 'Your darkroom.'}
           </h1>
@@ -93,7 +93,7 @@ export default function Dashboard() {
                 </Link>
               </div>
             ) : (
-              <div className="bg-vf rounded-[24px] p-4 sm:p-5 shadow-[0_2px_12px_rgb(23_19_31/0.10)]">
+              <div className="bg-vf rounded-[24px] p-4 sm:p-5 shadow-[inset_0_1px_0_rgb(255_255_255/0.07),0_2px_12px_rgb(23_19_31/0.10)]">
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                   {history.map((h, i) => (
                     <motion.div
@@ -113,7 +113,7 @@ export default function Dashboard() {
                           <IconTrash size={12} />
                         </button>
                       </div>
-                      <div className="mt-1.5 flex items-baseline justify-between gap-2 font-mono text-[10px] tracking-[0.08em] uppercase text-vf-chrome">
+                      <div className="mt-1.5 flex items-baseline justify-between gap-2 font-mono text-[10px] tracking-[0.08em] uppercase text-vf-chrome tabular-nums">
                         <span className="truncate">
                           {String(i + 1).padStart(2, '0')} · {h.styleName}
                         </span>
@@ -127,8 +127,9 @@ export default function Dashboard() {
                   {history.length < 4 &&
                     Array.from({ length: 4 - history.length }).map((_, i) => (
                       <div key={`ghost-${i}`} aria-hidden>
-                        <div className="rounded-[12px] aspect-4/5 border border-dashed border-white/15" />
-                        <p className="mt-1.5 font-mono text-[10px] tracking-[0.08em] uppercase text-white/25 tabular-nums">
+                        {/* an unexposed film frame — solid cell, not a dashed drop-zone */}
+                        <div className="rounded-[12px] aspect-4/5 bg-[#100c17] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.04),inset_0_1px_10px_rgb(0_0_0/0.5)]" />
+                        <p className="mt-1.5 font-mono text-[10px] tracking-[0.08em] uppercase text-white/20 tabular-nums">
                           {String(history.length + i + 1).padStart(2, '0')} · —
                         </p>
                       </div>
@@ -213,20 +214,22 @@ export default function Dashboard() {
                         <span className="absolute bottom-1.5 inset-x-1.5 text-[10px] font-medium text-white leading-tight line-clamp-1">
                           {s.name}
                         </span>
-                        <span className="absolute top-1.5 right-1.5 w-[18px] h-[18px] rounded-full bg-white/95 shadow-sm flex items-center justify-center text-violet">
+                        <span className="absolute top-1.5 right-1.5 w-[18px] h-[18px] rounded-full bg-violet text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.35),0_1px_3px_rgb(23_19_31/0.35)] flex items-center justify-center">
                           <IconCheck size={10} />
                         </span>
                       </>
                     ) : shot ? (
                       <span className="absolute inset-0 bg-violet/10 flex items-center justify-center">
-                        <span className="w-[18px] h-[18px] rounded-full bg-white shadow-sm flex items-center justify-center text-violet">
+                        <span className="w-[18px] h-[18px] rounded-full bg-violet text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.35),0_1px_3px_rgb(23_19_31/0.35)] flex items-center justify-center">
                           <IconCheck size={10} />
                         </span>
                       </span>
                     ) : null}
                     <span
-                      className={`absolute top-1.5 left-1.5 font-mono text-[9px] tracking-[0.08em] ${
-                        shot ? 'text-white bg-vf/60 px-1.5 py-0.5 rounded-full' : 'text-fog'
+                      className={`absolute top-1.5 left-1.5 font-mono text-[9px] tracking-[0.08em] tabular-nums ${
+                        shot
+                          ? 'text-white bg-vf/60 px-1.5 py-0.5 rounded-full shadow-[inset_0_1px_0_rgb(255_255_255/0.12)]'
+                          : 'text-fog'
                       }`}
                     >
                       LM·{String(i + 1).padStart(2, '0')}
@@ -294,7 +297,7 @@ export default function Dashboard() {
               <>
                 <p className="text-[13px] font-semibold text-ink-soft mb-3">Your plan</p>
                 <p className="font-sans font-semibold text-[16px] capitalize mb-1">{plan}</p>
-                <p className="text-[13px] font-semibold grad-text">Unlimited</p>
+                <p className="text-[13px] font-semibold text-violet">Unlimited</p>
               </>
             ) : (
               <>
@@ -304,11 +307,11 @@ export default function Dashboard() {
                 </p>
                 <div className="h-1.5 rounded-full bg-ink/[0.06] overflow-hidden mb-5">
                   <div
-                    className="h-full rounded-full grad-fill transition-all duration-500"
+                    className="h-full rounded-full bg-violet transition-all duration-500"
                     style={{ width: `${100 - usedPct}%` }}
                   />
                 </div>
-                <Link to="/pricing" className="btn btn-primary w-full aura-soft">
+                <Link to="/pricing" className="btn btn-primary w-full">
                   Upgrade
                 </Link>
               </>
@@ -316,8 +319,8 @@ export default function Dashboard() {
           </section>
 
           {/* weekly mood */}
-          <section className="bg-vf rounded-[24px] p-6 aura-soft">
-            <p className="text-[12px] font-semibold grad-text mb-2">Featured this week</p>
+          <section className="bg-vf rounded-[24px] p-6 shadow-[inset_0_1px_0_rgb(255_255_255/0.06),0_2px_12px_rgb(23_19_31/0.1)]">
+            <p className="text-[12px] font-semibold text-violet mb-2">Featured this week</p>
             <h3 className="font-sans font-semibold text-[18px] text-paper mb-3">Tokyo Neon</h3>
             <img
               src={featuredThumb ?? sampleFriends}
