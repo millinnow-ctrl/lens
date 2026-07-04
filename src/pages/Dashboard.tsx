@@ -184,7 +184,7 @@ export default function Dashboard() {
             )}
           </section>
 
-          {/* the case — 9-mood collection */}
+          {/* the case — full mood collection */}
           <section className="panel p-6">
             <div className="flex items-baseline justify-between mb-4">
               <h2 className="font-sans font-semibold text-[16px]">The case</h2>
@@ -192,7 +192,7 @@ export default function Dashboard() {
                 {tried.length}/{CAMERA_STYLES.length} stocks shot
               </span>
             </div>
-            <div className="grid grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
               {CAMERA_STYLES.map((s, i) => {
                 const shot = tried.includes(s.id)
                 const thumb = history.find((h) => h.styleId === s.id)?.thumb

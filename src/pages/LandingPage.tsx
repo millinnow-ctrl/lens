@@ -29,7 +29,7 @@ const STEPS = [
   {
     n: '02',
     title: 'Choose a mood',
-    body: 'Disposable flash, A24 still, Y2K digicam. Nine cameras, one photo. Pick the one it deserved.',
+    body: 'Disposable flash, Tokyo neon, tintype, Y2K digicam. Eighteen cameras, one photo. Pick the one it deserved.',
     icon: IconFilm,
   },
   {

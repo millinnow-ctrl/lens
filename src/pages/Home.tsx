@@ -31,6 +31,15 @@ import artA24 from '../assets/style-a24-still.jpg'
 import artNoir from '../assets/style-film-noir.jpg'
 import artY2k from '../assets/style-y2k-digicam.jpg'
 import artPolaroid from '../assets/style-polaroid.jpg'
+import artSuper8 from '../assets/style-super-8.jpg'
+import artLomo from '../assets/style-lomo.jpg'
+import artKodachrome from '../assets/style-kodachrome.jpg'
+import artSecurityCam from '../assets/style-security-cam.jpg'
+import artBlockbuster from '../assets/style-blockbuster.jpg'
+import artPastel from '../assets/style-pastel-cinema.jpg'
+import artTokyoNeon from '../assets/style-tokyo-neon.jpg'
+import artPhotobooth from '../assets/style-photobooth.jpg'
+import artTintype from '../assets/style-tintype.jpg'
 
 /** tall portrait artwork for the style deck — one signature frame per look */
 const STYLE_ART: Record<string, string> = {
@@ -43,10 +52,19 @@ const STYLE_ART: Record<string, string> = {
   'film-noir': artNoir,
   'y2k-digicam': artY2k,
   polaroid: artPolaroid,
+  'super-8': artSuper8,
+  lomo: artLomo,
+  kodachrome: artKodachrome,
+  'security-cam': artSecurityCam,
+  blockbuster: artBlockbuster,
+  'pastel-cinema': artPastel,
+  'tokyo-neon': artTokyoNeon,
+  photobooth: artPhotobooth,
+  tintype: artTintype,
 }
 
 const TOOLS = [
-  { title: 'All looks', sub: 'Nine styles', image: sampleTeal, to: '/studio' },
+  { title: 'All looks', sub: `${CAMERA_STYLES.length} styles`, image: sampleTeal, to: '/studio' },
   { title: 'Video', sub: 'Restyle clips', image: sampleNight, to: '/studio', tag: 'Pro' },
   { title: 'Batch roll', sub: 'Up to 6 photos', image: sampleSneaker, to: '/studio?batch=1' },
   { title: 'Presets', sub: 'Saved looks', image: sampleStreet, to: '/dashboard' },

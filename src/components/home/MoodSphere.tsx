@@ -255,20 +255,28 @@ export default function MoodSphere({
         />
       </div>
 
-      {/* page dots */}
-      <div
-        className="flex justify-center gap-1.5 mt-1"
-        aria-label={`${tried.filter((t) => styles.some((s) => s.id === t)).length} of ${n} looks used`}
-      >
-        {styles.map((s, i) => (
-          <span
-            key={s.id}
-            className={`rounded-full transition-all duration-200 ${
-              i === frontIdx ? 'w-2 h-2 bg-violet' : 'w-1.5 h-1.5 bg-ink/15'
-            } ${tried.includes(s.id) && i !== frontIdx ? 'bg-violet/40' : ''}`}
-          />
-        ))}
-      </div>
+      {/* page dots — collapses to a counter once the deck grows past ten */}
+      {n <= 10 ? (
+        <div
+          className="flex justify-center gap-1.5 mt-1"
+          aria-label={`${tried.filter((t) => styles.some((s) => s.id === t)).length} of ${n} looks used`}
+        >
+          {styles.map((s, i) => (
+            <span
+              key={s.id}
+              className={`rounded-full transition-all duration-200 ${
+                i === frontIdx ? 'w-2 h-2 bg-violet' : 'w-1.5 h-1.5 bg-ink/15'
+              } ${tried.includes(s.id) && i !== frontIdx ? 'bg-violet/40' : ''}`}
+            />
+          ))}
+        </div>
+      ) : (
+        <p className="text-center text-[11.5px] font-semibold text-fog tabular-nums mt-1">
+          <span className="text-violet">{frontIdx + 1}</span> / {n}
+          <span className="mx-1.5 text-ink/20">·</span>
+          {tried.filter((t) => styles.some((s) => s.id === t)).length} tried
+        </p>
+      )}
     </div>
   )
 }

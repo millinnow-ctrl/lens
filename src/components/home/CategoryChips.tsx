@@ -11,10 +11,10 @@ export type CategoryId = (typeof CATEGORIES)[number]['id']
 /** which looks belong to which shelf */
 export const CATEGORY_STYLES: Record<CategoryId, string[]> = {
   all: [],
-  film: ['disposable', 'leica-street', 'a24-still', 'film-noir', 'polaroid'],
-  flash: ['iphone-flash', 'y2k-digicam', 'disposable'],
-  video: ['camcorder-90s', 'iphone-flash', 'y2k-digicam'],
-  editorial: ['gq-editorial', 'leica-street', 'a24-still'],
+  film: ['disposable', 'leica-street', 'a24-still', 'film-noir', 'polaroid', 'super-8', 'lomo', 'kodachrome', 'tintype'],
+  flash: ['iphone-flash', 'y2k-digicam', 'disposable', 'photobooth', 'tokyo-neon'],
+  video: ['camcorder-90s', 'iphone-flash', 'y2k-digicam', 'security-cam', 'super-8'],
+  editorial: ['gq-editorial', 'leica-street', 'a24-still', 'blockbuster', 'pastel-cinema'],
 }
 
 interface Props {
