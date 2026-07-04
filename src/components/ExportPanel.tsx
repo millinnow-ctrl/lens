@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import Modal from './Modal'
 import { IconDownload, IconShare } from './icons'
 import { canvasToBlob, renderStyled } from '../lib/engine'
+import { makeSplitCard, makeStoryCard } from '../lib/shareCards'
 import { renderStyledVideo, videoExportSupported } from '../lib/video'
 import { deliverFile, haptic } from '../lib/native'
 import { HASHTAGS, randomCaption } from '../lib/captions'
@@ -43,6 +44,12 @@ export default function ExportPanel({
   const hd = plan === 'pro' || plan === 'studio'
   const isVideo = !!videoSrc
 
+  /** photo exports come in three cuts: the shot, a 9:16 story card, a 4:5 split */
+  const [format, setFormat] = useState<'photo' | 'story' | 'split'>('photo')
+  useEffect(() => {
+    if (open) setFormat('photo')
+  }, [open])
+
   useEffect(() => {
     if (!open) return
     setCaption(randomCaption(style.id))
@@ -76,10 +83,15 @@ export default function ExportPanel({
           setUrl(objectUrl)
           haptic('medium')
         } else if (source) {
-          const canvas = renderStyled(source, style, params, {
-            maxSize: hd ? 2560 : 1600,
-            watermark: !isPaid,
-          })
+          const canvas =
+            format === 'story'
+              ? makeStoryCard(source, style, params, { watermark: !isPaid })
+              : format === 'split'
+                ? makeSplitCard(source, style, params, { watermark: !isPaid })
+                : renderStyled(source, style, params, {
+                    maxSize: hd ? 2560 : 1600,
+                    watermark: !isPaid,
+                  })
           const b = await canvasToBlob(canvas, hd ? 0.95 : 0.9)
           if (cancelled) return
           objectUrl = URL.createObjectURL(b)
@@ -101,11 +113,12 @@ export default function ExportPanel({
       setUrl(null)
       setBlob(null)
     }
-  }, [open, source, videoSrc, style, params, isPaid, hd])
+  }, [open, source, videoSrc, style, params, isPaid, hd, format])
 
   const filename = useMemo(
-    () => `lensmood-${style.id}-${Date.now().toString(36)}.${extension}`,
-    [style.id, extension],
+    () =>
+      `lensmood-${style.id}${format === 'photo' ? '' : `-${format}`}-${Date.now().toString(36)}.${extension}`,
+    [style.id, extension, format],
   )
 
   const send = useCallback(
@@ -188,6 +201,33 @@ export default function ExportPanel({
 
           {/* actions */}
           <div className="flex flex-col gap-2.5">
+            {!isVideo && (
+              <div
+                className="grid grid-cols-3 bg-black/5 rounded-full p-1"
+                role="tablist"
+                aria-label="Export format"
+              >
+                {(
+                  [
+                    { id: 'photo', label: 'Photo' },
+                    { id: 'story', label: 'Story' },
+                    { id: 'split', label: 'Split' },
+                  ] as const
+                ).map((f) => (
+                  <button
+                    key={f.id}
+                    role="tab"
+                    aria-selected={format === f.id}
+                    onClick={() => setFormat(f.id)}
+                    className={`h-8 rounded-full text-[12.5px] font-semibold transition-colors ${
+                      format === f.id ? 'bg-white text-ink shadow-sm' : 'text-ink-soft'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            )}
             {rendering || !url ? (
               <button disabled className="btn btn-primary w-full">
                 <IconDownload size={15} />

@@ -1,7 +1,17 @@
+import { useId } from 'react'
 import type { SVGProps } from 'react'
 
 /**
- * LensMood icon set — 24 viewBox, 1.7 stroke, round caps.
+ * LensMood icon set — hand-tuned on a 24pt grid, SF Symbols discipline.
+ *
+ * Rules of the set:
+ *  - stroke 1.8, round caps + joins, no miters anywhere
+ *  - every glyph fills ~17–19 units of the grid; pure circles are drawn
+ *    ~4% smaller so they read the same optical size as squares
+ *  - chevrons / small marks run slightly heavier (2–2.1) so they don't wisp
+ *  - Fill variants (tab-bar active states) use fill="currentColor", no stroke,
+ *    matched to the optical footprint of their outline twins
+ *
  * The only iconography allowed in the app. No emoji, ever.
  */
 
@@ -15,7 +25,7 @@ const base = (props: P) => {
     height: size,
     fill: 'none',
     stroke: 'currentColor',
-    strokeWidth: 1.7,
+    strokeWidth: 1.8,
     strokeLinecap: 'round' as const,
     strokeLinejoin: 'round' as const,
     className,
@@ -24,213 +34,314 @@ const base = (props: P) => {
   }
 }
 
+/** filled twins: same grid, solid currentColor, no stroke */
+const baseFill = (props: P) => {
+  const { size = 18, className = '', ...rest } = props
+  return {
+    viewBox: '0 0 24 24',
+    width: size,
+    height: size,
+    fill: 'currentColor',
+    stroke: 'none',
+    className,
+    'aria-hidden': true,
+    ...rest,
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Capture                                                             */
+/* ------------------------------------------------------------------ */
+
 export const IconCamera = (p: P) => (
   <svg {...base(p)}>
-    <rect x="3" y="6.5" width="18" height="13" />
-    <circle cx="12" cy="13" r="3.75" />
-    <path d="M8.5 6.5L10 4h4l1.5 2.5M17.75 9.75h.5" />
-  </svg>
-)
-
-export const IconUpload = (p: P) => (
-  <svg {...base(p)}>
-    <path d="M12 15V4m0 0L7.5 8.5M12 4l4.5 4.5M4 15v5h16v-5" />
-  </svg>
-)
-
-export const IconDownload = (p: P) => (
-  <svg {...base(p)}>
-    <path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M4 15v5h16v-5" />
-  </svg>
-)
-
-export const IconShare = (p: P) => (
-  <svg {...base(p)}>
-    <path d="M12 14V3.5m0 0L8 7.5M12 3.5L16 7.5" />
-    <path d="M6 11H4v9h16v-9h-2" />
-  </svg>
-)
-
-export const IconPlay = (p: P) => (
-  <svg {...base(p)} fill="currentColor" stroke="none">
-    <path d="M8 5.5v13l11-6.5Z" />
-  </svg>
-)
-
-export const IconPause = (p: P) => (
-  <svg {...base(p)} fill="currentColor" stroke="none">
-    <rect x="6.5" y="5" width="3.5" height="14" />
-    <rect x="14" y="5" width="3.5" height="14" />
-  </svg>
-)
-
-export const IconHeart = (p: P) => (
-  <svg {...base(p)}>
-    <path d="M12 20s-7.2-4.7-9.3-8.6a5.2 5.2 0 0 1 9.3-4.6 5.2 5.2 0 0 1 9.3 4.6C19.2 15.3 12 20 12 20Z" />
-  </svg>
-)
-
-export const IconClose = (p: P) => (
-  <svg {...base(p)}>
-    <path d="M5.5 5.5l13 13m0-13l-13 13" />
-  </svg>
-)
-
-export const IconCheck = (p: P) => (
-  <svg {...base(p)}>
-    <path d="M4.5 12.5l5 5L19.5 6.5" />
-  </svg>
-)
-
-export const IconArrowRight = (p: P) => (
-  <svg {...base(p)}>
-    <path d="M4 12h16m0 0l-6-6m6 6l-6 6" />
-  </svg>
-)
-
-export const IconCompare = (p: P) => (
-  <svg {...base(p)}>
-    <path d="M12 3v18M8 8l-4 4 4 4M16 8l4 4-4 4" />
-  </svg>
-)
-
-export const IconFilm = (p: P) => (
-  <svg {...base(p)}>
-    <rect x="4" y="3.5" width="16" height="17" />
-    <path d="M8 3.5v17M16 3.5v17M4 8h4M4 12h4M4 16h4M16 8h4M16 12h4M16 16h4" />
-  </svg>
-)
-
-export const IconGrid = (p: P) => (
-  <svg {...base(p)}>
-    <rect x="4" y="4" width="7" height="7" />
-    <rect x="13" y="4" width="7" height="7" />
-    <rect x="4" y="13" width="7" height="7" />
-    <rect x="13" y="13" width="7" height="7" />
-  </svg>
-)
-
-export const IconHome = (p: P) => (
-  <svg {...base(p)}>
-    <path d="M4 11l8-7 8 7v9h-5.5v-6h-5v6H4Z" />
-  </svg>
-)
-
-export const IconTag = (p: P) => (
-  <svg {...base(p)}>
-    <path d="M4 4h7l9 9-7 7-9-9Z" />
-    <circle cx="8.5" cy="8.5" r="1" fill="currentColor" stroke="none" />
-  </svg>
-)
-
-export const IconTrash = (p: P) => (
-  <svg {...base(p)}>
-    <path d="M5 7h14M9.5 7V4.5h5V7M7 7l1 13h8l1-13M10.5 10.5v6M13.5 10.5v6" />
-  </svg>
-)
-
-export const IconDot = (p: P) => (
-  <svg {...base(p)} fill="currentColor" stroke="none">
-    <circle cx="12" cy="12" r="5" />
+    {/* prism top — trapezoid with softened shoulders, tangent into the body */}
+    <path d="M8.35 6.9l.9-1.62c.32-.57.81-.88 1.47-.88h2.56c.66 0 1.15.31 1.47.88l.9 1.62" />
+    {/* body */}
+    <rect x="3" y="6.9" width="18" height="13" rx="3.4" />
+    {/* lens — big, centered on the body */}
+    <circle cx="12" cy="13.3" r="3.85" />
+    {/* viewfinder detail dot, top right */}
+    <path d="M17.55 10.15h.01" strokeWidth={2.1} />
   </svg>
 )
 
 export const IconAperture = (p: P) => (
   <svg {...base(p)}>
-    <circle cx="12" cy="12" r="8.5" />
-    <path d="M12 3.5l3.5 8.5M20 8.5l-8.5 3.5M20.5 15.5H11.5M15.5 20.5L12 12M8 20l4-8M3.5 15l8.5-3M4 8.5h8" />
-  </svg>
-)
-
-export const IconBell = (p: P) => (
-  <svg {...base(p)}>
-    <path d="M12 4a5.5 5.5 0 0 1 5.5 5.5c0 3 .8 4.6 1.7 5.7H4.8c.9-1.1 1.7-2.7 1.7-5.7A5.5 5.5 0 0 1 12 4Z" />
-    <path d="M10 18.5a2 2 0 0 0 4 0" />
-  </svg>
-)
-
-export const IconSearch = (p: P) => (
-  <svg {...base(p)}>
-    <circle cx="11" cy="11" r="6.5" />
-    <path d="M15.8 15.8L20.5 20.5" />
-  </svg>
-)
-
-export const IconChevronDown = (p: P) => (
-  <svg {...base(p)}>
-    <path d="M6 9.5l6 6 6-6" />
-  </svg>
-)
-
-export const IconChevronRight = (p: P) => (
-  <svg {...base(p)}>
-    <path d="M9.5 6l6 6-6 6" />
-  </svg>
-)
-
-export const IconSparkle = (p: P) => (
-  <svg {...base(p)}>
-    <path d="M12 3.5l1.8 5.2 5.2 1.8-5.2 1.8L12 17.5l-1.8-5.2L5 10.5l5.2-1.8Z" />
-    <path d="M18.5 15.5l.9 2.6 2.6.9-2.6.9-.9 2.6-.9-2.6-2.6-.9 2.6-.9Z" />
-  </svg>
-)
-
-export const IconStack = (p: P) => (
-  <svg {...base(p)}>
-    <path d="M12 3.5L21 8l-9 4.5L3 8Z" />
-    <path d="M3 12.5l9 4.5 9-4.5M3 17l9 4.5L21 17" />
-  </svg>
-)
-
-export const IconUser = (p: P) => (
-  <svg {...base(p)}>
-    <circle cx="12" cy="8.5" r="4" />
-    <path d="M4.5 20.5a7.5 7.5 0 0 1 15 0" />
+    <circle cx="12" cy="12" r="8.6" />
+    <path d="M13.99 8.56l4.93 8.55M10.01 8.56h9.88M8.03 12l4.93-8.55M10.01 15.44L5.08 6.89M13.99 15.44H4.11M15.97 12l-4.93 8.55" />
   </svg>
 )
 
 export const IconImage = (p: P) => (
   <svg {...base(p)}>
-    <rect x="3.5" y="4.5" width="17" height="15" />
-    <circle cx="9" cy="10" r="1.75" />
-    <path d="M3.5 17l5-5 4 4 3-3 5 5" />
+    <rect x="3.2" y="4.7" width="17.6" height="14.6" rx="3.6" />
+    <circle cx="8.7" cy="9.5" r="1.85" />
+    <path d="M20.8 15.9l-4.63-4.63a1.85 1.85 0 0 0-2.62 0L5.2 19.6" />
+  </svg>
+)
+
+export const IconImageFill = (p: P) => {
+  const { size = 18, className = '', ...rest } = p
+  const id = useId()
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" className={className} aria-hidden {...rest}>
+      <mask id={id} maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24">
+        <rect x="3.2" y="4.7" width="17.6" height="14.6" rx="3.6" fill="#fff" />
+        <path
+          d="M20.8 15.9l-4.63-4.63a1.85 1.85 0 0 0-2.62 0L5.2 19.6"
+          fill="none"
+          stroke="#000"
+          strokeWidth="1.9"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <circle cx="8.7" cy="9.5" r="2.05" fill="#000" />
+      </mask>
+      <rect x="3.2" y="4.7" width="17.6" height="14.6" rx="3.6" mask={`url(#${id})`} />
+    </svg>
+  )
+}
+
+/** picture with a plus badge — the upload drop zone */
+export const IconImagePlus = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M20.8 11.4V8.3a3.6 3.6 0 0 0-3.6-3.6H6.8a3.6 3.6 0 0 0-3.6 3.6v7.4a3.6 3.6 0 0 0 3.6 3.6h6.2" />
+    <circle cx="8.5" cy="9.3" r="1.7" />
+    <path d="M3.3 16.4l4.14-4.14a1.85 1.85 0 0 1 2.62 0L14.2 16.4" />
+    <path d="M17.9 15.1v5.6M15.1 17.9h5.6" />
+  </svg>
+)
+
+export const IconFilm = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="3.3" y="4.1" width="17.4" height="15.8" rx="3" />
+    <path d="M8 4.3v15.4M16 4.3v15.4" />
+    <path d="M3.3 8.4h4.7M3.3 12h4.7M3.3 15.6h4.7M16 8.4h4.7M16 12h4.7M16 15.6h4.7" />
+  </svg>
+)
+
+export const IconCompare = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M12 3.4v17.2" />
+    <path d="M8.1 8.6L4.7 12l3.4 3.4M15.9 8.6l3.4 3.4-3.4 3.4" />
+  </svg>
+)
+
+/* ------------------------------------------------------------------ */
+/* Navigation / tab bar                                                */
+/* ------------------------------------------------------------------ */
+
+export const IconHome = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M3.9 11.1l7.06-6.15a1.6 1.6 0 0 1 2.08 0L20.1 11.1" />
+    <path d="M5.5 12.6v5.5c0 1 .81 1.8 1.8 1.8h9.4c.99 0 1.8-.8 1.8-1.8v-5.5" />
+    <path d="M10.2 19.9v-3.85a1.8 1.8 0 0 1 3.6 0V19.9" />
+  </svg>
+)
+
+export const IconHomeFill = (p: P) => (
+  <svg {...baseFill(p)}>
+    <path d="M11.47 3.73a.85.85 0 0 1 1.06 0l7.7 6.3c.49.4.77 1 .77 1.63v6.44a2.1 2.1 0 0 1-2.1 2.1H14.6v-4.55a2.6 2.6 0 0 0-5.2 0v4.55H5.1a2.1 2.1 0 0 1-2.1-2.1v-6.44c0-.63.28-1.23.77-1.63Z" />
   </svg>
 )
 
 /** three offset circles — the Styles tab */
 export const IconStyles = (p: P) => (
   <svg {...base(p)}>
-    <circle cx="12" cy="8.5" r="4.5" />
-    <circle cx="8.5" cy="14.5" r="4.5" />
-    <circle cx="15.5" cy="14.5" r="4.5" />
+    <circle cx="12" cy="8.15" r="4.55" />
+    <circle cx="8.35" cy="14.35" r="4.55" />
+    <circle cx="15.65" cy="14.35" r="4.55" />
+  </svg>
+)
+
+export const IconStylesFill = (p: P) => (
+  <svg {...baseFill(p)}>
+    <path
+      fillRule="evenodd"
+      d="M6.95 8.15a5.05 5.05 0 1 1 10.1 0 5.05 5.05 0 0 1-10.1 0ZM3.3 14.35a5.05 5.05 0 1 1 10.1 0 5.05 5.05 0 0 1-10.1 0Zm7.3 0a5.05 5.05 0 1 1 10.1 0 5.05 5.05 0 0 1-10.1 0Z"
+    />
+  </svg>
+)
+
+export const IconUser = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="12" cy="8.3" r="3.95" />
+    <path d="M4.9 19.9a7.15 7.15 0 0 1 14.2 0" />
+  </svg>
+)
+
+export const IconUserFill = (p: P) => (
+  <svg {...baseFill(p)}>
+    <circle cx="12" cy="8.1" r="4.5" />
+    <path d="M12 14.3c-4.66 0-8.2 2.66-8.68 6.05-.09.63.43 1.15 1.06 1.15h15.24c.63 0 1.15-.52 1.06-1.15-.48-3.39-4.02-6.05-8.68-6.05Z" />
   </svg>
 )
 
 export const IconPlusCircle = (p: P) => (
   <svg {...base(p)}>
-    <circle cx="12" cy="12" r="9" />
-    <path d="M12 8.25v7.5M8.25 12h7.5" />
+    <circle cx="12" cy="12" r="8.65" />
+    <path d="M12 8.4v7.2M8.4 12h7.2" />
   </svg>
 )
 
-/** picture with a plus badge — the upload drop zone */
-export const IconImagePlus = (p: P) => (
+export const IconGrid = (p: P) => (
   <svg {...base(p)}>
-    <path d="M20.5 11V6a1.5 1.5 0 0 0-1.5-1.5H5A1.5 1.5 0 0 0 3.5 6v12A1.5 1.5 0 0 0 5 19.5h8" />
-    <circle cx="9" cy="9.5" r="1.6" />
-    <path d="M3.5 16.5l4.5-4.5 4.5 4.5" />
-    <circle cx="17.75" cy="17.75" r="4.4" fill="currentColor" stroke="none" opacity="0.16" />
-    <path d="M17.75 15.4v4.7M15.4 17.75h4.7" />
+    <rect x="3.9" y="3.9" width="7" height="7" rx="2.2" />
+    <rect x="13.1" y="3.9" width="7" height="7" rx="2.2" />
+    <rect x="3.9" y="13.1" width="7" height="7" rx="2.2" />
+    <rect x="13.1" y="13.1" width="7" height="7" rx="2.2" />
+  </svg>
+)
+
+export const IconStack = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M11.32 3.8a1.6 1.6 0 0 1 1.36 0l7.25 3.35c.9.42.9 1.7 0 2.11l-7.25 3.35a1.6 1.6 0 0 1-1.36 0L4.07 9.26c-.9-.42-.9-1.7 0-2.11Z" />
+    <path d="M20.7 13.3l-8 3.68a1.7 1.7 0 0 1-1.4 0l-8-3.68" />
+    <path d="M20.7 17.1l-8 3.68a1.7 1.7 0 0 1-1.4 0l-8-3.68" />
+  </svg>
+)
+
+/* ------------------------------------------------------------------ */
+/* Actions                                                             */
+/* ------------------------------------------------------------------ */
+
+export const IconUpload = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M12 14.5V3.9" />
+    <path d="M7.9 7.8L12 3.7l4.1 4.1" />
+    <path d="M4.4 14.9v2.7a2.6 2.6 0 0 0 2.6 2.6h10a2.6 2.6 0 0 0 2.6-2.6v-2.7" />
+  </svg>
+)
+
+export const IconDownload = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M12 3.9v10.6" />
+    <path d="M7.9 10.6l4.1 4.1 4.1-4.1" />
+    <path d="M4.4 14.9v2.7a2.6 2.6 0 0 0 2.6 2.6h10a2.6 2.6 0 0 0 2.6-2.6v-2.7" />
+  </svg>
+)
+
+export const IconShare = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M12 13.9V3.6" />
+    <path d="M8.3 7.2L12 3.5l3.7 3.7" />
+    <path d="M8.75 9.4H7.1a2.6 2.6 0 0 0-2.6 2.6v6a2.6 2.6 0 0 0 2.6 2.6h9.8a2.6 2.6 0 0 0 2.6-2.6v-6a2.6 2.6 0 0 0-2.6-2.6h-1.65" />
+  </svg>
+)
+
+export const IconPlay = (p: P) => (
+  // fill + self-stroke fattens the triangle and rounds its corners
+  <svg {...base(p)} fill="currentColor" strokeWidth={1.8}>
+    <path d="M8.7 6.9v10.2L17.7 12Z" />
+  </svg>
+)
+
+export const IconPause = (p: P) => (
+  <svg {...baseFill(p)}>
+    <rect x="6.7" y="4.9" width="3.6" height="14.2" rx="1.8" />
+    <rect x="13.7" y="4.9" width="3.6" height="14.2" rx="1.8" />
+  </svg>
+)
+
+export const IconHeart = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M12 20.1c-.2 0-.4-.06-.57-.18C9.5 18.6 3.1 14 3.1 9.1c0-2.9 2.3-5.2 5.1-5.2 1.5 0 2.9.68 3.8 1.8.9-1.12 2.3-1.8 3.8-1.8 2.8 0 5.1 2.3 5.1 5.2 0 4.9-6.4 9.5-8.33 10.82-.17.12-.37.18-.57.18Z" />
+  </svg>
+)
+
+export const IconTrash = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M4.3 6.6h15.4" />
+    <path d="M9.3 6.5V5.35c0-.66.54-1.2 1.2-1.2h3c.66 0 1.2.54 1.2 1.2V6.5" />
+    <path d="M6.3 6.7l.72 11.6a2 2 0 0 0 2 1.9h5.96a2 2 0 0 0 2-1.9l.72-11.6" />
+    <path d="M10.1 10.4l.2 6M13.9 10.4l-.2 6" />
+  </svg>
+)
+
+export const IconTag = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M4.15 6.1c0-1.08.87-1.95 1.95-1.95h4.22c.52 0 1.01.2 1.38.57l7.7 7.7a1.95 1.95 0 0 1 0 2.76l-4.27 4.27a1.95 1.95 0 0 1-2.76 0l-7.7-7.7a1.95 1.95 0 0 1-.52-1.33Z" />
+    <circle cx="8.55" cy="8.55" r="1.15" />
+  </svg>
+)
+
+/* ------------------------------------------------------------------ */
+/* Marks / small glyphs (drawn slightly heavier)                       */
+/* ------------------------------------------------------------------ */
+
+export const IconClose = (p: P) => (
+  <svg {...base(p)} strokeWidth={2}>
+    <path d="M6.2 6.2l11.6 11.6M17.8 6.2L6.2 17.8" />
+  </svg>
+)
+
+export const IconCheck = (p: P) => (
+  <svg {...base(p)} strokeWidth={2}>
+    <path d="M4.9 12.9l4.6 4.6L19.1 7.1" />
+  </svg>
+)
+
+export const IconArrowRight = (p: P) => (
+  <svg {...base(p)} strokeWidth={2}>
+    <path d="M4.6 12h14.8M13.5 6.1l5.9 5.9-5.9 5.9" />
+  </svg>
+)
+
+export const IconChevronDown = (p: P) => (
+  <svg {...base(p)} strokeWidth={2.1}>
+    <path d="M6.6 9.3l5.4 5.5 5.4-5.5" />
+  </svg>
+)
+
+export const IconChevronRight = (p: P) => (
+  <svg {...base(p)} strokeWidth={2.1}>
+    <path d="M9.3 6.6l5.5 5.4-5.5 5.4" />
+  </svg>
+)
+
+export const IconDot = (p: P) => (
+  <svg {...baseFill(p)}>
+    <circle cx="12" cy="12" r="4.6" />
   </svg>
 )
 
 export const IconDots = (p: P) => (
-  <svg {...base(p)}>
-    <circle cx="5.25" cy="12" r="0.9" fill="currentColor" stroke="none" />
-    <circle cx="12" cy="12" r="0.9" fill="currentColor" stroke="none" />
-    <circle cx="18.75" cy="12" r="0.9" fill="currentColor" stroke="none" />
+  <svg {...baseFill(p)}>
+    <circle cx="5.6" cy="12" r="1.15" />
+    <circle cx="12" cy="12" r="1.15" />
+    <circle cx="18.4" cy="12" r="1.15" />
   </svg>
 )
+
+/* ------------------------------------------------------------------ */
+/* Ambient                                                             */
+/* ------------------------------------------------------------------ */
+
+export const IconBell = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M12 4.2a5.9 5.9 0 0 1 5.9 5.9c0 2.7.55 4.3 1.14 5.3.36.6-.04 1.4-.74 1.4H5.7c-.7 0-1.1-.8-.74-1.4.59-1 1.14-2.6 1.14-5.3A5.9 5.9 0 0 1 12 4.2Z" />
+    <path d="M9.95 17.1a2.05 2.05 0 0 0 4.1 0" />
+  </svg>
+)
+
+export const IconSearch = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="10.9" cy="10.9" r="6.7" />
+    <path d="M15.75 15.75l4.6 4.6" />
+  </svg>
+)
+
+export const IconSparkle = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M10.4 3.4Q11.5 8.4 16.5 9.5 11.5 10.6 10.4 15.6 9.3 10.6 4.3 9.5 9.3 8.4 10.4 3.4Z" />
+    <path d="M17.8 13.4Q18.4 16.4 21.4 17 18.4 17.6 17.8 20.6 17.2 17.6 14.2 17 17.2 16.4 17.8 13.4Z" />
+  </svg>
+)
+
+/* ------------------------------------------------------------------ */
+/* Brand marks (fixed colors, not part of the stroke system)           */
+/* ------------------------------------------------------------------ */
 
 export const IconApple = (p: P) => {
   const { size = 18, className = '' } = p

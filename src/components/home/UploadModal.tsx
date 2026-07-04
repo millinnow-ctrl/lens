@@ -9,8 +9,14 @@ import { MAX_ROLL, useApp } from '../../lib/store'
 import sampleGolden from '../../assets/sample-golden.jpg'
 import sampleStreet from '../../assets/sample-street.jpg'
 import sampleNight from '../../assets/sample-night.jpg'
+import sampleConcert from '../../assets/sample-concert.jpg'
+import sampleBrunch from '../../assets/sample-brunch.jpg'
+import sampleFriends from '../../assets/sample-friends.jpg'
 
 const SAMPLES = [
+  { src: sampleFriends, label: 'Friends' },
+  { src: sampleConcert, label: 'Concert' },
+  { src: sampleBrunch, label: 'Brunch' },
   { src: sampleGolden, label: 'Golden hour' },
   { src: sampleStreet, label: 'Street' },
   { src: sampleNight, label: 'Night out' },
