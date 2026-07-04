@@ -18,6 +18,7 @@ import { CAMERA_STYLES, encodeParams, getStyle, type CameraStyle } from '../lib/
 import { useApp } from '../lib/store'
 import sampleGolden from '../assets/sample-golden.jpg'
 import heroPoster from '../assets/hero-poster.jpg'
+import heroLoop from '../assets/hero-loop.mp4'
 import sampleFriends from '../assets/sample-friends.jpg'
 import sampleDog from '../assets/sample-dog.jpg'
 import samplePrints from '../assets/sample-prints.jpg'
@@ -115,9 +116,8 @@ const sectionIn = {
   animate: { opacity: 1, y: 0 },
 }
 
-/** the hero loop steps aside for reduced-motion users (and single-file previews) */
+/** the hero loop steps aside only for reduced-motion users */
 const heroVideoEnabled = () =>
-  !import.meta.env.VITE_SINGLEFILE &&
   !(typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
 
 function HomeContent({
@@ -194,7 +194,7 @@ function HomeContent({
         <div className="relative rounded-[28px] overflow-hidden aspect-[4/3] bg-vf">
           {heroVideoEnabled() ? (
             <video
-              src="/hero.mp4"
+              src={heroLoop}
               poster={heroPoster}
               autoPlay
               muted
