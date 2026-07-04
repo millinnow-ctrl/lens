@@ -8,6 +8,8 @@ export interface RenderOptions {
   target?: HTMLCanvasElement
   /** jitter the grain pattern per call so video grain flickers like film */
   animateGrain?: boolean
+  /** AI face lock (normalized) — flash centers here, smoothing stays on skin */
+  focal?: { x: number; y: number; r: number } | null
 }
 
 type Source = HTMLImageElement | HTMLCanvasElement | ImageBitmap | HTMLVideoElement
@@ -90,7 +92,7 @@ export function renderStyled(
   params: StyleParams,
   opts: RenderOptions = {},
 ): HTMLCanvasElement {
-  const { maxSize = 1280, watermark = false, target, animateGrain = false } = opts
+  const { maxSize = 1280, watermark = false, target, animateGrain = false, focal = null } = opts
   const { w, h } = fitted(source, maxSize)
   const ch = style.character
   const s = params.intensity / 100 // global look strength
@@ -178,10 +180,20 @@ export function renderStyled(
     ctx.putImageData(img, 0, 0)
   }
 
-  /* 2 — skin smoothing: soft-blurred self-blend */
+  /* 2 — skin smoothing: soft-blurred self-blend. With a face lock the
+     blend is clipped to a feathered ellipse around the face, so texture
+     elsewhere stays crisp — smoothing skin, not the world. */
   if (params.smoothing > 0) {
     ctx.save()
-    ctx.globalAlpha = (params.smoothing / 100) * 0.4
+    if (focal) {
+      const fx = focal.x * w
+      const fy = focal.y * h
+      const fr = Math.max(focal.r * Math.max(w, h) * 1.15, 24)
+      ctx.beginPath()
+      ctx.ellipse(fx, fy, fr, fr * 1.25, 0, 0, Math.PI * 2)
+      ctx.clip()
+    }
+    ctx.globalAlpha = (params.smoothing / 100) * (focal ? 0.55 : 0.4)
     ctx.filter = `blur(${(2.5 * ref).toFixed(2)}px)`
     ctx.drawImage(canvas, 0, 0)
     ctx.restore()
@@ -221,12 +233,14 @@ export function renderStyled(
     ctx.restore()
   }
 
-  /* 6 — flash: hot center + darkened surroundings */
+  /* 6 — flash: hot center + darkened surroundings. The AI face lock
+     puts the hotspot on the subject the way a real on-camera flash
+     reads a face, instead of assuming center-frame. */
   const flash = (params.flash / 100) * s
   if (flash > 0.02) {
-    const cx = w * 0.5
-    const cy = h * 0.42
-    const r = Math.max(w, h) * 0.72
+    const cx = (focal ? focal.x : 0.5) * w
+    const cy = (focal ? focal.y : 0.42) * h
+    const r = Math.max(w, h) * (focal ? Math.max(0.5, focal.r * 4.5) : 0.72)
     ctx.save()
     ctx.globalCompositeOperation = 'screen'
     const hot = ctx.createRadialGradient(cx, cy, 0, cx, cy, r)

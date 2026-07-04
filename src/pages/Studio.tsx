@@ -11,6 +11,7 @@ import Modal from '../components/Modal'
 import { IconFilm } from '../components/icons'
 import { loadImage, renderStyled, thumbnail } from '../lib/engine'
 import { claimDaily, dailyStyle, isDailyClaimed } from '../lib/lab'
+import { detectFocal, type Focal } from '../lib/focal'
 import { haptic } from '../lib/native'
 import {
   GENERATION_STEPS,
@@ -63,18 +64,25 @@ export default function Studio() {
   const deepLinkHandled = useRef<string | null>(null)
   const hasMedia = !!photo || !!video
 
-  /* load the active photo into an Image element */
+  /* load the active photo into an Image element, then let the on-device
+     face model find the subject (silently — the engine works without it) */
+  const [focal, setFocal] = useState<Focal | null>(null)
   useEffect(() => {
     setResultUrl(null)
     setPhase('idle')
     setView('result')
+    setFocal(null)
     if (!photo) {
       setSource(null)
       return
     }
     let cancelled = false
     loadImage(photo).then((img) => {
-      if (!cancelled) setSource(img)
+      if (cancelled) return
+      setSource(img)
+      detectFocal(img).then((f) => {
+        if (!cancelled) setFocal(f)
+      })
     })
     return () => {
       cancelled = true
@@ -103,7 +111,7 @@ export default function Studio() {
       generationTimer.current = setTimeout(() => {
         const effective = presetParams ?? s.defaults
         if (source) {
-          const canvas = renderStyled(source, s, effective, { maxSize: 1280 })
+          const canvas = renderStyled(source, s, effective, { maxSize: 1280, focal })
           setResultUrl(canvas.toDataURL('image/jpeg', 0.9))
           addHistory({ thumb: thumbnail(canvas), styleId: s.id, styleName: s.name })
         } else if (videoPoster) {
@@ -117,7 +125,7 @@ export default function Studio() {
         haptic('light')
       }, 2300)
     },
-    [source, video, videoPoster, spendCredit, selectStyle, addHistory],
+    [source, video, videoPoster, focal, spendCredit, selectStyle, addHistory],
   )
 
   /* deep link: /studio?style=a24-still&p=90.30.55.46.0.58.0 (&daily=1 = today's free stock) */
@@ -154,11 +162,11 @@ export default function Studio() {
     if (phase !== 'done' || !source || !style || !params) return
     cancelAnimationFrame(renderRaf.current)
     renderRaf.current = requestAnimationFrame(() => {
-      const canvas = renderStyled(source, style, params, { maxSize: 1280 })
+      const canvas = renderStyled(source, style, params, { maxSize: 1280, focal })
       setResultUrl(canvas.toDataURL('image/jpeg', 0.9))
     })
     return () => cancelAnimationFrame(renderRaf.current)
-  }, [params, phase, source, style])
+  }, [params, phase, source, style, focal])
 
   /* rotating progress copy while "developing" */
   useEffect(() => {
@@ -211,6 +219,7 @@ export default function Studio() {
               </span>
               <span className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.14em] uppercase text-vf-chrome tabular-nums shrink-0">
                 {video && <span className="w-1.5 h-1.5 rounded-full bg-[#E1251B] inline-block" aria-hidden />}
+                {focal && !video && <span className="text-violet">AF·FACE</span>}
                 {video ? 'REC · 30FPS' : (style?.exif ?? 'READY · NO MOOD')}
               </span>
             </div>
@@ -438,6 +447,7 @@ export default function Studio() {
           videoSrc={video}
           style={style}
           params={params}
+          focal={focal}
           onTryAnother={() => {
             setView('result')
             window.scrollTo({ top: 0, behavior: 'smooth' })

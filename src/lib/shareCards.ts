@@ -1,4 +1,5 @@
 import { renderStyled } from './engine'
+import type { Focal } from './focal'
 import type { CameraStyle, StyleParams } from './styles'
 
 /**
@@ -77,11 +78,11 @@ export function makeStoryCard(
   source: HTMLImageElement,
   style: CameraStyle,
   params: StyleParams,
-  opts: { watermark?: boolean } = {},
+  opts: { watermark?: boolean; focal?: Focal | null } = {},
 ): HTMLCanvasElement {
   const W = 1080
   const H = 1920
-  const styled = renderStyled(source, style, params, { maxSize: 1600, watermark: opts.watermark })
+  const styled = renderStyled(source, style, params, { maxSize: 1600, watermark: opts.watermark, focal: opts.focal })
 
   const out = document.createElement('canvas')
   out.width = W
@@ -126,11 +127,11 @@ export function makeSplitCard(
   source: HTMLImageElement,
   style: CameraStyle,
   params: StyleParams,
-  opts: { watermark?: boolean } = {},
+  opts: { watermark?: boolean; focal?: Focal | null } = {},
 ): HTMLCanvasElement {
   const W = 1080
   const H = 1350
-  const styled = renderStyled(source, style, params, { maxSize: 1600, watermark: opts.watermark })
+  const styled = renderStyled(source, style, params, { maxSize: 1600, watermark: opts.watermark, focal: opts.focal })
 
   const out = document.createElement('canvas')
   out.width = W

@@ -8,6 +8,7 @@ import { renderStyledVideo, videoExportSupported } from '../lib/video'
 import { deliverFile, haptic } from '../lib/native'
 import { HASHTAGS, randomCaption } from '../lib/captions'
 import { dailyStyle, isDailyClaimed } from '../lib/lab'
+import type { Focal } from '../lib/focal'
 import { encodeParams, type CameraStyle, type StyleParams } from '../lib/styles'
 import { useApp } from '../lib/store'
 
@@ -19,6 +20,8 @@ interface Props {
   videoSrc?: string | null
   style: CameraStyle
   params: StyleParams
+  /** AI face lock from the studio — keeps exports identical to the preview */
+  focal?: Focal | null
   onTryAnother: () => void
 }
 
@@ -29,6 +32,7 @@ export default function ExportPanel({
   videoSrc,
   style,
   params,
+  focal = null,
   onTryAnother,
 }: Props) {
   const { isPaid, plan } = useApp()
@@ -91,12 +95,13 @@ export default function ExportPanel({
         } else if (source) {
           const canvas =
             format === 'story'
-              ? makeStoryCard(source, style, params, { watermark: !isPaid })
+              ? makeStoryCard(source, style, params, { watermark: !isPaid, focal })
               : format === 'split'
-                ? makeSplitCard(source, style, params, { watermark: !isPaid })
+                ? makeSplitCard(source, style, params, { watermark: !isPaid, focal })
                 : renderStyled(source, style, params, {
                     maxSize: hd ? 2560 : 1600,
                     watermark: !isPaid,
+                    focal,
                   })
           const b = await canvasToBlob(canvas, hd ? 0.95 : 0.9)
           if (cancelled) return
@@ -119,7 +124,7 @@ export default function ExportPanel({
       setUrl(null)
       setBlob(null)
     }
-  }, [open, source, videoSrc, style, params, isPaid, hd, format])
+  }, [open, source, videoSrc, style, params, isPaid, hd, format, focal])
 
   const filename = useMemo(
     () =>
