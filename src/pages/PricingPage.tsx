@@ -104,14 +104,18 @@ export default function PricingPage() {
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 py-14 sm:py-20 pb-28">
       <div className="mb-12 max-w-2xl">
-        <p className="label-mono mb-3">Pricing</p>
-        <h1 className="type-display text-4xl sm:text-6xl mb-4">Rent the camera bag.</h1>
+        <p className="text-[12px] font-semibold tracking-[0.12em] uppercase text-violet mb-3">
+          Pricing
+        </p>
+        <h1 className="type-display text-4xl sm:text-6xl mb-4">
+          Rent the <span className="grad-text">camera bag.</span>
+        </h1>
         <p className="text-ink-soft">
           Every plan is month-to-month. Cancel whenever — your photos keep the mood forever.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 border border-hairline bg-surface">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch">
         {TIERS.map((tier, i) => {
           const current = isCurrent(tier)
           return (
@@ -120,63 +124,57 @@ export default function PricingPage() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.15, ease: 'easeOut', delay: i * 0.05 }}
-              className={`relative flex flex-col p-6 border-hairline border-t first:border-t-0 lg:border-t-0 lg:border-l lg:first:border-l-0 ${
-                tier.highlight ? 'bg-ink text-paper' : ''
-              }`}
+              className={
+                tier.highlight
+                  ? 'relative z-10 grad-fill rounded-[26px] p-[2px] aura-soft shadow-[0_18px_44px_-14px_rgb(139_92_246/0.45)] lg:scale-[1.04] lg:-translate-y-1.5'
+                  : 'relative bg-surface rounded-[24px] border border-ink/5 shadow-[0_2px_12px_rgb(23_19_31/0.05)]'
+              }
             >
-              {/* reserved badge slot keeps titles/prices on shared baselines */}
-              <div className="h-5 mb-4">
-                {tier.highlight && (
-                  <span className="inline-flex items-center font-mono text-[10px] font-semibold tracking-[0.1em] uppercase px-1.5 py-0.5 rounded-xs border border-paper/70 text-paper">
-                    Most popular
+              <div className="relative flex flex-col h-full p-6 bg-surface rounded-[24px]">
+                {/* reserved badge slot keeps titles/prices on shared baselines */}
+                <div className="h-5 mb-4">
+                  {tier.highlight && (
+                    <span className="inline-flex items-center text-[10px] font-semibold tracking-[0.08em] uppercase px-2.5 py-1 rounded-full grad-fill text-white">
+                      Most popular
+                    </span>
+                  )}
+                </div>
+                <h2 className="font-sans font-semibold text-[16px]">{tier.name}</h2>
+                <p className="text-[13px] mb-5 text-fog">{tier.blurb}</p>
+                <p className="mb-6">
+                  <span className="text-4xl font-bold tracking-tight tabular-nums">
+                    ${tier.price}
                   </span>
-                )}
+                  <span className="text-[13px] text-fog">/month</span>
+                </p>
+                <ul className="mb-7 flex-1 space-y-2.5">
+                  {tier.features.map((f) => {
+                    const caveat =
+                      f.toLowerCase().includes('watermark included') || f.includes('” watermark')
+                    return (
+                      <li key={f} className="flex items-start gap-2.5 text-[13px]">
+                        {caveat ? (
+                          <span className="mt-px shrink-0 text-[12px] leading-none text-fog">
+                            —
+                          </span>
+                        ) : (
+                          <IconCheck size={15} className="mt-0.5 shrink-0 text-violet" />
+                        )}
+                        <span className="text-ink-soft">{f}</span>
+                      </li>
+                    )
+                  })}
+                </ul>
+                <button
+                  onClick={() => choose(tier)}
+                  disabled={current}
+                  className={`btn w-full ${
+                    current ? 'btn-outline' : tier.highlight ? 'btn-primary' : 'btn-outline'
+                  }`}
+                >
+                  {current ? 'Current plan' : tier.cta}
+                </button>
               </div>
-              <h2 className="font-sans font-semibold text-[16px]">{tier.name}</h2>
-              <p className={`text-[13px] mb-5 ${tier.highlight ? 'text-paper/60' : 'text-fog'}`}>
-                {tier.blurb}
-              </p>
-              <p className="mb-6">
-                <span className="font-mono text-4xl tabular-nums">${tier.price}</span>
-                <span className={`text-[13px] ${tier.highlight ? 'text-paper/60' : 'text-fog'}`}>
-                  /month
-                </span>
-              </p>
-              <ul className="mb-7 flex-1 divide-y divide-hairline/60 border-y border-hairline/60">
-                {tier.features.map((f) => {
-                  const caveat = f.toLowerCase().includes('watermark included') || f.includes('” watermark')
-                  return (
-                    <li key={f} className="flex items-start gap-2.5 text-[13px] py-2">
-                      {caveat ? (
-                        <span className={`mt-px shrink-0 font-mono text-[12px] leading-none ${tier.highlight ? 'text-paper/50' : 'text-fog'}`}>
-                          —
-                        </span>
-                      ) : (
-                        <IconCheck
-                          size={13}
-                          className={`mt-0.5 shrink-0 ${tier.highlight ? 'text-paper' : 'text-ink'}`}
-                        />
-                      )}
-                      <span className={tier.highlight ? 'text-paper/85' : 'text-ink-soft'}>{f}</span>
-                    </li>
-                  )
-                })}
-              </ul>
-              <button
-                onClick={() => choose(tier)}
-                disabled={current}
-                className={`btn w-full ${
-                  current
-                    ? tier.highlight
-                      ? 'border border-paper/50 text-paper/60 cursor-default'
-                      : 'btn-outline'
-                    : tier.highlight
-                      ? 'bg-paper text-ink hover:bg-white'
-                      : 'btn-primary'
-                }`}
-              >
-                {current ? 'Current plan' : tier.cta}
-              </button>
             </motion.div>
           )
         })}
@@ -191,10 +189,11 @@ export default function PricingPage() {
         <div className="p-8">
           {!done ? (
             <>
-              <p className="label-mono mb-3">Checkout</p>
+              <p className="text-[12px] font-semibold tracking-[0.12em] uppercase text-violet mb-3">
+                Checkout
+              </p>
               <h3 className="type-display text-2xl mb-2">
-                {checkout?.name} —{' '}
-                <span className="font-mono tabular-nums">${checkout?.price}</span>/mo
+                {checkout?.name} — <span className="tabular-nums">${checkout?.price}</span>/mo
               </h3>
               <p className="text-[13px] text-fog mb-6">
                 Demo checkout: one click, no card. In production this is where Stripe takes the
@@ -209,7 +208,7 @@ export default function PricingPage() {
             </>
           ) : (
             <>
-              <div className="w-12 h-12 mb-4 rounded-xs border border-signal text-signal flex items-center justify-center">
+              <div className="w-12 h-12 mb-4 rounded-full bg-violet/10 text-violet flex items-center justify-center">
                 <IconCheck size={28} />
               </div>
               <h3 className="type-display text-2xl mb-2">Welcome to {checkout?.name}</h3>

@@ -1,61 +1,46 @@
 import { Link } from 'react-router-dom'
 import { ApertureMark } from '../Logo'
-import { IconBell, IconChevronDown } from '../icons'
-import { FREE_CREDITS, useApp } from '../../lib/store'
+import { IconSparkle } from '../icons'
+import { useApp } from '../../lib/store'
 
 interface Props {
   onAccount: () => void
 }
 
 export default function Header({ onAccount }: Props) {
-  const { isPaid, plan, creditsLeft } = useApp()
+  const { isPaid, plan } = useApp()
 
   return (
-    <header className="flex items-center justify-between gap-3 px-4 pt-3.5 pb-1">
-      {/* workspace pill */}
-      <button
-        onClick={onAccount}
-        className="hm-pill hm-press inline-flex items-center gap-2 pl-1.5 pr-3 h-11"
-        aria-label="LensMood Studio workspace"
-      >
-        <span className="w-8 h-8 rounded-full bg-ink flex items-center justify-center">
-          <ApertureMark className="w-5 h-5" dark />
+    <header className="flex items-center justify-between gap-2 px-5 pt-4 pb-2">
+      <button onClick={onAccount} className="hm-press inline-flex items-center gap-2.5" aria-label="LensMood account">
+        <ApertureMark className="w-9 h-9" />
+        <span className="brand-word text-[20px] leading-none text-ink">
+          Lens
+          <span className="grad-text">Mood</span>
         </span>
-        <span className="text-[13px] font-semibold tracking-[-0.01em]">LensMood Studio</span>
-        <IconChevronDown size={13} className="text-fog -ml-0.5" />
       </button>
 
-      <div className="flex items-center gap-2">
-        <button
-          className="hm-pill hm-press w-11 h-11 flex items-center justify-center text-ink"
-          aria-label="Notifications"
-        >
-          <span className="relative">
-            <IconBell size={17} />
-            <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-signal" />
-          </span>
-        </button>
+      <div className="relative">
         {isPaid ? (
-          <span className="h-11 rounded-full bg-ink text-white inline-flex items-center gap-1.5 px-4 text-[13px] font-bold">
+          <span className="hm-pill aura-soft h-9 inline-flex items-center gap-1.5 px-4 text-[14px] font-semibold text-ink">
             <span className="capitalize">{plan}</span>
-            <svg viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square" aria-hidden>
-              <path d="M2.5 6.5l2.5 2.5 4.5-5" />
-            </svg>
+            <IconSparkle size={14} className="text-violet" />
           </span>
         ) : (
           <Link
             to="/pricing"
-            className="hm-press h-11 rounded-full bg-ink text-white inline-flex items-center px-4 text-[13px] font-bold"
+            className="hm-pill aura-soft hm-press h-9 inline-flex items-center gap-1.5 px-4 text-[14px] font-semibold text-ink"
           >
             Pro
+            <IconSparkle size={14} className="text-violet" />
           </Link>
         )}
+        {/* the little sparkle drifting off the pill, like the reference */}
+        <IconSparkle
+          size={11}
+          className="lm-twinkle absolute -top-1.5 -right-1 text-magenta pointer-events-none"
+        />
       </div>
-      {!isPaid && (
-        <span className="sr-only">
-          {creditsLeft} of {FREE_CREDITS} free shots left
-        </span>
-      )}
     </header>
   )
 }

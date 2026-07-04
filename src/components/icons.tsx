@@ -1,7 +1,7 @@
 import type { SVGProps } from 'react'
 
 /**
- * LensMood icon set — 24 viewBox, 1.5 stroke, square caps.
+ * LensMood icon set — 24 viewBox, 1.7 stroke, round caps.
  * The only iconography allowed in the app. No emoji, ever.
  */
 
@@ -15,9 +15,9 @@ const base = (props: P) => {
     height: size,
     fill: 'none',
     stroke: 'currentColor',
-    strokeWidth: 1.5,
-    strokeLinecap: 'square' as const,
-    strokeLinejoin: 'miter' as const,
+    strokeWidth: 1.7,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
     className,
     'aria-hidden': true,
     ...rest,
@@ -194,6 +194,41 @@ export const IconImage = (p: P) => (
     <rect x="3.5" y="4.5" width="17" height="15" />
     <circle cx="9" cy="10" r="1.75" />
     <path d="M3.5 17l5-5 4 4 3-3 5 5" />
+  </svg>
+)
+
+/** three offset circles — the Styles tab */
+export const IconStyles = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="12" cy="8.5" r="4.5" />
+    <circle cx="8.5" cy="14.5" r="4.5" />
+    <circle cx="15.5" cy="14.5" r="4.5" />
+  </svg>
+)
+
+export const IconPlusCircle = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 8.25v7.5M8.25 12h7.5" />
+  </svg>
+)
+
+/** picture with a plus badge — the upload drop zone */
+export const IconImagePlus = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M20.5 11V6a1.5 1.5 0 0 0-1.5-1.5H5A1.5 1.5 0 0 0 3.5 6v12A1.5 1.5 0 0 0 5 19.5h8" />
+    <circle cx="9" cy="9.5" r="1.6" />
+    <path d="M3.5 16.5l4.5-4.5 4.5 4.5" />
+    <circle cx="17.75" cy="17.75" r="4.4" fill="currentColor" stroke="none" opacity="0.16" />
+    <path d="M17.75 15.4v4.7M15.4 17.75h4.7" />
+  </svg>
+)
+
+export const IconDots = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="5.25" cy="12" r="0.9" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="12" r="0.9" fill="currentColor" stroke="none" />
+    <circle cx="18.75" cy="12" r="0.9" fill="currentColor" stroke="none" />
   </svg>
 )
 

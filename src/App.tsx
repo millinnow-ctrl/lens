@@ -5,6 +5,7 @@ import Footer from './components/Footer'
 import AuthModal from './components/AuthModal'
 import BottomNav from './components/home/BottomNav'
 import AccountSheet from './components/home/AccountSheet'
+import UploadModal from './components/home/UploadModal'
 import LandingPage from './pages/LandingPage'
 import Home from './pages/Home'
 import Studio from './pages/Studio'
@@ -37,6 +38,7 @@ function RootRoute() {
 export default function App() {
   const { pathname } = useLocation()
   const [accountOpen, setAccountOpen] = useState(false)
+  const [uploadOpen, setUploadOpen] = useState(false)
 
   const isAppHome =
     pathname === '/home' ||
@@ -46,7 +48,7 @@ export default function App() {
         !!import.meta.env.VITE_SINGLEFILE))
 
   return (
-    <div className="ui-grain min-h-dvh flex flex-col">
+    <div className="min-h-dvh flex flex-col">
       <ScrollManager />
       {/* the app home carries its own mobile chrome */}
       <div className={isAppHome ? 'hidden md:block' : ''}>
@@ -65,7 +67,12 @@ export default function App() {
       {!isAppHome && <Footer />}
       {/* global mobile dock (the home screen embeds its own inside the frame on desktop) */}
       <div className="md:hidden">
-        <BottomNav variant="fixed" onAccount={() => setAccountOpen(true)} />
+        <BottomNav
+          variant="fixed"
+          onAccount={() => setAccountOpen(true)}
+          onCreate={() => setUploadOpen(true)}
+        />
+        <UploadModal open={uploadOpen} onClose={() => setUploadOpen(false)} />
         <AccountSheet open={accountOpen} onClose={() => setAccountOpen(false)} />
       </div>
       <AuthModal />

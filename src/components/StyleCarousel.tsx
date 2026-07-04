@@ -33,12 +33,14 @@ export default function StyleCarousel({ previewSrc, selectedId, onSelect, showFa
           <button
             key={style.id}
             onClick={() => onSelect(style)}
-            className={`group relative shrink-0 w-36 snap-start bg-surface border text-left transition-colors duration-150 ${
-              selected ? 'border-signal' : 'border-hairline hover:border-ink'
+            className={`group relative shrink-0 w-36 snap-start rounded-[18px] bg-surface border text-left transition-all duration-150 ${
+              selected
+                ? 'border-violet ring-2 ring-violet/60 aura-soft scale-[1.02]'
+                : 'border-black/[0.06] hover:border-black/20 shadow-[0_1px_6px_rgb(23_19_31/0.04)]'
             }`}
             aria-pressed={selected}
           >
-            <div className="relative aspect-4/5 overflow-hidden rounded-xs">
+            <div className="relative aspect-4/5 overflow-hidden rounded-t-[17px]">
               <img
                 src={thumbs[style.id] ?? previewSrc}
                 alt=""
@@ -66,8 +68,8 @@ export default function StyleCarousel({ previewSrc, selectedId, onSelect, showFa
                     }
                   }}
                   aria-label={fav ? 'Remove from favorites' : 'Add to favorites'}
-                  className={`absolute top-1.5 left-1.5 w-6 h-6 rounded-xs bg-vf/60 flex items-center justify-center transition-opacity duration-150 focus:opacity-100 ${
-                    fav ? 'opacity-100 text-signal' : 'opacity-0 group-hover:opacity-100 text-paper'
+                  className={`absolute top-1.5 left-1.5 w-6 h-6 rounded-full bg-vf/60 backdrop-blur-sm flex items-center justify-center transition-opacity duration-150 focus:opacity-100 ${
+                    fav ? 'opacity-100 text-magenta' : 'opacity-0 group-hover:opacity-100 text-white'
                   }`}
                 >
                   <IconHeart size={13} fill={fav ? 'currentColor' : 'none'} />
@@ -77,7 +79,7 @@ export default function StyleCarousel({ previewSrc, selectedId, onSelect, showFa
             <div className="px-2.5 pt-2 pb-2.5">
               <p className="flex items-center gap-1.5 font-mono text-[10px] font-medium tracking-[0.1em] uppercase text-fog">
                 {index}
-                {selected && <span className="w-1.5 h-1.5 rounded-full bg-signal inline-block" aria-hidden />}
+                {selected && <span className="w-1.5 h-1.5 rounded-full grad-fill inline-block" aria-hidden />}
               </p>
               <p className="font-semibold text-[13px] leading-tight mt-1 text-ink">{style.name}</p>
               <p className="text-fog text-[11px] leading-snug mt-0.5 line-clamp-2 min-h-[2.6em]">{style.tagline}</p>

@@ -86,12 +86,12 @@ export default function VideoPreview({ src, style, params, className = '', onPos
       <button
         onClick={togglePlay}
         aria-label={playing ? 'Pause' : 'Play'}
-        className="absolute bottom-3 left-3 w-9 h-9 rounded-xs bg-vf/70 text-paper flex items-center justify-center hover:bg-vf/90 transition-colors"
+        className="absolute bottom-3 left-3 w-9 h-9 rounded-full bg-vf/70 text-paper flex items-center justify-center hover:bg-vf/90 transition-colors"
       >
         {playing ? <IconPause size={14} /> : <IconPlay size={14} />}
       </button>
-      <span className="absolute bottom-3 right-3 font-mono text-[10px] font-medium tracking-[0.12em] uppercase bg-vf/70 text-paper/90 px-2 py-1 rounded-xs pointer-events-none inline-flex items-center gap-1.5">
-        <span className="w-1.5 h-1.5 rounded-full bg-signal inline-block lm-breathe" aria-hidden />
+      <span className="absolute bottom-3 right-3 font-mono text-[10px] font-medium tracking-[0.12em] uppercase bg-vf/70 text-paper/90 px-2.5 py-1 rounded-full pointer-events-none inline-flex items-center gap-1.5">
+        <span className="w-1.5 h-1.5 rounded-full bg-[#E1251B] inline-block lm-breathe" aria-hidden />
         Live
       </span>
     </div>

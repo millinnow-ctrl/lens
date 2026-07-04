@@ -83,10 +83,10 @@ export default function BeforeAfterSlider({
       {variant === 'instrument' ? (
         <>
           {/* labels — mono chrome slates */}
-          <span className="absolute top-3 left-3 font-mono text-[10px] font-medium tracking-[0.12em] uppercase bg-vf/65 text-paper/90 px-2 py-1 rounded-xs pointer-events-none">
+          <span className="absolute top-3 left-3 font-mono text-[10px] font-medium tracking-[0.12em] uppercase bg-vf/65 text-paper/90 px-2.5 py-1 rounded-full pointer-events-none">
             {beforeLabel}
           </span>
-          <span className="absolute top-3 right-3 font-mono text-[10px] font-medium tracking-[0.12em] uppercase bg-vf/65 text-paper px-2 py-1 rounded-xs pointer-events-none inline-flex items-center gap-1.5">
+          <span className="absolute top-3 right-3 font-mono text-[10px] font-medium tracking-[0.12em] uppercase bg-vf/65 text-paper px-2.5 py-1 rounded-full pointer-events-none inline-flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-signal inline-block" aria-hidden />
             {afterLabel}
           </span>
@@ -111,11 +111,11 @@ export default function BeforeAfterSlider({
         <div
           className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-10 h-10 flex items-center justify-center text-ink ${
             variant === 'instrument'
-              ? 'rounded-xs bg-surface border border-ink'
-              : 'rounded-full bg-white shadow-[0_1px_2px_rgb(20_20_18/0.08),0_6px_20px_-6px_rgb(20_20_18/0.3)]'
+              ? 'rounded-full bg-white aura-soft'
+              : 'rounded-full bg-white shadow-[0_1px_2px_rgb(23_19_31/0.08),0_6px_20px_-6px_rgb(23_19_31/0.3)]'
           }`}
         >
-          <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square">
+          <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M8 7l-5 5 5 5M16 7l5 5-5 5" />
           </svg>
         </div>

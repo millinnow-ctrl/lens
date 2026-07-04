@@ -71,15 +71,15 @@ export default function UploadModal({ open, onClose, container }: Props) {
             animate={{ y: 0 }}
             exit={{ y: 64, opacity: 0 }}
             transition={{ duration: 0.22, ease: [0.2, 0.9, 0.3, 1] }}
-            className="relative w-full max-w-md bg-white rounded-t-[24px] px-5 pt-3 pb-[calc(env(safe-area-inset-bottom)+20px)] shadow-2xl"
+            className="relative w-full max-w-md bg-white rounded-t-[28px] px-5 pt-3 pb-[calc(env(safe-area-inset-bottom)+20px)] shadow-2xl"
           >
-            <div className="w-9 h-1 rounded-full bg-hairline mx-auto mb-4" aria-hidden />
+            <div className="w-10 h-[5px] rounded-full bg-ink/10 mx-auto mb-4" aria-hidden />
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[17px] font-bold tracking-[-0.01em]">Start from a photo</h3>
               <button
                 onClick={onClose}
                 aria-label="Close"
-                className="w-8 h-8 rounded-full bg-[#F2F2EF] flex items-center justify-center text-ink-soft"
+                className="w-8 h-8 rounded-full bg-[#f4f1f4] flex items-center justify-center text-ink-soft"
               >
                 <IconClose size={13} />
               </button>
@@ -88,7 +88,7 @@ export default function UploadModal({ open, onClose, container }: Props) {
             <div className="space-y-2.5">
               <button
                 onClick={openCamera}
-                className="hm-press w-full flex items-center gap-3.5 rounded-2xl bg-ink text-white px-4 py-3.5"
+                className="hm-press aura-soft w-full flex items-center gap-3.5 rounded-2xl bg-ink text-white px-4 py-3.5"
               >
                 <span className="w-9 h-9 rounded-full bg-white/12 flex items-center justify-center">
                   <IconCamera size={17} />
@@ -100,7 +100,7 @@ export default function UploadModal({ open, onClose, container }: Props) {
               </button>
               <button
                 onClick={() => inputRef.current?.click()}
-                className="hm-press w-full flex items-center gap-3.5 rounded-2xl bg-[#F2F2EF] px-4 py-3.5"
+                className="hm-press w-full flex items-center gap-3.5 rounded-2xl bg-[#f4f1f4] px-4 py-3.5"
               >
                 <span className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-ink">
                   <IconUpload size={17} />
@@ -112,7 +112,7 @@ export default function UploadModal({ open, onClose, container }: Props) {
               </button>
             </div>
 
-            <p className="flex items-center gap-2 mt-5 mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-fog">
+            <p className="flex items-center gap-2 mt-5 mb-2.5 text-[12px] font-semibold text-fog">
               <IconFilm size={12} />
               Or try a sample
             </p>

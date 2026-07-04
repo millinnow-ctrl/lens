@@ -122,20 +122,20 @@ export default function UploadArea() {
           acceptFiles(e.dataTransfer.files)
         }}
         onClick={() => inputRef.current?.click()}
-        className={`relative cursor-pointer border border-dashed transition-colors duration-150 px-6 py-14 sm:py-18 text-center ${
-          dragOver ? 'border-signal bg-surface' : 'border-hairline bg-paper hover:border-ink'
+        className={`hm-drop relative cursor-pointer transition-colors duration-150 px-6 py-14 sm:py-18 text-center ${
+          dragOver ? 'border-violet bg-white/80' : 'hover:border-ink/30'
         }`}
       >
-        <IconCamera size={40} className="mx-auto text-ink mb-6" />
+        <IconCamera size={40} className="relative mx-auto text-violet mb-6" />
 
-        <h2 className="text-2xl sm:text-3xl font-semibold tracking-[-0.01em] mb-2">
+        <h2 className="relative text-2xl sm:text-3xl font-bold tracking-[-0.02em] mb-2">
           Drop photos or a clip in
         </h2>
-        <p className="text-ink-soft text-sm sm:text-[15px] leading-relaxed mb-6 max-w-sm mx-auto">
+        <p className="relative text-ink-soft text-sm sm:text-[15px] leading-relaxed mb-6 max-w-sm mx-auto">
           Up to {MAX_ROLL} photos at once, or a short video (Pro). You can also paste a screenshot.
           Nothing leaves your device — the darkroom is your browser.
         </p>
-        <div className="flex items-center justify-center gap-2.5 pointer-events-none">
+        <div className="relative flex items-center justify-center gap-2.5 pointer-events-none">
           <span className="btn btn-primary">
             <IconUpload size={16} />
             Choose photos
@@ -188,7 +188,7 @@ export default function UploadArea() {
       {error && <p className="mt-4 text-[13px] text-signal font-medium">{error}</p>}
 
       <div className="mt-8">
-        <p className="label-mono mb-4">No photo handy — try a sample</p>
+        <p className="text-[13.5px] font-semibold text-ink-soft mb-4">No photo handy? Try a sample</p>
         <div className="flex gap-3 sm:gap-4">
           {SAMPLES.map((sample) => (
             <button
@@ -196,7 +196,7 @@ export default function UploadArea() {
               onClick={() => setImage(sample.src, sample.label)}
               className="group text-left"
             >
-              <span className="block w-24 sm:w-28 aspect-4/5 rounded-xs overflow-hidden ring-1 ring-hairline group-hover:ring-ink transition-shadow">
+              <span className="block w-24 sm:w-28 aspect-4/5 rounded-[14px] overflow-hidden ring-1 ring-black/[0.06] group-hover:ring-violet transition-shadow">
                 <img src={sample.src} alt={sample.label} className="w-full h-full object-cover" draggable={false} />
               </span>
               <span className="block mt-1.5 font-mono text-[10px] tracking-[0.1em] uppercase text-fog group-hover:text-ink transition-colors">

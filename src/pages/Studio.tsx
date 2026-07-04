@@ -174,7 +174,7 @@ export default function Studio() {
     return (
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20 pb-28">
         <div className="mb-10">
-          <p className="label-mono mb-3">The Studio</p>
+          <p className="text-[12px] font-bold tracking-[0.12em] uppercase grad-text mb-3">The Studio</p>
           <h1 className="type-display text-3xl sm:text-5xl">
             Every photo has a mood.
             <br className="hidden sm:block" /> Let’s find yours.
@@ -195,14 +195,14 @@ export default function Studio() {
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_400px] gap-6 lg:gap-8 items-start">
         {/* ---------- preview column ---------- */}
         <div className="lg:sticky lg:top-20 min-w-0">
-          <div className="bg-vf">
+          <div className="bg-vf rounded-[24px] overflow-hidden shadow-[0_2px_12px_rgb(23_19_31/0.10)]">
             {/* viewfinder chrome strip */}
             <div className="h-9 px-4 flex items-center justify-between gap-3 border-b border-white/12">
               <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-vf-chrome truncate">
                 {style ? style.name : 'Original'}
               </span>
               <span className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.14em] uppercase text-vf-chrome tabular-nums shrink-0">
-                {video && <span className="w-1.5 h-1.5 rounded-full bg-signal inline-block" aria-hidden />}
+                {video && <span className="w-1.5 h-1.5 rounded-full bg-[#E1251B] inline-block" aria-hidden />}
                 {video ? 'REC · 30FPS' : (style?.exif ?? 'READY · NO MOOD')}
               </span>
             </div>
@@ -259,12 +259,12 @@ export default function Studio() {
                       <path
                         key={i}
                         d="M24 6 A18 18 0 0 1 39.6 15 L27 21.6 A6 6 0 0 0 24 21 Z"
-                        fill="#f0efeb"
+                        fill="#ffffff"
                         opacity={0.35 + (i / 6) * 0.65}
                         transform={`rotate(${i * 60} 24 24)`}
                       />
                     ))}
-                    <circle cx="24" cy="24" r="5" fill="#E1251B" />
+                    <circle cx="24" cy="24" r="5" fill="#8b5cf6" />
                   </motion.svg>
                   <AnimatePresence mode="wait">
                     <motion.p
@@ -277,9 +277,9 @@ export default function Studio() {
                       {GENERATION_STEPS[stepIndex]}
                     </motion.p>
                   </AnimatePresence>
-                  <div className="w-44 h-0.5 bg-white/15 overflow-hidden">
+                  <div className="w-44 h-1 rounded-full bg-white/15 overflow-hidden">
                     <motion.div
-                      className="h-full bg-signal"
+                      className="h-full rounded-full grad-fill"
                       initial={{ width: '4%' }}
                       animate={{ width: '96%' }}
                       transition={{ duration: 2.2, ease: 'easeInOut' }}
@@ -304,13 +304,15 @@ export default function Studio() {
                     aria-label={`Photo ${i + 1} of ${roll.length}`}
                   >
                     <span
-                      className={`block w-14 aspect-4/5 rounded-xs overflow-hidden border transition-opacity ${
-                        active ? 'border-ink' : 'border-hairline opacity-70 group-hover:opacity-100'
+                      className={`block w-14 aspect-4/5 rounded-xl overflow-hidden transition-[opacity,transform] ${
+                        active
+                          ? 'ring-2 ring-violet ring-offset-2 ring-offset-paper scale-[1.02]'
+                          : 'ring-1 ring-hairline opacity-70 group-hover:opacity-100'
                       }`}
                     >
                       <img src={item.url} alt="" className="w-full h-full object-cover" draggable={false} />
                     </span>
-                    <span className={`block h-0.5 ${active ? 'bg-signal' : 'bg-transparent'}`} aria-hidden />
+                    <span className={`block h-1 rounded-full ${active ? 'grad-fill' : 'bg-transparent'}`} aria-hidden />
                     <span
                       className={`font-mono text-[10px] tracking-[0.1em] tabular-nums text-center ${
                         active ? 'text-ink' : 'text-fog'
@@ -326,7 +328,7 @@ export default function Studio() {
 
           {/* view toggles + actions under preview */}
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex w-full sm:w-auto sm:inline-flex border border-hairline bg-surface divide-x divide-hairline">
+            <div className="flex w-full sm:w-auto sm:inline-flex items-center gap-0.5 rounded-full bg-black/5 p-1">
               {(
                 [
                   { id: 'original', label: 'Original' },
@@ -342,9 +344,9 @@ export default function Studio() {
                     key={t.id}
                     disabled={disabled}
                     onClick={() => setView(t.id)}
-                    className={`px-4 h-8 text-[13px] font-semibold transition-colors flex-1 sm:flex-none ${
+                    className={`px-4 h-8 text-[13px] font-semibold rounded-full transition-colors flex-1 sm:flex-none ${
                       active
-                        ? 'bg-ink text-surface' // selected stays ink even while others disable
+                        ? 'bg-white text-ink shadow-[0_1px_3px_rgb(23_19_31/0.12)]' // selected pill stays lifted even while others disable
                         : disabled
                           ? 'text-fog/60'
                           : 'text-ink-soft hover:text-ink'
@@ -360,13 +362,17 @@ export default function Studio() {
               <button onClick={clearMedia} className="btn btn-quiet">
                 New photo
               </button>
-              <button
-                onClick={() => setExportOpen(true)}
-                disabled={phase !== 'done'}
-                className="btn btn-primary"
-              >
-                Export
-              </button>
+              {phase === 'done' ? (
+                <span className="glow-ring inline-flex">
+                  <button onClick={() => setExportOpen(true)} className="btn btn-hero">
+                    Export
+                  </button>
+                </span>
+              ) : (
+                <button disabled className="btn btn-primary">
+                  Export
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -434,7 +440,7 @@ export default function Studio() {
       {/* paywall */}
       <Modal open={paywall} onClose={() => setPaywall(false)}>
         <div className="p-8">
-          <IconFilm size={32} className="text-ink mb-4" />
+          <IconFilm size={32} className="text-violet mb-4" />
           <h3 className="text-2xl font-semibold tracking-[-0.01em] mb-2">You’re out of free shots</h3>
           <p className="text-sm text-ink-soft leading-relaxed mb-6">
             Your 5 free developments reset next month — or go Creator for unlimited shots, no

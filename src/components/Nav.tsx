@@ -9,13 +9,13 @@ export default function Nav() {
   return (
     <>
       {/* top bar */}
-      <header className="sticky top-0 z-50 bg-paper border-b border-hairline pt-[env(safe-area-inset-top)]">
+      <header className="sticky top-0 z-50 bg-white/85 backdrop-blur-md border-b border-ink/5 pt-[env(safe-area-inset-top)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
           <Link to="/" className="shrink-0">
             <Logo />
           </Link>
 
-          <nav className="hidden md:flex items-center gap-6 text-[13px] font-medium">
+          <nav className="hidden md:flex items-center gap-1 text-[13px] font-medium">
             {[
               { to: '/studio', label: 'Studio' },
               { to: '/#styles', label: 'Camera moods' },
@@ -27,11 +27,12 @@ export default function Nav() {
                 <Link
                   key={l.label}
                   to={l.to}
-                  className={`inline-flex items-center gap-1.5 transition-colors ${
-                    active ? 'text-ink' : 'text-ink-soft hover:text-ink'
+                  className={`inline-flex items-center px-3.5 py-1.5 rounded-full transition-colors ${
+                    active
+                      ? 'bg-violet/10 text-violet font-semibold'
+                      : 'text-ink-soft hover:text-ink hover:bg-ink/5'
                   }`}
                 >
-                  {active && <span className="w-1.5 h-1.5 rounded-full bg-signal inline-block" />}
                   {l.label}
                 </Link>
               )
@@ -42,21 +43,21 @@ export default function Nav() {
             {!isPaid && (
               <Link
                 to="/pricing"
-                className="hidden sm:inline font-mono text-[11px] tracking-[0.08em] text-ink-soft hover:text-ink transition-colors tabular-nums"
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet/10 text-violet text-[12px] font-semibold tabular-nums hover:bg-violet/15 transition-colors"
                 title="Free shots remaining this month"
               >
-                ROLL {creditsLeft}/{FREE_CREDITS}
+                Roll {creditsLeft}/{FREE_CREDITS}
               </Link>
             )}
             {isPaid && (
-              <span className="hidden sm:inline font-mono text-[11px] tracking-[0.08em] text-signal uppercase">
+              <span className="hidden sm:inline-flex items-center px-3 py-1 rounded-full bg-violet/10 text-violet text-[12px] font-semibold uppercase tracking-[0.04em]">
                 {plan}
               </span>
             )}
             {user ? (
               <Link
                 to="/dashboard"
-                className="w-8 h-8 rounded-xs border border-ink text-ink font-semibold text-[12px] flex items-center justify-center hover:bg-ink hover:text-surface transition-colors"
+                className="w-8 h-8 rounded-full grad-fill text-white font-semibold text-[12px] flex items-center justify-center shadow-[0_2px_8px_rgb(139_92_246/0.35)] hover:opacity-90 transition-opacity"
                 title={user.name}
               >
                 {user.name.charAt(0).toUpperCase()}

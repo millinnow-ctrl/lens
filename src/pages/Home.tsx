@@ -2,37 +2,64 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import Header from '../components/home/Header'
-import SearchBar from '../components/home/SearchBar'
 import CategoryChips, { CATEGORY_STYLES, type CategoryId } from '../components/home/CategoryChips'
 import RecentProjectCard from '../components/home/RecentProjectCard'
 import MoodSphere from '../components/home/MoodSphere'
 import ToolCard from '../components/home/ToolCard'
-import FloatingCTA from '../components/home/FloatingCTA'
 import BottomNav from '../components/home/BottomNav'
 import UploadModal from '../components/home/UploadModal'
 import AccountSheet from '../components/home/AccountSheet'
 import PhoneFrame from '../components/home/PhoneFrame'
 import BeforeAfterSlider from '../components/BeforeAfterSlider'
-import { IconChevronRight, IconSparkle } from '../components/icons'
+import { IconChevronRight, IconImagePlus, IconUpload } from '../components/icons'
 import { loadImage, renderStyled } from '../lib/engine'
 import { dailyRecipe, dailyStyle, isDailyClaimed, jitterParams } from '../lib/lab'
 import { CAMERA_STYLES, encodeParams, getStyle, type CameraStyle } from '../lib/styles'
-import { useStyleThumbs } from '../lib/useStyleThumbs'
 import { useApp } from '../lib/store'
 import sampleGolden from '../assets/sample-golden.jpg'
 import sampleStreet from '../assets/sample-street.jpg'
 import sampleNight from '../assets/sample-night.jpg'
 import sampleTeal from '../assets/sample-teal.jpg'
 import sampleSneaker from '../assets/sample-sneaker.jpg'
+import sampleFriends from '../assets/sample-friends.jpg'
+import artDisposable from '../assets/style-disposable.jpg'
+import artIphoneFlash from '../assets/style-iphone-flash.jpg'
+import artCamcorder from '../assets/style-camcorder-90s.jpg'
+import artLeica from '../assets/style-leica-street.jpg'
+import artGq from '../assets/style-gq-editorial.jpg'
+import artA24 from '../assets/style-a24-still.jpg'
+import artNoir from '../assets/style-film-noir.jpg'
+import artY2k from '../assets/style-y2k-digicam.jpg'
+import artPolaroid from '../assets/style-polaroid.jpg'
 
-const THUMB_SOURCES = [sampleGolden, sampleStreet, sampleNight]
+/** tall portrait artwork for the style deck — one signature frame per look */
+const STYLE_ART: Record<string, string> = {
+  disposable: artDisposable,
+  'iphone-flash': artIphoneFlash,
+  'camcorder-90s': artCamcorder,
+  'leica-street': artLeica,
+  'gq-editorial': artGq,
+  'a24-still': artA24,
+  'film-noir': artNoir,
+  'y2k-digicam': artY2k,
+  polaroid: artPolaroid,
+}
 
 const TOOLS = [
-  { title: 'Browse moods', sub: 'All nine looks', image: sampleTeal, to: '/studio' },
-  { title: 'Video moods', sub: 'Restyle clips', image: sampleNight, to: '/studio', tag: 'Pro' },
+  { title: 'All looks', sub: 'Nine styles', image: sampleTeal, to: '/studio' },
+  { title: 'Video', sub: 'Restyle clips', image: sampleNight, to: '/studio', tag: 'Pro' },
   { title: 'Batch roll', sub: 'Up to 6 photos', image: sampleSneaker, to: '/studio?batch=1' },
-  { title: 'Saved presets', sub: 'Your looks', image: sampleStreet, to: '/dashboard' },
+  { title: 'Presets', sub: 'Saved looks', image: sampleStreet, to: '/dashboard' },
 ]
+
+const timeAgo = (t: number) => {
+  const m = Math.max(1, Math.round((Date.now() - t) / 60000))
+  if (m < 60) return `Edited ${m}m ago`
+  const h = Math.round(m / 60)
+  if (h < 24) return `Edited ${h}h ago`
+  const d = Math.round(h / 24)
+  return `Edited ${d}d ago`
+}
 
 function useIsDesktop() {
   const [desktop, setDesktop] = useState(
@@ -54,19 +81,16 @@ const sectionIn = {
 
 function HomeContent({
   onAccount,
-  query,
-  setQuery,
+  onUpload,
   category,
   setCategory,
 }: {
   onAccount: () => void
-  query: string
-  setQuery: (v: string) => void
+  onUpload: () => void
   category: CategoryId
   setCategory: (c: CategoryId) => void
 }) {
   const { history, tried, streak } = useApp()
-  const thumbs = useStyleThumbs(THUMB_SOURCES, 360)
   const navigate = useNavigate()
   const [spinSeed, setSpinSeed] = useState(0)
   const daily = dailyStyle()
@@ -80,7 +104,7 @@ function HomeContent({
     }, 550)
   }
 
-  /* hero demo: the golden sample developed as an A24 still, by the real engine */
+  /* demo strip: the golden sample developed as Film Noir, by the real engine */
   const [demoAfter, setDemoAfter] = useState<string | null>(null)
   useEffect(() => {
     let cancelled = false
@@ -95,42 +119,51 @@ function HomeContent({
     }
   }, [])
 
-  const moods = useMemo(() => {
-    const inCategory =
+  const moods = useMemo(
+    () =>
       category === 'all'
         ? CAMERA_STYLES
-        : CAMERA_STYLES.filter((s) => CATEGORY_STYLES[category].includes(s.id))
-    const q = query.trim().toLowerCase()
-    if (!q) return inCategory
-    return inCategory.filter(
-      (s) => s.name.toLowerCase().includes(q) || s.tagline.toLowerCase().includes(q),
-    )
-  }, [category, query])
+        : CAMERA_STYLES.filter((s) => CATEGORY_STYLES[category].includes(s.id)),
+    [category],
+  )
 
-  const showResume = history.length > 0 && category === 'all' && !query.trim()
+  const recents = history.slice(0, 4)
 
   return (
-    <div className="pb-[216px]">
+    <div className="pb-[112px]">
       <Header onAccount={onAccount} />
-      <SearchBar value={query} onChange={setQuery} />
-      <CategoryChips active={category} onSelect={setCategory} />
 
-      {/* the mood sphere */}
-      <motion.section {...sectionIn} transition={{ duration: 0.3, delay: 0.05 }} className="mt-5">
-        <div className="flex items-center justify-between px-4 mb-1">
-          <h2 className="text-[17px] font-bold tracking-[-0.01em]">Camera moods</h2>
-          <button
-            onClick={() => setSpinSeed((v) => v + 1)}
-            className="flex items-center gap-1.5 text-[13px] font-semibold text-ink"
-          >
-            <IconSparkle size={14} className="text-signal" />
-            Surprise me
+      {/* start with a photo — the hero drop zone */}
+      <motion.section {...sectionIn} transition={{ duration: 0.3 }} className="mt-2 px-5">
+        <div className="hm-drop overflow-hidden">
+          <button onClick={onUpload} className="relative z-10 w-full flex flex-col items-center px-6 pt-9 pb-8">
+            <IconImagePlus size={46} strokeWidth={1.5} className="text-violet" />
+            <h1 className="type-display text-[26px] mt-4">Start with a photo</h1>
+            <p className="text-[14px] text-ink-soft mt-1.5">Drop in a photo and choose a camera mood.</p>
+            <span className="glow-ring mt-6 inline-block">
+              <span className="btn btn-hero btn-lg gap-2.5 border-0">
+                <IconUpload size={17} />
+                Upload photo
+              </span>
+            </span>
           </button>
         </div>
+      </motion.section>
+
+      {/* camera styles — the deck */}
+      <motion.section {...sectionIn} transition={{ duration: 0.3, delay: 0.05 }} className="mt-7">
+        <div className="flex items-center justify-between px-5">
+          <h2 className="text-[19px] font-bold tracking-[-0.02em]">Camera styles</h2>
+          <Link to="/studio" className="flex items-center gap-0.5 text-[13.5px] font-semibold text-ink-soft">
+            See all
+            <IconChevronRight size={13} />
+          </Link>
+        </div>
+        <CategoryChips active={category} onSelect={setCategory} />
         {moods.length > 0 ? (
           <MoodSphere
             styles={moods}
-            thumbs={thumbs}
+            thumbs={STYLE_ART}
             fallbackImage={sampleGolden}
             tried={tried}
             dailyId={daily.id}
@@ -139,39 +172,90 @@ function HomeContent({
             onSpinEnd={onSpinEnd}
           />
         ) : (
-          <div className="mx-4 hm-tile px-4 py-5 text-[13px] text-ink-soft">
-            Nothing matches “{query}” here yet.
-          </div>
+          <div className="mx-5 mt-4 hm-tile px-5 py-5 text-[13px] text-ink-soft">Nothing here yet.</div>
         )}
+        <div className="flex justify-center mt-3">
+          <button
+            onClick={() => setSpinSeed((s) => s + 1)}
+            className="hm-pill hm-press h-9 px-4 text-[13px] font-semibold text-ink-soft"
+          >
+            Surprise me
+          </button>
+        </div>
       </motion.section>
 
-      {/* today's stock — free daily develop, gone at midnight */}
-      <motion.section {...sectionIn} transition={{ duration: 0.3, delay: 0.08 }} className="mt-5 px-4">
-        <div className="bg-vf rounded-[20px] p-4 flex items-center gap-3">
-          <div className="flex-1 min-w-0">
+      {/* recent edits */}
+      <motion.section {...sectionIn} transition={{ duration: 0.3, delay: 0.08 }} className="mt-7 px-5">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-[19px] font-bold tracking-[-0.02em]">Recent edits</h2>
+          <Link to="/dashboard" className="flex items-center gap-0.5 text-[13.5px] font-semibold text-ink-soft">
+            See all
+            <IconChevronRight size={13} />
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          {recents.length > 0 ? (
+            recents.map((h) => (
+              <RecentProjectCard
+                key={h.id}
+                to={`/studio?style=${h.styleId}`}
+                image={h.thumb}
+                label={h.styleName}
+                sublabel={timeAgo(h.date)}
+              />
+            ))
+          ) : (
+            <>
+              <RecentProjectCard
+                to="/studio?style=iphone-flash"
+                image={sampleFriends}
+                label="iPhone Flash"
+                sublabel="Tap to try it"
+                filter={getStyle('iphone-flash')?.cardFilter}
+                chip="Example"
+              />
+              <RecentProjectCard
+                to="/studio?style=a24-still"
+                image={sampleGolden}
+                label="A24 Movie Still"
+                sublabel="Tap to try it"
+                filter={getStyle('a24-still')?.cardFilter}
+                chip="Example"
+              />
+            </>
+          )}
+        </div>
+      </motion.section>
+
+      {/* today's free look */}
+      <motion.section {...sectionIn} transition={{ duration: 0.3, delay: 0.1 }} className="mt-7 px-5">
+        <div className="relative overflow-hidden bg-vf rounded-[24px] p-4 flex items-center gap-3">
+          <div
+            className="absolute -top-10 -right-8 w-40 h-40 rounded-full pointer-events-none"
+            style={{
+              background:
+                'radial-gradient(closest-side, rgb(139 92 246 / 0.4), rgb(236 72 153 / 0.16), transparent)',
+              filter: 'blur(10px)',
+            }}
+            aria-hidden
+          />
+          <div className="relative flex-1 min-w-0">
             <div className="flex items-center gap-2.5">
-              <p className="font-mono text-[10px] font-semibold tracking-[0.14em] uppercase text-signal">
-                Today’s stock — gone at midnight
-              </p>
+              <p className="text-[11px] font-bold tracking-[0.1em] uppercase grad-text">Free look of the day</p>
               {streak.count >= 1 && (
-                <p className="flex items-center gap-1 font-mono text-[10px] tracking-[0.1em] uppercase text-vf-chrome tabular-nums">
-                  <span className="w-1.5 h-1.5 rounded-full bg-signal inline-block" />
-                  Day {String(streak.count).padStart(2, '0')} on roll
+                <p className="text-[10.5px] font-semibold text-vf-chrome tabular-nums">
+                  Day {streak.count} streak
                 </p>
               )}
             </div>
-            <p className="text-white font-bold text-[15px] mt-1 leading-tight truncate">{daily.name}</p>
-            <p className="font-mono text-[10px] tracking-[0.06em] text-vf-chrome mt-0.5 tabular-nums truncate">
-              INT {String(dailyRecipe().intensity).padStart(2, '0')} · GRN{' '}
-              {String(dailyRecipe().grain).padStart(2, '0')} · WRM{' '}
-              {String(dailyRecipe().warmth).padStart(2, '0')}
-            </p>
+            <p className="text-white font-bold text-[16px] mt-1 leading-tight truncate">{daily.name}</p>
+            <p className="text-[12px] text-vf-chrome mt-0.5 truncate">Ends at midnight</p>
           </div>
           <button
             onClick={() =>
               navigate(`/studio?style=${daily.id}&p=${encodeParams(dailyRecipe())}${dailyDone ? '' : '&daily=1'}`)
             }
-            className={`hm-press shrink-0 h-10 px-4 rounded-full text-[13px] font-semibold ${
+            className={`hm-press relative shrink-0 h-10 px-5 rounded-full text-[13.5px] font-semibold ${
               dailyDone ? 'bg-white/12 text-white/80' : 'bg-white text-ink'
             }`}
           >
@@ -180,35 +264,9 @@ function HomeContent({
         </div>
       </motion.section>
 
-      {/* keep creating — resume shelf (only when there's history) */}
-      {showResume && (
-        <motion.section {...sectionIn} transition={{ duration: 0.3, delay: 0.08 }} className="mt-6">
-          <div className="flex items-center justify-between px-4 mb-2.5">
-            <h2 className="text-[17px] font-bold tracking-[-0.01em]">Keep creating</h2>
-            <Link to="/dashboard" className="flex items-center gap-0.5 text-[13px] font-semibold text-ink-soft">
-              See all
-              <IconChevronRight size={12} />
-            </Link>
-          </div>
-          <div className="flex gap-3 overflow-x-auto no-scrollbar snap-x px-4 pb-1">
-            {history.slice(0, 6).map((h) => (
-              <RecentProjectCard
-                key={h.id}
-                to={`/studio?style=${h.styleId}`}
-                image={h.thumb}
-                label={h.styleName}
-                sublabel="Resume"
-              />
-            ))}
-          </div>
-        </motion.section>
-      )}
-
-      {/* start with a tool */}
-      <motion.section {...sectionIn} transition={{ duration: 0.3, delay: 0.1 }} className="mt-6 px-4">
-        <div className="flex items-center justify-between mb-2.5">
-          <h2 className="text-[17px] font-bold tracking-[-0.01em]">Start with a tool</h2>
-        </div>
+      {/* tools */}
+      <motion.section {...sectionIn} transition={{ duration: 0.3, delay: 0.12 }} className="mt-7 px-5">
+        <h2 className="text-[19px] font-bold tracking-[-0.02em] mb-3">Tools</h2>
         <div className="grid grid-cols-2 gap-3">
           {TOOLS.map((t) => (
             <ToolCard key={t.title} {...t} />
@@ -216,17 +274,20 @@ function HomeContent({
         </div>
       </motion.section>
 
-      {/* transform a photo */}
-      <motion.section {...sectionIn} transition={{ duration: 0.3, delay: 0.15 }} className="mt-6 px-4">
-        <div className="flex items-center justify-between mb-2.5">
-          <h2 className="text-[17px] font-bold tracking-[-0.01em]">Transform a photo</h2>
-          <Link to="/studio?style=film-noir" className="flex items-center gap-0.5 text-[13px] font-semibold text-ink-soft">
+      {/* before & after */}
+      <motion.section {...sectionIn} transition={{ duration: 0.3, delay: 0.15 }} className="mt-7 px-5">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-[19px] font-bold tracking-[-0.02em]">Before & after</h2>
+          <Link
+            to="/studio?style=film-noir"
+            className="flex items-center gap-0.5 text-[13.5px] font-semibold text-ink-soft"
+          >
             Open studio
-            <IconChevronRight size={12} />
+            <IconChevronRight size={13} />
           </Link>
         </div>
         <div className="hm-card p-2">
-          <div className="rounded-[14px] overflow-hidden">
+          <div className="rounded-[18px] overflow-hidden">
             {demoAfter ? (
               <BeforeAfterSlider
                 before={sampleGolden}
@@ -240,8 +301,8 @@ function HomeContent({
               <img src={sampleGolden} alt="" className="aspect-[4/3] w-full object-cover" />
             )}
           </div>
-          <p className="px-2.5 pt-2.5 pb-1.5 text-[11px] text-ink-soft">
-            Drag the line — the LensMood engine developing Film Noir, live on-device.
+          <p className="px-2.5 pt-2.5 pb-1.5 text-[12px] text-ink-soft">
+            Drag to compare — Film Noir, rendered live on your device.
           </p>
         </div>
       </motion.section>
@@ -251,7 +312,6 @@ function HomeContent({
 
 export default function Home() {
   const isDesktop = useIsDesktop()
-  const [query, setQuery] = useState('')
   const [category, setCategory] = useState<CategoryId>('all')
   const [uploadOpen, setUploadOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
@@ -259,8 +319,7 @@ export default function Home() {
   const content = (
     <HomeContent
       onAccount={() => setAccountOpen(true)}
-      query={query}
-      setQuery={setQuery}
+      onUpload={() => setUploadOpen(true)}
       category={category}
       setCategory={setCategory}
     />
@@ -272,11 +331,11 @@ export default function Home() {
         <div className="max-w-6xl mx-auto grid xl:grid-cols-[1fr_auto] items-center gap-8 px-6">
           {/* demo-page framing so the phone never floats in a void */}
           <div className="hidden xl:block max-w-md">
-            <p className="label-mono mb-4">The app</p>
+            <p className="text-[12px] font-bold tracking-[0.12em] uppercase grad-text mb-4">The app</p>
             <h1 className="type-display text-5xl mb-5">The studio in your pocket.</h1>
             <p className="text-[15px] leading-[1.6] text-ink-soft mb-8">
-              This is LensMood’s home screen, running live — search the moods, filter the
-              shelves, open the upload sheet. Everything you tap here is the real product.
+              This is LensMood’s home screen, running live — swipe the styles, open the upload
+              sheet, develop a photo. Everything you tap here is the real product.
             </p>
             <div className="flex gap-3">
               <Link to="/studio" className="btn btn-primary btn-lg">
@@ -290,8 +349,11 @@ export default function Home() {
           <PhoneFrame
             chrome={(container) => (
               <>
-                <FloatingCTA variant="embedded" onClick={() => setUploadOpen(true)} />
-                <BottomNav variant="embedded" onAccount={() => setAccountOpen(true)} />
+                <BottomNav
+                  variant="embedded"
+                  onAccount={() => setAccountOpen(true)}
+                  onCreate={() => setUploadOpen(true)}
+                />
                 <UploadModal open={uploadOpen} onClose={() => setUploadOpen(false)} container={container} />
                 <AccountSheet open={accountOpen} onClose={() => setAccountOpen(false)} container={container} />
               </>
@@ -307,7 +369,6 @@ export default function Home() {
   return (
     <main className="hm-canvas min-h-dvh">
       {content}
-      <FloatingCTA variant="fixed" onClick={() => setUploadOpen(true)} />
       <UploadModal open={uploadOpen} onClose={() => setUploadOpen(false)} />
       <AccountSheet open={accountOpen} onClose={() => setAccountOpen(false)} />
     </main>

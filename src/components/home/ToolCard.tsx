@@ -26,18 +26,18 @@ export default function ToolCard({ to, title, sub, image, tag }: Props) {
     <button
       onClick={go}
       aria-pressed={active}
-      className={`hm-tile hm-press w-full text-left p-2 flex items-start gap-2.5 transition-shadow ${
-        active ? 'ring-2 ring-ink' : ''
+      className={`hm-tile hm-press w-full text-left p-2 flex items-center gap-2 ${
+        active ? 'border-ink' : ''
       }`}
     >
-      <div className="flex-1 min-w-0 pl-1.5 pt-1.5">
-        <p className="text-[15px] font-semibold leading-[1.25] min-h-[2.5em]">{title}</p>
-        <p className="text-[11px] text-ink-soft leading-snug truncate">{sub}</p>
+      <div className="flex-1 min-w-0 pl-1">
+        <p className="text-[14px] font-semibold leading-tight truncate">{title}</p>
+        <p className="text-[11px] text-fog leading-tight mt-0.5 truncate">{sub}</p>
       </div>
-      <div className="relative w-16 h-16 rounded-[11px] overflow-hidden bg-hairline shrink-0">
+      <div className="relative w-[52px] h-[52px] rounded-[10px] overflow-hidden bg-hairline shrink-0">
         <img src={image} alt="" loading="lazy" draggable={false} className="w-full h-full object-cover" />
         {tag && (
-          <span className="absolute top-1 right-1 rounded-full bg-vf/75 text-white font-semibold text-[8.5px] tracking-[0.06em] uppercase px-1.5 py-0.5">
+          <span className="absolute bottom-1 right-1 rounded bg-black/55 text-white font-semibold text-[8px] tracking-[0.04em] uppercase px-1 py-px">
             {tag}
           </span>
         )}

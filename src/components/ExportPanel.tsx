@@ -146,7 +146,7 @@ export default function ExportPanel({
   return (
     <Modal open={open} onClose={onClose} wide>
       <div className="p-6 sm:p-8">
-        <p className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-signal mb-1.5">
+        <p className="text-[11px] font-bold uppercase tracking-[0.14em] grad-text mb-1.5">
           Developed
         </p>
         <h3 className="type-display text-2xl sm:text-3xl mb-5">
@@ -155,7 +155,7 @@ export default function ExportPanel({
 
         <div className="grid sm:grid-cols-[1fr_260px] gap-6">
           {/* final preview */}
-          <div className="relative bg-vf flex items-center justify-center min-h-64">
+          <div className="relative bg-vf rounded-[20px] overflow-hidden flex items-center justify-center min-h-64">
             {url ? (
               isVideo ? (
                 <video src={url} controls autoPlay loop playsInline className="lm-develop w-full max-h-[46dvh] object-contain bg-vf" />
@@ -171,9 +171,9 @@ export default function ExportPanel({
                 </p>
                 {isVideo && (
                   <div className="w-full max-w-56 mx-auto flex items-center gap-3">
-                    <div className="flex-1 h-0.5 bg-hairline/30 overflow-hidden">
+                    <div className="flex-1 h-1 rounded-full bg-white/15 overflow-hidden">
                       <div
-                        className="h-full bg-signal transition-[width] duration-200"
+                        className="h-full rounded-full grad-fill transition-[width] duration-200"
                         style={{ width: `${Math.round(progress * 100)}%` }}
                       />
                     </div>
@@ -188,10 +188,19 @@ export default function ExportPanel({
 
           {/* actions */}
           <div className="flex flex-col gap-2.5">
-            <button onClick={() => send(false)} disabled={rendering || !url} className="btn btn-primary w-full">
-              <IconDownload size={15} />
-              {isVideo ? `Save video (.${extension})` : hd ? 'Save HD photo' : 'Save photo'}
-            </button>
+            {rendering || !url ? (
+              <button disabled className="btn btn-primary w-full">
+                <IconDownload size={15} />
+                {isVideo ? `Save video (.${extension})` : hd ? 'Save HD photo' : 'Save photo'}
+              </button>
+            ) : (
+              <span className="glow-ring flex w-full">
+                <button onClick={() => send(false)} className="btn btn-hero w-full">
+                  <IconDownload size={15} />
+                  {isVideo ? `Save video (.${extension})` : hd ? 'Save HD photo' : 'Save photo'}
+                </button>
+              </span>
+            )}
             <button onClick={() => send(true)} disabled={rendering || !url} className="btn btn-outline w-full">
               <IconShare size={15} />
               Share to TikTok / Reels
@@ -215,11 +224,11 @@ export default function ExportPanel({
             </button>
 
             {delivered && (
-              <p className="text-center font-mono text-[12px] text-signal">{delivered}</p>
+              <p className="text-center text-[12px] font-semibold text-violet">{delivered}</p>
             )}
 
             <div className="mt-1 panel p-4">
-              <p className="label-mono mb-1.5">Caption</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-fog mb-1.5">Caption</p>
               <p className="text-[13px] text-ink-soft leading-relaxed">“{caption}”</p>
             </div>
 

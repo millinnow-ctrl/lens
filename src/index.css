@@ -1,27 +1,33 @@
 @import 'tailwindcss';
-@import '@fontsource-variable/archivo/wdth.css'; /* wght + wdth axes — font-stretch works */
+@import '@fontsource-variable/inter';
+@import '@fontsource/poppins/600.css';
+@import '@fontsource/poppins/700.css';
 @import '@fontsource/ibm-plex-mono/400.css';
 @import '@fontsource/ibm-plex-mono/500.css';
-@import '@fontsource/ibm-plex-mono/600.css';
 
 @theme {
-  --font-sans: 'Archivo Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-brand: 'Poppins', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
 
-  /* Instrument palette — warm paper, ink, record-red signal */
-  --color-paper: #f6f5f1;
-  --color-surface: #fcfcfa;
-  --color-ink: #171614;
-  --color-ink-soft: #52504a;
-  --color-fog: #8b887e;
-  --color-hairline: #dddad2;
-  --color-signal: #e1251b;
-  --color-vf: #101010;
-  --color-vf-chrome: #8e8c86;
+  /* LensMood palette — warm porcelain canvas, violet→pink aura accent */
+  --color-paper: #f5f2ef;
+  --color-surface: #ffffff;
+  --color-ink: #17131f;
+  --color-ink-soft: #56505f;
+  --color-fog: #8f8899;
+  --color-hairline: #e7e2dd;
+  --color-violet: #8b5cf6;
+  --color-orchid: #a855f7;
+  --color-magenta: #ec4899;
+  /* legacy accent name used across the app — now maps to brand violet */
+  --color-signal: #8b5cf6;
+  --color-vf: #16121d;
+  --color-vf-chrome: #9d95aa;
 
-  --radius-xs: 2px;
+  --radius-xs: 10px;
 
-  --shadow-modal: 0 1px 0 rgb(23 22 20 / 0.06), 0 24px 64px -16px rgb(23 22 20 / 0.28);
+  --shadow-modal: 0 1px 0 rgb(23 19 31 / 0.05), 0 24px 64px -16px rgb(23 19 31 / 0.25);
 }
 
 html {
@@ -38,23 +44,71 @@ body {
 }
 
 ::selection {
-  background: rgb(225 37 27 / 0.14);
+  background: rgb(139 92 246 / 0.18);
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-ink);
+  outline: 2px solid var(--color-violet);
   outline-offset: 2px;
+}
+
+/* ---------- brand gradient helpers ---------- */
+
+/* violet → pink text, e.g. the "Mood" in LensMood */
+.grad-text {
+  background: linear-gradient(96deg, #7c3aed 0%, #a855f7 45%, #ec4899 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.grad-fill {
+  background: linear-gradient(96deg, #7c3aed 0%, #a855f7 45%, #ec4899 100%);
+}
+
+/* soft aura behind glowing elements */
+.aura {
+  box-shadow:
+    0 0 0 1px rgb(139 92 246 / 0.25),
+    0 4px 18px rgb(139 92 246 / 0.30),
+    0 4px 24px rgb(236 72 153 / 0.18);
+}
+.aura-soft {
+  box-shadow:
+    0 0 0 1px rgb(139 92 246 / 0.16),
+    0 3px 14px rgb(139 92 246 / 0.18),
+    0 3px 18px rgb(236 72 153 / 0.10);
+}
+
+/* gradient ring around a pill/card: wrap content in an element with this class */
+.glow-ring {
+  position: relative;
+  border-radius: 999px;
+  padding: 2px;
+  background: linear-gradient(120deg, #60a5fa 0%, #8b5cf6 35%, #d946ef 70%, #ec4899 100%);
+  box-shadow:
+    0 6px 22px rgb(139 92 246 / 0.35),
+    0 6px 26px rgb(236 72 153 / 0.18);
+}
+.glow-ring-card {
+  border-radius: 28px;
+  padding: 2.5px;
 }
 
 /* ---------- type ---------- */
 
 .type-display {
   font-family: var(--font-sans);
-  font-weight: 620;
-  font-stretch: 115%;
-  letter-spacing: -0.02em;
-  line-height: 1.02;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
   text-wrap: balance;
+}
+
+.brand-word {
+  font-family: var(--font-brand);
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .label-mono {
@@ -77,7 +131,9 @@ body {
 
 .panel {
   background: var(--color-surface);
-  border: 1px solid var(--color-hairline);
+  border: 1px solid rgb(23 19 31 / 0.06);
+  border-radius: 20px;
+  box-shadow: 0 2px 10px rgb(23 19 31 / 0.04);
 }
 
 .rule {
@@ -92,13 +148,13 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  height: 40px;
-  padding: 0 1.25rem;
-  border-radius: var(--radius-xs);
+  height: 42px;
+  padding: 0 1.375rem;
+  border-radius: 999px;
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
@@ -106,46 +162,57 @@ body {
     background-color 0.15s ease,
     border-color 0.15s ease,
     color 0.15s ease,
-    transform 0.05s ease;
+    box-shadow 0.2s ease,
+    transform 0.08s ease;
 }
 .btn:active {
-  transform: translateY(1px);
+  transform: scale(0.97);
 }
 .btn-lg {
-  height: 48px;
-  padding: 0 1.75rem;
-  font-size: 14px;
+  height: 52px;
+  padding: 0 1.875rem;
+  font-size: 15px;
 }
 .btn-sm {
-  height: 32px;
-  padding: 0 0.875rem;
-  font-size: 12px;
+  height: 34px;
+  padding: 0 1rem;
+  font-size: 13px;
 }
 
 .btn-primary {
   background: var(--color-ink);
-  color: var(--color-surface);
+  color: #ffffff;
   border: 1px solid var(--color-ink);
 }
 .btn-primary:hover {
-  background: #000;
-  border-color: #000;
+  background: #241d30;
+  border-color: #241d30;
 }
 .btn-primary:disabled {
-  background: transparent;
-  border-color: var(--color-hairline);
+  background: rgb(23 19 31 / 0.08);
+  border-color: transparent;
   color: var(--color-fog);
   cursor: default;
+  box-shadow: none;
+}
+
+/* dark pill with the gradient aura — hero actions */
+.btn-hero {
+  background: var(--color-ink);
+  color: #ffffff;
+  border: 1px solid transparent;
+}
+.btn-hero:hover {
+  background: #241d30;
 }
 
 .btn-outline {
-  background: transparent;
+  background: var(--color-surface);
   color: var(--color-ink);
-  border: 1px solid var(--color-ink);
+  border: 1px solid rgb(23 19 31 / 0.12);
 }
 .btn-outline:hover {
-  background: var(--color-ink);
-  color: var(--color-surface);
+  border-color: rgb(23 19 31 / 0.3);
 }
 .btn-outline:disabled {
   opacity: 0.35;
@@ -160,8 +227,6 @@ body {
 }
 .btn-quiet:hover {
   color: var(--color-ink);
-  text-decoration: underline;
-  text-underline-offset: 3px;
 }
 
 /* ---------- tags ---------- */
@@ -170,32 +235,36 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-family: var(--font-mono);
-  font-size: 10px;
+  font-family: var(--font-sans);
+  font-size: 10.5px;
   font-weight: 600;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  padding: 2px 6px;
-  border: 1px solid currentColor;
-  border-radius: var(--radius-xs);
+  padding: 3px 8px;
+  border: 1px solid rgb(23 19 31 / 0.1);
+  border-radius: 999px;
   color: var(--color-ink-soft);
   background: var(--color-surface);
 }
 .tag-signal {
-  color: var(--color-signal);
+  color: var(--color-violet);
+  border-color: rgb(139 92 246 / 0.35);
+  background: rgb(139 92 246 / 0.08);
 }
 .tag-fill {
   background: var(--color-ink);
   border-color: var(--color-ink);
-  color: var(--color-surface);
+  color: #ffffff;
 }
 .tag-chrome {
-  background: rgb(16 16 16 / 0.72);
-  border-color: rgb(255 255 255 / 0.28);
-  color: #f0efeb;
+  background: rgb(22 18 29 / 0.66);
+  border-color: rgb(255 255 255 / 0.16);
+  color: #f4f1f7;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
-/* ---------- viewfinder corner brackets ---------- */
+/* ---------- viewfinder corner brackets (studio) ---------- */
 
 .vf-corners {
   position: relative;
@@ -223,18 +292,6 @@ body {
   border-right: 1.5px solid #fff;
 }
 
-/* ---------- filmic UI grain (very subtle) ---------- */
-
-.ui-grain::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: 90;
-  pointer-events: none;
-  opacity: 0.02;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-
 /* ---------- sliders ---------- */
 
 input[type='range'].lm-slider {
@@ -246,43 +303,48 @@ input[type='range'].lm-slider {
   height: 24px;
 }
 input[type='range'].lm-slider::-webkit-slider-runnable-track {
-  height: 2px;
+  height: 4px;
+  border-radius: 999px;
   background: linear-gradient(
     to right,
-    var(--color-ink) 0%,
-    var(--color-ink) var(--fill, 50%),
-    var(--color-hairline) var(--fill, 50%),
-    var(--color-hairline) 100%
+    var(--color-violet) 0%,
+    var(--color-violet) var(--fill, 50%),
+    rgb(23 19 31 / 0.1) var(--fill, 50%),
+    rgb(23 19 31 / 0.1) 100%
   );
 }
 input[type='range'].lm-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 14px;
-  height: 14px;
-  margin-top: -6px;
-  border-radius: var(--radius-xs);
-  background: var(--color-surface);
-  border: 2px solid var(--color-ink);
+  width: 18px;
+  height: 18px;
+  margin-top: -7px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1.5px solid rgb(23 19 31 / 0.12);
+  box-shadow: 0 1px 4px rgb(23 19 31 / 0.18);
   transition: transform 0.12s ease;
 }
 input[type='range'].lm-slider::-webkit-slider-thumb:hover {
-  transform: scale(1.12);
+  transform: scale(1.1);
 }
 input[type='range'].lm-slider::-moz-range-track {
-  height: 2px;
-  background: var(--color-hairline);
+  height: 4px;
+  border-radius: 999px;
+  background: rgb(23 19 31 / 0.1);
 }
 input[type='range'].lm-slider::-moz-range-progress {
-  height: 2px;
-  background: var(--color-ink);
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-violet);
 }
 input[type='range'].lm-slider::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
-  border-radius: var(--radius-xs);
-  background: var(--color-surface);
-  border: 2px solid var(--color-ink);
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1.5px solid rgb(23 19 31 / 0.15);
+  box-shadow: 0 1px 4px rgb(23 19 31 / 0.18);
 }
 
 /* ---------- marquee carousel ---------- */
@@ -353,6 +415,22 @@ input[type='range'].lm-slider::-moz-range-thumb {
   animation: lm-breathe 1.6s ease-in-out infinite;
 }
 
+/* slow rotation for the carousel orbit ring sparkle */
+@keyframes lm-twinkle {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+.lm-twinkle {
+  animation: lm-twinkle 2.4s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .lm-marquee {
     animation-play-state: paused;
@@ -360,6 +438,9 @@ input[type='range'].lm-slider::-moz-range-thumb {
   .lm-develop,
   .lm-shutter-flash {
     animation-duration: 0.01s;
+  }
+  .lm-twinkle {
+    animation: none;
   }
 }
 
@@ -374,82 +455,111 @@ input[type='range'].lm-slider::-moz-range-thumb {
 
 /* ================================================================
    Home surface — consumer app-shell tokens (scoped, hm- prefix).
-   Reverse-engineered system: soft canvas, white radius-20 cards,
-   two-layer shadows, pill chrome, glassy floating dock.
+   Reverse-engineered from the reference: warm porcelain canvas,
+   white rounded cards, violet aura accents, floating pill dock.
    ================================================================ */
 
 .hm-canvas {
-  background: #f2f2ef;
+  background: var(--color-paper);
 }
 
 .hm-card {
   background: #ffffff;
-  border-radius: 20px;
-  box-shadow:
-    0 1px 2px rgb(20 20 18 / 0.03),
-    0 6px 20px -8px rgb(20 20 18 / 0.1);
+  border-radius: 24px;
+  border: 1px solid rgb(23 19 31 / 0.05);
+  box-shadow: 0 2px 12px rgb(23 19 31 / 0.05);
 }
 
 .hm-tile {
   background: #ffffff;
-  border-radius: 16px;
-  box-shadow:
-    0 1px 2px rgb(20 20 18 / 0.03),
-    0 4px 14px -6px rgb(20 20 18 / 0.08);
+  border-radius: 18px;
+  border: 1px solid rgb(23 19 31 / 0.05);
+  box-shadow: 0 1px 6px rgb(23 19 31 / 0.04);
 }
 
 .hm-pill {
   background: #ffffff;
   border-radius: 999px;
-  box-shadow:
-    0 1px 2px rgb(20 20 18 / 0.04),
-    0 4px 12px -6px rgb(20 20 18 / 0.08);
+  border: 1px solid rgb(23 19 31 / 0.06);
+  box-shadow: 0 1px 4px rgb(23 19 31 / 0.05);
 }
 
 .hm-chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 40px;
-  padding: 0 16px;
+  height: 36px;
+  padding: 0 15px;
   border-radius: 999px;
   background: #ffffff;
-  box-shadow:
-    0 1px 2px rgb(20 20 18 / 0.04),
-    0 4px 12px -6px rgb(20 20 18 / 0.08);
+  border: 1px solid rgb(23 19 31 / 0.07);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--color-ink-soft);
   white-space: nowrap;
   cursor: pointer;
   transition:
     background-color 0.15s ease,
     color 0.15s ease,
+    border-color 0.15s ease,
     transform 0.1s ease;
 }
 .hm-chip:active {
-  transform: scale(0.96);
+  transform: scale(0.97);
 }
 .hm-chip[data-active='true'] {
   background: var(--color-ink);
+  border-color: var(--color-ink);
   color: #ffffff;
+  font-weight: 600;
+}
+
+/* dashed drop-zone card with soft gradient halos at opposite corners */
+.hm-drop {
+  position: relative;
+  border-radius: 28px;
+  border: 1.5px dashed rgb(23 19 31 / 0.16);
+  background: rgb(255 255 255 / 0.55);
+}
+.hm-drop::before,
+.hm-drop::after {
+  content: '';
+  position: absolute;
+  width: 130px;
+  height: 130px;
+  border-radius: 999px;
+  pointer-events: none;
+  filter: blur(26px);
+  opacity: 0.5;
+  z-index: 0;
+}
+.hm-drop::before {
+  top: -34px;
+  left: -30px;
+  background: radial-gradient(closest-side, rgb(96 165 250 / 0.55), rgb(139 92 246 / 0.28), transparent);
+}
+.hm-drop::after {
+  bottom: -34px;
+  right: -30px;
+  background: radial-gradient(closest-side, rgb(236 72 153 / 0.5), rgb(217 70 239 / 0.25), transparent);
 }
 
 .hm-cta {
   box-shadow:
-    0 2px 6px rgb(20 20 18 / 0.18),
-    0 12px 32px -8px rgb(20 20 18 / 0.42);
+    0 2px 6px rgb(23 19 31 / 0.16),
+    0 10px 28px rgb(139 92 246 / 0.28);
 }
 
+/* floating pill tab bar — like the reference */
 .hm-dock {
-  background: rgb(255 255 255 / 0.88);
-  backdrop-filter: blur(28px) saturate(1.4);
-  -webkit-backdrop-filter: blur(28px) saturate(1.4);
-  border: 1px solid rgb(20 20 18 / 0.06);
-  border-radius: 24px;
+  background: rgb(255 255 255 / 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgb(23 19 31 / 0.05);
+  border-radius: 32px;
   box-shadow:
-    0 1px 2px rgb(20 20 18 / 0.05),
-    0 12px 40px -12px rgb(20 20 18 / 0.22);
+    0 2px 8px rgb(23 19 31 / 0.06),
+    0 12px 32px rgb(23 19 31 / 0.10);
 }
 
 @keyframes hm-sheet-in {

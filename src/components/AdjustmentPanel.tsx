@@ -33,7 +33,7 @@ export default function AdjustmentPanel({ style, params, onChange }: Props) {
     <div className="space-y-5">
       {/* quick presets */}
       <div>
-        <p className="label-mono mb-2.5">Quick presets</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-fog mb-2.5">Quick presets</p>
         <div className="grid grid-cols-3 gap-2">
           {QUICK_PRESETS.map((p) => (
             <button

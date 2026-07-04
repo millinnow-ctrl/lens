@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { IconClose, IconFilm, IconTrash } from '../components/icons'
+import { IconCheck, IconClose, IconFilm, IconTrash } from '../components/icons'
 import { loadImage, renderStyled } from '../lib/engine'
 import { CAMERA_STYLES, getStyle } from '../lib/styles'
 import { FREE_CREDITS, useApp } from '../lib/store'
@@ -48,7 +48,7 @@ export default function Dashboard() {
       {/* header */}
       <div className="flex flex-wrap items-end justify-between gap-4 mb-10">
         <div>
-          <p className="label-mono mb-2">Your library</p>
+          <p className="text-[13px] font-semibold grad-text mb-2">Your library</p>
           <h1 className="type-display text-3xl sm:text-4xl">
             {user ? `Welcome back, ${user.name}.` : 'Your darkroom.'}
           </h1>
@@ -84,7 +84,7 @@ export default function Dashboard() {
             </div>
             {history.length === 0 ? (
               <div className="panel p-8 sm:p-10">
-                <IconFilm size={24} className="text-ink mb-4" />
+                <IconFilm size={24} className="text-violet mb-4" />
                 <p className="text-fog text-sm mb-5">
                   Nothing developed yet. Your first roll is on the house.
                 </p>
@@ -93,7 +93,7 @@ export default function Dashboard() {
                 </Link>
               </div>
             ) : (
-              <div className="border border-hairline bg-vf p-4 sm:p-5">
+              <div className="bg-vf rounded-[24px] p-4 sm:p-5 shadow-[0_2px_12px_rgb(23_19_31/0.10)]">
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                   {history.map((h, i) => (
                     <motion.div
@@ -103,12 +103,12 @@ export default function Dashboard() {
                       transition={{ duration: 0.15, ease: 'easeOut', delay: i * 0.03 }}
                       className="group relative"
                     >
-                      <div className="relative overflow-hidden rounded-xs aspect-4/5 bg-ink">
+                      <div className="relative overflow-hidden rounded-[12px] aspect-4/5 bg-ink">
                         <img src={h.thumb} alt={h.styleName} className="w-full h-full object-cover" />
                         <button
                           onClick={() => removeHistory(h.id)}
                           aria-label="Delete"
-                          className="absolute top-1.5 right-1.5 w-6 h-6 rounded-xs bg-vf/75 border border-white/25 text-paper opacity-0 group-hover:opacity-100 hover:border-signal hover:text-signal transition-opacity flex items-center justify-center"
+                          className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-vf/75 border border-white/25 text-paper opacity-0 group-hover:opacity-100 hover:border-signal hover:text-signal transition-opacity flex items-center justify-center"
                         >
                           <IconTrash size={12} />
                         </button>
@@ -127,7 +127,7 @@ export default function Dashboard() {
                   {history.length < 4 &&
                     Array.from({ length: 4 - history.length }).map((_, i) => (
                       <div key={`ghost-${i}`} aria-hidden>
-                        <div className="rounded-xs aspect-4/5 border border-dashed border-white/15" />
+                        <div className="rounded-[12px] aspect-4/5 border border-dashed border-white/15" />
                         <p className="mt-1.5 font-mono text-[10px] tracking-[0.08em] uppercase text-white/25 tabular-nums">
                           {String(history.length + i + 1).padStart(2, '0')} · —
                         </p>
@@ -143,7 +143,7 @@ export default function Dashboard() {
             <h2 className="font-sans font-semibold text-[16px] mb-4">Saved presets</h2>
             {presets.length === 0 ? (
               <div>
-                <div className="border border-dashed border-hairline rounded-xs px-4 py-3 mb-3 font-mono text-[11px] tracking-[0.1em] uppercase text-fog">
+                <div className="border border-dashed border-hairline rounded-[14px] px-4 py-3 mb-3 font-mono text-[11px] tracking-[0.1em] uppercase text-fog">
                   Preset·00 — empty slot
                 </div>
                 <p className="text-fog text-sm">
@@ -200,22 +200,29 @@ export default function Dashboard() {
                   <Link
                     key={s.id}
                     to={`/studio?style=${s.id}`}
-                    className={`relative aspect-4/5 rounded-xs overflow-hidden border transition-colors ${
-                      shot ? 'border-ink' : 'border-dashed border-hairline hover:border-ink'
+                    className={`relative aspect-4/5 rounded-[14px] overflow-hidden border transition-colors ${
+                      shot
+                        ? 'border-ink/10 shadow-[0_2px_8px_rgb(23_19_31/0.06)]'
+                        : 'border-dashed border-hairline hover:border-violet/50'
                     }`}
                   >
                     {shot && thumb ? (
-                      <img src={thumb} alt={s.name} className="w-full h-full object-cover" />
+                      <>
+                        <img src={thumb} alt={s.name} className="w-full h-full object-cover" />
+                        <span className="absolute bottom-1.5 right-1.5 w-[18px] h-[18px] rounded-full bg-white/95 shadow-sm flex items-center justify-center text-violet">
+                          <IconCheck size={10} />
+                        </span>
+                      </>
                     ) : shot ? (
-                      <span className="absolute inset-0 bg-ink flex items-center justify-center">
-                        <svg viewBox="0 0 12 12" width="14" height="14" fill="none" stroke="#F6F5F1" strokeWidth="2" strokeLinecap="square">
-                          <path d="M2.5 6.5l2.5 2.5 4.5-5" />
-                        </svg>
+                      <span className="absolute inset-0 bg-violet/10 flex items-center justify-center">
+                        <span className="w-[18px] h-[18px] rounded-full bg-white shadow-sm flex items-center justify-center text-violet">
+                          <IconCheck size={10} />
+                        </span>
                       </span>
                     ) : null}
                     <span
                       className={`absolute top-1.5 left-1.5 font-mono text-[9px] tracking-[0.08em] ${
-                        shot ? 'text-white bg-vf/60 px-1 py-0.5 rounded-xs' : 'text-fog'
+                        shot ? 'text-white bg-vf/60 px-1.5 py-0.5 rounded-full' : 'text-fog'
                       }`}
                     >
                       LM·{String(i + 1).padStart(2, '0')}
@@ -251,9 +258,9 @@ export default function Dashboard() {
                 {favStyles.map((s) => (
                   <span
                     key={s.id}
-                    className="inline-flex items-center gap-2.5 rounded-xs border border-hairline bg-surface px-3 py-2"
+                    className="inline-flex items-center gap-2.5 rounded-full border border-ink/10 bg-surface px-3.5 py-2 shadow-[0_1px_4px_rgb(23_19_31/0.04)]"
                   >
-                    <span className="w-2 h-2 shrink-0" style={{ background: s.gradient }} />
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ background: s.gradient }} />
                     <span className="font-sans font-semibold text-[13px]">{s.name}</span>
                     <Link
                       to={`/studio?style=${s.id}`}
@@ -281,25 +288,23 @@ export default function Dashboard() {
           <section className="panel p-6">
             {isPaid ? (
               <>
-                <p className="label-mono mb-3">Your plan</p>
+                <p className="text-[13px] font-semibold text-ink-soft mb-3">Your plan</p>
                 <p className="font-sans font-semibold text-[16px] capitalize mb-1">{plan}</p>
-                <p className="font-mono text-[11px] tracking-[0.14em] uppercase text-signal">
-                  Unlimited
-                </p>
+                <p className="text-[13px] font-semibold grad-text">Unlimited</p>
               </>
             ) : (
               <>
-                <p className="label-mono mb-3">Free shots</p>
-                <p className="font-mono text-5xl tabular-nums mb-4">
+                <p className="text-[13px] font-semibold text-ink-soft mb-3">Free shots</p>
+                <p className="font-sans font-bold text-5xl tracking-[-0.02em] tabular-nums mb-4">
                   {creditsLeft}/{FREE_CREDITS}
                 </p>
-                <div className="h-0.5 bg-hairline mb-5">
+                <div className="h-1.5 rounded-full bg-ink/[0.06] overflow-hidden mb-5">
                   <div
-                    className="h-full bg-ink transition-all duration-500"
+                    className="h-full rounded-full grad-fill transition-all duration-500"
                     style={{ width: `${100 - usedPct}%` }}
                   />
                 </div>
-                <Link to="/pricing" className="btn btn-primary w-full">
+                <Link to="/pricing" className="btn btn-primary w-full aura-soft">
                   Upgrade
                 </Link>
               </>
@@ -307,18 +312,16 @@ export default function Dashboard() {
           </section>
 
           {/* weekly mood */}
-          <section className="bg-vf p-6">
-            <p className="font-mono text-[11px] font-medium tracking-[0.14em] uppercase text-vf-chrome mb-2">
-              Featured this week
-            </p>
+          <section className="bg-vf rounded-[24px] p-6 aura-soft">
+            <p className="text-[12px] font-semibold grad-text mb-2">Featured this week</p>
             <h3 className="font-sans font-semibold text-[18px] text-paper mb-3">A24 Movie Still</h3>
             <img
               src={featuredThumb ?? sampleGolden}
               alt=""
-              className="rounded-xs aspect-video object-cover w-full mb-4"
+              className="rounded-[14px] aspect-video object-cover w-full mb-4"
               style={featuredThumb ? undefined : { filter: 'saturate(0.72) contrast(1.05) brightness(0.98)' }}
             />
-            <Link to="/studio?style=a24-still" className="btn w-full bg-paper text-ink hover:bg-white">
+            <Link to="/studio?style=a24-still" className="btn w-full bg-white text-ink hover:bg-white/90">
               Shoot it
             </Link>
           </section>

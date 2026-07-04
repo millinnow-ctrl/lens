@@ -294,8 +294,8 @@ export function renderStyled(
     const y = H - bh - fs
     wx.fillStyle = 'rgba(16,16,16,0.62)'
     wx.fillRect(x, y, bw, bh)
-    // record dot
-    wx.fillStyle = '#E1251B'
+    // brand dot
+    wx.fillStyle = '#8B5CF6'
     wx.beginPath()
     wx.arc(x + pad + dot, y + bh / 2, dot, 0, Math.PI * 2)
     wx.fill()
