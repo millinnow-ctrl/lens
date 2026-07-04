@@ -33,6 +33,8 @@ export interface StyleCharacter {
   fringe?: number
   /** 0..1 warm light leak bleeding in from one edge */
   leak?: number
+  /** grain clump size multiplier — wet plate 1.8, slide film 0.7 */
+  grainSize?: number
 }
 
 export interface CameraStyle {
@@ -74,6 +76,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
     badge: 'trending',
     defaults: P({ grain: 62, contrast: 57, warmth: 66, flash: 48, shadows: 34 }),
     character: {
+      grainSize: 1.3,
       curve: 0.2,
       leak: 0.3,
       sepia: 0.18,
@@ -113,6 +116,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
     tier: 'premium',
     defaults: P({ grain: 46, contrast: 47, warmth: 52, flash: 8, shadows: 28 }),
     character: {
+      grainSize: 1.4,
       curve: 0.15,
       fringe: 1.4,
       saturate: 0.78,
@@ -153,6 +157,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
     badge: 'featured',
     defaults: P({ grain: 8, contrast: 64, warmth: 54, flash: 18, shadows: 52, smoothing: 38 }),
     character: {
+      grainSize: 0.6,
       curve: 0.25,
       saturate: 1.08,
       brightness: 1.03,
@@ -192,6 +197,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
     tier: 'premium',
     defaults: P({ grain: 40, contrast: 76, warmth: 50, flash: 6, shadows: 72 }),
     character: {
+      grainSize: 1.15,
       curve: 0.55,
       bw: true,
       brightness: 0.99,
@@ -250,6 +256,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
     tier: 'premium',
     defaults: P({ grain: 58, contrast: 52, warmth: 68, flash: 0, shadows: 40 }),
     character: {
+      grainSize: 1.5,
       curve: 0.25,
       leak: 0.55,
       saturate: 0.9,
@@ -272,6 +279,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
     badge: 'new',
     defaults: P({ grain: 36, contrast: 66, warmth: 52, flash: 0, shadows: 78 }),
     character: {
+      grainSize: 1.2,
       curve: 0.45,
       fringe: 2.2,
       leak: 0.5,
@@ -294,6 +302,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
     tier: 'premium',
     defaults: P({ grain: 18, contrast: 62, warmth: 58, flash: 0, shadows: 46 }),
     character: {
+      grainSize: 0.7,
       curve: 0.4,
       splitTone: { shadows: '#7f1d1d', highlights: '#fde68a', amount: 0.45 },
       saturate: 1.22,
@@ -314,6 +323,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
     tier: 'premium',
     defaults: P({ grain: 70, contrast: 58, warmth: 40, flash: 0, shadows: 36 }),
     character: {
+      grainSize: 1.5,
       curve: 0.35,
       saturate: 0.35,
       brightness: 1.05,
@@ -356,6 +366,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
     tier: 'free',
     defaults: P({ grain: 12, contrast: 40, warmth: 55, flash: 0, shadows: 16, smoothing: 20 }),
     character: {
+      grainSize: 0.75,
       saturate: 0.88,
       brightness: 1.08,
       fade: 0.34,
@@ -418,6 +429,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
     tier: 'premium',
     defaults: P({ grain: 64, contrast: 60, warmth: 60, flash: 0, shadows: 84 }),
     character: {
+      grainSize: 1.8,
       curve: 0.5,
       sepia: 0.85,
       saturate: 0.6,

@@ -95,6 +95,22 @@ body {
   padding: 2.5px;
 }
 
+/* ---------- material depth (dark surfaces) ---------- */
+
+/* machined edge for .bg-vf-style dark panels — hairline light catch on top,
+   shadow seat below. Adopt where dark surfaces exist; never auto-applied. */
+.vf-material {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.07),
+    inset 0 -1px 0 rgb(0 0 0 / 0.4);
+}
+
+/* ultra-subtle film-grain noise for dark cards — composes over any bg color */
+.texture-film {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.015'/%3E%3C/svg%3E");
+  background-size: 140px 140px;
+}
+
 /* ---------- type ---------- */
 
 .type-display {
@@ -103,6 +119,16 @@ body {
   letter-spacing: -0.03em;
   line-height: 1.05;
   text-wrap: balance;
+  font-feature-settings: 'ss01' on;
+}
+
+/* optical tracking for display sizes ≥28px */
+.tracking-optical-lg {
+  letter-spacing: -0.035em;
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
 }
 
 .brand-word {
@@ -163,10 +189,12 @@ body {
     border-color 0.15s ease,
     color 0.15s ease,
     box-shadow 0.2s ease,
-    transform 0.08s ease;
+    transform 0.18s ease;
 }
 .btn:active {
-  transform: scale(0.97);
+  /* fast press, slower release — the asymmetry reads as mechanical */
+  transform: scale(0.98);
+  transition-duration: 0.06s;
 }
 .btn-lg {
   height: 52px;
@@ -538,9 +566,11 @@ input[type='range'].lm-slider::-moz-range-thumb {
 /* press feedback for tappable cards */
 .hm-press {
   transition:
-    transform 0.12s ease,
+    transform 0.18s ease,
     box-shadow 0.15s ease;
 }
 .hm-press:active {
-  transform: scale(0.97);
+  /* fast press, slower release */
+  transform: scale(0.98);
+  transition-duration: 0.06s;
 }

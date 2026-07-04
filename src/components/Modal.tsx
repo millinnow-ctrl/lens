@@ -32,7 +32,7 @@ export default function Modal({ open, onClose, children, wide = false }: ModalPr
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15, ease: 'easeOut' }}
         >
-          <div className="absolute inset-0 bg-vf/55" onClick={onClose} aria-hidden />
+          <div className="absolute inset-0 bg-vf/55 texture-film" onClick={onClose} aria-hidden />
           <motion.div
             initial={{ y: 24, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}

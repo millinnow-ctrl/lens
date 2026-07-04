@@ -17,6 +17,7 @@ import { loadImage, renderStyled } from '../lib/engine'
 import { dailyRecipe, dailyStyle, isDailyClaimed, jitterParams } from '../lib/lab'
 import { CAMERA_STYLES, encodeParams, getStyle, type CameraStyle } from '../lib/styles'
 import { useApp } from '../lib/store'
+import { STYLE_ART } from '../lib/styleArt'
 import sampleGolden from '../assets/sample-golden.jpg'
 import heroPoster from '../assets/hero-poster.jpg'
 import heroLoop from '../assets/hero-loop.mp4'
@@ -24,46 +25,7 @@ import sampleFriends from '../assets/sample-friends.jpg'
 import sampleDog from '../assets/sample-dog.jpg'
 import samplePrints from '../assets/sample-prints.jpg'
 import sampleHandprint from '../assets/sample-handprint.jpg'
-import artDisposable from '../assets/style-disposable.jpg'
-import artIphoneFlash from '../assets/style-iphone-flash.jpg'
-import artCamcorder from '../assets/style-camcorder-90s.jpg'
-import artLeica from '../assets/style-leica-street.jpg'
-import artGq from '../assets/style-gq-editorial.jpg'
-import artA24 from '../assets/style-a24-still.jpg'
-import artNoir from '../assets/style-film-noir.jpg'
-import artY2k from '../assets/style-y2k-digicam.jpg'
-import artPolaroid from '../assets/style-polaroid.jpg'
-import artSuper8 from '../assets/style-super-8.jpg'
-import artLomo from '../assets/style-lomo.jpg'
-import artKodachrome from '../assets/style-kodachrome.jpg'
-import artSecurityCam from '../assets/style-security-cam.jpg'
-import artBlockbuster from '../assets/style-blockbuster.jpg'
-import artPastel from '../assets/style-pastel-cinema.jpg'
-import artTokyoNeon from '../assets/style-tokyo-neon.jpg'
-import artPhotobooth from '../assets/style-photobooth.jpg'
-import artTintype from '../assets/style-tintype.jpg'
 
-/** tall portrait artwork for the style deck — one signature frame per look */
-const STYLE_ART: Record<string, string> = {
-  disposable: artDisposable,
-  'iphone-flash': artIphoneFlash,
-  'camcorder-90s': artCamcorder,
-  'leica-street': artLeica,
-  'gq-editorial': artGq,
-  'a24-still': artA24,
-  'film-noir': artNoir,
-  'y2k-digicam': artY2k,
-  polaroid: artPolaroid,
-  'super-8': artSuper8,
-  lomo: artLomo,
-  kodachrome: artKodachrome,
-  'security-cam': artSecurityCam,
-  blockbuster: artBlockbuster,
-  'pastel-cinema': artPastel,
-  'tokyo-neon': artTokyoNeon,
-  photobooth: artPhotobooth,
-  tintype: artTintype,
-}
 
 /* collection milestones — celebrated once each, positive framing only */
 const MILESTONE_KEY = 'lensmood.milestone.v1'
@@ -375,7 +337,7 @@ function HomeContent({
           to="/studio"
           title="Video"
           sub="Restyle a clip, frame by frame"
-          image={artCamcorder}
+          image={STYLE_ART['camcorder-90s']}
           tag="Pro"
           ratio="aspect-[21/9]"
         />
@@ -454,8 +416,8 @@ export default function Home() {
         <ApertureMark className="w-12 h-12 mb-4" />
         <h2 className="type-display text-[26px] mb-2">Your camera roll is full of movie stills.</h2>
         <p className="text-[14.5px] text-ink-soft leading-relaxed mb-6">
-          Pick a photo and we’ll shoot it on {CAMERA_STYLES.length} cameras — developed on your
-          phone in seconds. First shot’s on us.
+          Pick a photo, choose one of {CAMERA_STYLES.length} cameras, and watch it develop. Every
+          shot is its own take — and the first one’s on us.
         </p>
         <button
           onClick={() => dismissWelcome(true)}

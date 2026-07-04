@@ -1,10 +1,11 @@
 import { CAMERA_STYLES, type CameraStyle } from '../lib/styles'
 import { IconHeart } from './icons'
 import { useApp } from '../lib/store'
-import { useStyleThumbs } from '../lib/useStyleThumbs'
+import { STYLE_ART } from '../lib/styleArt'
 
 interface Props {
-  /** image shown inside each card (the user's photo, or a sample) */
+  /** kept for call-site compatibility — used only as an ultimate fallback if a
+   *  style has no signature artwork. Cards never render the user's photo. */
   previewSrc: string
   selectedId: string | null
   onSelect: (style: CameraStyle) => void
@@ -19,8 +20,8 @@ function Badge({ badge }: { badge?: CameraStyle['badge'] }) {
 
 export default function StyleCarousel({ previewSrc, selectedId, onSelect, showFavorites = true }: Props) {
   const { favorites, toggleFavorite } = useApp()
-  // every card demonstrates its real look — rendered through the engine
-  const thumbs = useStyleThumbs(previewSrc, 300)
+  // one camera at a time: cards show each look's signature artwork — the
+  // user's photo only ever enters a look when they explicitly develop it
 
   return (
     <div className="flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory -mx-1 px-1 py-2">
@@ -41,11 +42,11 @@ export default function StyleCarousel({ previewSrc, selectedId, onSelect, showFa
           >
             <div className="relative aspect-4/5 overflow-hidden rounded-t-[17px]">
               <img
-                src={thumbs[style.id] ?? previewSrc}
+                src={STYLE_ART[style.id] ?? previewSrc}
                 alt=""
                 loading="lazy"
                 className="w-full h-full object-cover"
-                style={thumbs[style.id] ? undefined : { filter: style.cardFilter }}
+                style={STYLE_ART[style.id] ? undefined : { filter: style.cardFilter }}
                 draggable={false}
               />
               <div className="absolute top-1.5 right-1.5">

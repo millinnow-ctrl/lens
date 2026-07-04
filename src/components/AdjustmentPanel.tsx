@@ -33,7 +33,9 @@ export default function AdjustmentPanel({ style, params, onChange }: Props) {
     <div className="space-y-5">
       {/* quick presets */}
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-fog mb-2.5">Quick presets</p>
+        <p className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-fog [text-shadow:0_1px_0_rgba(255,255,255,0.7)] mb-2.5">
+          Quick presets
+        </p>
         <div className="grid grid-cols-3 gap-2">
           {QUICK_PRESETS.map((p) => (
             <button
@@ -55,8 +57,10 @@ export default function AdjustmentPanel({ style, params, onChange }: Props) {
         {SLIDERS.map(({ key, label }) => (
           <label key={key} className="block">
             <span className="flex items-baseline justify-between mb-1">
-              <span className="text-[13px] font-medium text-ink-soft">{label}</span>
-              <span className="value-mono">{params[key]}</span>
+              <span className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-ink-soft [text-shadow:0_1px_0_rgba(255,255,255,0.7)]">
+                {label}
+              </span>
+              <span className="value-mono tabular-nums">{params[key]}</span>
             </span>
             <input
               type="range"
@@ -68,6 +72,11 @@ export default function AdjustmentPanel({ style, params, onChange }: Props) {
               style={{ ['--fill' as string]: `${params[key]}%` }}
               aria-label={label}
             />
+            {/* machined tick rail — a mark every 10 units */}
+            <span
+              aria-hidden
+              className="block h-[5px] mt-[3px] mx-[9px] bg-[repeating-linear-gradient(to_right,rgba(23,19,31,0.22)_0,rgba(23,19,31,0.22)_1px,transparent_1px,transparent_calc((100%_-_1px)/10))]"
+            />
           </label>
         ))}
       </div>
@@ -78,7 +87,7 @@ export default function AdjustmentPanel({ style, params, onChange }: Props) {
             setActivePreset(null)
             onChange({ ...style.defaults })
           }}
-          className="text-[13px] font-medium text-fog hover:text-ink transition-colors"
+          className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-fog hover:text-ink transition-colors"
         >
           Reset to {style.name}
         </button>

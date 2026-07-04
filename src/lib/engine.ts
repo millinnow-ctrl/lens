@@ -200,13 +200,15 @@ export function renderStyled(
     ctx.filter = 'none'
   }
 
-  /* 3 — halation / bloom: blurred bright self-blend in screen mode */
+  /* 3 — halation: highlight-weighted bloom. Crushing the copy hard
+     before the blur means only genuinely bright areas glow — light
+     sources and speculars, not the whole midtone field. */
   const halation = (ch.halation ?? 0) * s
   if (halation > 0.01) {
     ctx.save()
     ctx.globalCompositeOperation = 'screen'
-    ctx.globalAlpha = halation * 0.5
-    ctx.filter = `blur(${(7 * ref).toFixed(2)}px) brightness(1.15) contrast(1.25)`
+    ctx.globalAlpha = halation * 0.75
+    ctx.filter = `brightness(0.55) contrast(3.2) saturate(1.2) blur(${(8 * ref).toFixed(2)}px)`
     ctx.drawImage(canvas, 0, 0)
     ctx.restore()
     ctx.filter = 'none'
@@ -318,21 +320,24 @@ export function renderStyled(
     ctx.restore()
   }
 
-  /* 9 — grain */
+  /* 9 — grain: size follows the stock. Wet plates and 8mm clump big;
+     slide film resolves fine. */
   const grain = params.grain / 100
   if (grain > 0.02) {
+    const gs = Math.max(0.5, (ch.grainSize ?? 1) * ref)
     ctx.save()
     ctx.globalCompositeOperation = 'overlay'
     ctx.globalAlpha = grain * 0.55
+    ctx.scale(gs, gs)
     ctx.fillStyle = ctx.createPattern(getNoiseTile(), 'repeat')!
     if (animateGrain) {
       // shift the tile a random amount each frame so video grain dances
       const ox = Math.floor(Math.random() * 192)
       const oy = Math.floor(Math.random() * 192)
       ctx.translate(-ox, -oy)
-      ctx.fillRect(0, 0, w + 192, h + 192)
+      ctx.fillRect(0, 0, w / gs + 192, h / gs + 192)
     } else {
-      ctx.fillRect(0, 0, w, h)
+      ctx.fillRect(0, 0, w / gs, h / gs)
     }
     ctx.restore()
   }

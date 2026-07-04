@@ -27,7 +27,7 @@ export default function Nav() {
                 <Link
                   key={l.label}
                   to={l.to}
-                  className={`inline-flex items-center px-3.5 py-1.5 rounded-full transition-colors ${
+                  className={`inline-flex items-center px-3.5 py-1.5 rounded-full no-underline transition-colors duration-150 ${
                     active
                       ? 'bg-violet/10 text-violet font-semibold'
                       : 'text-ink-soft hover:text-ink hover:bg-ink/5'

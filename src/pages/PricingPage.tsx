@@ -127,9 +127,9 @@ export default function PricingPage() {
     <main className="max-w-7xl mx-auto px-4 sm:px-6 py-14 sm:py-20 pb-28">
       <div className="mb-12 max-w-2xl">
         <p className="text-[12px] font-semibold tracking-[0.12em] uppercase text-violet mb-3">
-          Pricing
+          Membership
         </p>
-        <h1 className="type-display text-4xl sm:text-6xl mb-4">
+        <h1 className="type-display tracking-optical-lg text-4xl sm:text-6xl mb-4">
           Rent the <span className="grad-text">camera bag.</span>
         </h1>
         <p className="text-ink-soft">
@@ -163,7 +163,10 @@ export default function PricingPage() {
                   )}
                 </div>
                 <h2 className="font-sans font-semibold text-[16px]">{tier.name}</h2>
-                <p className="text-[13px] mb-5 text-fog">{tier.blurb}</p>
+                <p className="font-mono text-[10px] tracking-wide text-fog tnum mt-0.5">
+                  LM·MEMBER · TIER 0{i + 1}
+                </p>
+                <p className="text-[13px] mt-2 mb-5 text-fog">{tier.blurb}</p>
                 <p className="mb-6">
                   <span className="text-4xl font-bold tracking-tight tabular-nums">
                     ${tier.price}

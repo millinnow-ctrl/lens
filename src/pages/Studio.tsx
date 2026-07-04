@@ -268,11 +268,16 @@ export default function Studio() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="absolute inset-0 z-20 bg-vf/85 flex flex-col items-center justify-center gap-5"
+                  className="absolute inset-0 z-20 bg-[#0a0710]/[0.96] flex flex-col items-center justify-center gap-5"
                 >
+                  {/* darkroom safelight — a faint red wash from above */}
+                  <div
+                    aria-hidden
+                    className="absolute inset-0 pointer-events-none bg-[radial-gradient(120%_85%_at_50%_-10%,rgba(225,37,27,0.13),rgba(225,37,27,0.03)_55%,transparent_80%)]"
+                  />
                   <motion.svg
                     viewBox="0 0 48 48"
-                    className="w-14 h-14"
+                    className="w-14 h-14 relative"
                     animate={{ rotate: 360 }}
                     transition={{ repeat: Infinity, duration: 2.4, ease: 'linear' }}
                   >
@@ -287,22 +292,36 @@ export default function Studio() {
                     ))}
                     <circle cx="24" cy="24" r="5" fill="#8b5cf6" />
                   </motion.svg>
-                  <AnimatePresence mode="wait">
-                    <motion.p
-                      key={stepIndex}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }}
-                      className="font-mono text-[11px] tracking-[0.14em] uppercase text-white/90"
-                    >
-                      {GENERATION_STEPS[stepIndex]}
-                    </motion.p>
-                  </AnimatePresence>
-                  <div className="w-44 h-1 rounded-full bg-white/15 overflow-hidden">
+                  <div className="relative flex flex-col items-center gap-2">
+                    <AnimatePresence mode="wait">
+                      <motion.p
+                        key={stepIndex}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        className="font-mono text-[11px] tracking-[0.14em] uppercase text-white/90"
+                      >
+                        {style ? `${style.name} — ` : ''}
+                        {GENERATION_STEPS[stepIndex]}
+                      </motion.p>
+                    </AnimatePresence>
+                    {/* the camera's exif readout, ticking like a meter needle */}
+                    {style && (
+                      <motion.p
+                        animate={{ opacity: [0.35, 0.75, 0.35] }}
+                        transition={{ repeat: Infinity, duration: 1.15, ease: 'easeInOut' }}
+                        className="font-mono text-[10px] tracking-[0.2em] uppercase tabular-nums text-[#ff6b5e]/80"
+                      >
+                        {style.exif}
+                      </motion.p>
+                    )}
+                  </div>
+                  {/* thin develop line running the bottom edge of the viewfinder */}
+                  <div className="absolute bottom-0 inset-x-0 h-[2px] bg-white/[0.07] overflow-hidden">
                     <motion.div
-                      className="h-full rounded-full grad-fill"
-                      initial={{ width: '4%' }}
-                      animate={{ width: '96%' }}
+                      className="h-full grad-fill"
+                      initial={{ width: '2%' }}
+                      animate={{ width: '98%' }}
                       transition={{ duration: 2.2, ease: 'easeInOut' }}
                     />
                   </div>

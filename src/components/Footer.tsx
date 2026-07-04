@@ -55,8 +55,11 @@ export default function Footer() {
           </div>
         ))}
       </div>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 border-t border-ink/5 flex items-center justify-between text-[12px] text-fog">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 border-t border-ink/5 flex flex-wrap items-center justify-between gap-x-5 gap-y-2 text-[12px] text-fog">
         <span>© 2026 LensMood · Photos never leave your device</span>
+        <span className="hidden md:inline text-[11px] text-fog">
+          Made for people who miss film.
+        </span>
         <span className="value-mono tabular-nums">f/1.4 · ISO 400 · 1/125</span>
       </div>
     </footer>
