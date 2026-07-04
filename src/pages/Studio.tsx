@@ -41,6 +41,7 @@ export default function Studio() {
     isPaid,
     spendCredit,
     addHistory,
+    history,
     pendingPreset,
     setPendingPreset,
   } = useApp()
@@ -96,7 +97,10 @@ export default function Studio() {
   const beginGeneration = useCallback(
     (s: CameraStyle, presetParams?: StyleParams, freeShot = false) => {
       if (!source && !video) return
-      if (!freeShot && !spendCredit()) {
+      // the very first develop is always on the house — the aha moment
+      // must never sit behind the meter
+      const firstShot = history.length === 0
+      if (!freeShot && !firstShot && !spendCredit()) {
         setPaywall(true)
         return
       }
@@ -125,7 +129,7 @@ export default function Studio() {
         haptic('light')
       }, 2300)
     },
-    [source, video, videoPoster, focal, spendCredit, selectStyle, addHistory],
+    [source, video, videoPoster, focal, history.length, spendCredit, selectStyle, addHistory],
   )
 
   /* deep link: /studio?style=a24-still&p=90.30.55.46.0.58.0 (&daily=1 = today's free stock) */

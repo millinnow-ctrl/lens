@@ -11,6 +11,7 @@ import UploadModal from '../components/home/UploadModal'
 import AccountSheet from '../components/home/AccountSheet'
 import PhoneFrame from '../components/home/PhoneFrame'
 import BeforeAfterSlider from '../components/BeforeAfterSlider'
+import { ApertureMark } from '../components/Logo'
 import { IconCheck, IconChevronRight, IconClose, IconUpload } from '../components/icons'
 import { loadImage, renderStyled } from '../lib/engine'
 import { dailyRecipe, dailyStyle, isDailyClaimed, jitterParams } from '../lib/lab'
@@ -424,6 +425,55 @@ export default function Home() {
   const [uploadOpen, setUploadOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
 
+  /* first run: one screen, one job — get their photo into the engine.
+     Never shown again after any choice; never shown to returning users. */
+  const [welcome, setWelcome] = useState(() => {
+    try {
+      return (
+        localStorage.getItem('lensmood.welcome.v1') === null &&
+        !localStorage.getItem('lensmood.v1') // any persisted state = not new
+      )
+    } catch {
+      return false
+    }
+  })
+  const dismissWelcome = (thenUpload: boolean) => {
+    try {
+      localStorage.setItem('lensmood.welcome.v1', '1')
+    } catch {
+      /* storage unavailable */
+    }
+    setWelcome(false)
+    if (thenUpload) setUploadOpen(true)
+  }
+
+  const welcomeOverlay = welcome ? (
+    <div className="fixed inset-0 z-[70] flex items-end justify-center" role="dialog" aria-label="Welcome">
+      <div className="absolute inset-0 bg-vf/55" aria-hidden />
+      <div className="hm-sheet relative w-full max-w-md bg-white rounded-t-[28px] px-6 pt-8 pb-[calc(env(safe-area-inset-bottom)+24px)]">
+        <ApertureMark className="w-12 h-12 mb-4" />
+        <h2 className="type-display text-[26px] mb-2">Your camera roll is full of movie stills.</h2>
+        <p className="text-[14.5px] text-ink-soft leading-relaxed mb-6">
+          Pick a photo and we’ll shoot it on {CAMERA_STYLES.length} cameras — developed on your
+          phone in seconds. First shot’s on us.
+        </p>
+        <button
+          onClick={() => dismissWelcome(true)}
+          className="btn btn-lg w-full gap-2.5 border-0 grad-fill text-white shadow-[0_6px_20px_rgb(139_92_246/0.35)]"
+        >
+          <IconUpload size={17} />
+          Pick a photo
+        </button>
+        <button
+          onClick={() => dismissWelcome(false)}
+          className="btn btn-quiet w-full mt-1.5 text-[13.5px]"
+        >
+          Look around first
+        </button>
+      </div>
+    </div>
+  ) : null
+
   const content = (
     <HomeContent
       onAccount={() => setAccountOpen(true)}
@@ -477,6 +527,7 @@ export default function Home() {
   return (
     <main className="hm-canvas min-h-dvh">
       {content}
+      {welcomeOverlay}
       <UploadModal open={uploadOpen} onClose={() => setUploadOpen(false)} />
       <AccountSheet open={accountOpen} onClose={() => setAccountOpen(false)} />
     </main>
