@@ -154,7 +154,6 @@ export const CAMERA_STYLES: CameraStyle[] = [
     tagline: 'Polished light, crisp shadows',
     description: 'Luxury magazine lighting, crisp shadows, polished skin. You, but on a newsstand.',
     tier: 'premium',
-    badge: 'featured',
     defaults: P({ grain: 8, contrast: 64, warmth: 54, flash: 18, shadows: 52, smoothing: 38 }),
     character: {
       grainSize: 0.6,
@@ -343,7 +342,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
     tagline: 'Teal shadows, orange skin',
     description: 'The summer-movie grade — teal shadows, warm skin, glossy contrast. Trailer energy.',
     tier: 'premium',
-    badge: 'featured',
+    badge: 'new',
     defaults: P({ grain: 14, contrast: 64, warmth: 62, flash: 0, shadows: 54 }),
     character: {
       curve: 0.4,
