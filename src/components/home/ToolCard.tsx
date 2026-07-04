@@ -11,6 +11,7 @@ interface Props {
   tag?: string
 }
 
+/** image-led tool tile — the photo is the surface, text sits on a scrim */
 export default function ToolCard({ to, title, sub, image, tag }: Props) {
   const navigate = useNavigate()
   const [active, setActive] = useState(false)
@@ -26,21 +27,26 @@ export default function ToolCard({ to, title, sub, image, tag }: Props) {
     <button
       onClick={go}
       aria-pressed={active}
-      className={`hm-tile hm-press w-full text-left p-2 flex items-center gap-2 ${
-        active ? 'border-ink' : ''
+      className={`hm-press relative block w-full text-left aspect-[16/10] rounded-[18px] overflow-hidden bg-vf ${
+        active ? 'ring-2 ring-ink/70 ring-offset-2 ring-offset-paper' : ''
       }`}
     >
-      <div className="flex-1 min-w-0 pl-1">
-        <p className="text-[14px] font-semibold leading-tight truncate">{title}</p>
-        <p className="text-[11px] text-fog leading-tight mt-0.5 truncate">{sub}</p>
-      </div>
-      <div className="relative w-[52px] h-[52px] rounded-[10px] overflow-hidden bg-hairline shrink-0">
-        <img src={image} alt="" loading="lazy" draggable={false} className="w-full h-full object-cover" />
-        {tag && (
-          <span className="absolute bottom-1 right-1 rounded bg-black/55 text-white font-semibold text-[8px] tracking-[0.04em] uppercase px-1 py-px">
-            {tag}
-          </span>
-        )}
+      <img
+        src={image}
+        alt=""
+        loading="lazy"
+        draggable={false}
+        className="absolute inset-0 w-full h-full object-cover"
+      />
+      <div className="absolute inset-x-0 bottom-0 h-[62%] bg-gradient-to-t from-black/70 via-black/25 to-transparent" />
+      {tag && (
+        <span className="absolute top-2 right-2 rounded-full bg-black/45 backdrop-blur-sm text-white/90 text-[9px] font-semibold tracking-[0.06em] uppercase px-2 py-0.5">
+          {tag}
+        </span>
+      )}
+      <div className="absolute inset-x-0 bottom-0 p-2.5">
+        <p className="text-white font-semibold text-[14px] leading-tight truncate">{title}</p>
+        {sub && <p className="text-white/70 text-[11px] leading-tight mt-0.5 truncate">{sub}</p>}
       </div>
     </button>
   )

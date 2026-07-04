@@ -15,7 +15,7 @@ interface Props {
 /** big rounded photo card — the "Recent edits" tile from the reference */
 export default function RecentProjectCard({ to, image, label, sublabel, filter, chip }: Props) {
   return (
-    <Link to={to} className="hm-press relative block rounded-[22px] overflow-hidden aspect-[4/4.6] bg-vf">
+    <Link to={to} className="hm-press relative block rounded-[20px] overflow-hidden aspect-[4/4.6] bg-vf">
       <img
         src={image}
         alt=""

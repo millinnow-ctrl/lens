@@ -17,11 +17,10 @@ import { dailyRecipe, dailyStyle, isDailyClaimed, jitterParams } from '../lib/la
 import { CAMERA_STYLES, encodeParams, getStyle, type CameraStyle } from '../lib/styles'
 import { useApp } from '../lib/store'
 import sampleGolden from '../assets/sample-golden.jpg'
-import sampleStreet from '../assets/sample-street.jpg'
-import sampleNight from '../assets/sample-night.jpg'
-import sampleTeal from '../assets/sample-teal.jpg'
-import sampleSneaker from '../assets/sample-sneaker.jpg'
 import sampleFriends from '../assets/sample-friends.jpg'
+import sampleDog from '../assets/sample-dog.jpg'
+import samplePrints from '../assets/sample-prints.jpg'
+import sampleHandprint from '../assets/sample-handprint.jpg'
 import artDisposable from '../assets/style-disposable.jpg'
 import artIphoneFlash from '../assets/style-iphone-flash.jpg'
 import artCamcorder from '../assets/style-camcorder-90s.jpg'
@@ -64,10 +63,10 @@ const STYLE_ART: Record<string, string> = {
 }
 
 const TOOLS = [
-  { title: 'All looks', sub: `${CAMERA_STYLES.length} styles`, image: sampleTeal, to: '/studio' },
-  { title: 'Video', sub: 'Restyle clips', image: sampleNight, to: '/studio', tag: 'Pro' },
-  { title: 'Batch roll', sub: 'Up to 6 photos', image: sampleSneaker, to: '/studio?batch=1' },
-  { title: 'Presets', sub: 'Saved looks', image: sampleStreet, to: '/dashboard' },
+  { title: 'All looks', sub: `${CAMERA_STYLES.length} styles`, image: artLomo, to: '/studio' },
+  { title: 'Video', sub: 'Restyle clips', image: artCamcorder, to: '/studio', tag: 'Pro' },
+  { title: 'Batch roll', sub: 'Up to 6 photos', image: samplePrints, to: '/studio?batch=1' },
+  { title: 'Presets', sub: 'Saved looks', image: sampleHandprint, to: '/dashboard' },
 ]
 
 const timeAgo = (t: number) => {
@@ -154,11 +153,11 @@ function HomeContent({
       {/* start with a photo — the hero drop zone */}
       <motion.section {...sectionIn} transition={{ duration: 0.3 }} className="mt-2 px-5">
         <div className="hm-drop overflow-hidden">
-          <button onClick={onUpload} className="relative z-10 w-full flex flex-col items-center px-6 pt-9 pb-8">
-            <IconImagePlus size={46} strokeWidth={1.5} className="text-violet" />
-            <h1 className="type-display text-[26px] mt-4">Start with a photo</h1>
+          <button onClick={onUpload} className="relative z-10 w-full flex flex-col items-center px-6 pt-7 pb-7">
+            <IconImagePlus size={44} strokeWidth={1.5} className="text-violet" />
+            <h1 className="type-display text-[26px] mt-3.5">Start with a photo</h1>
             <p className="text-[14px] text-ink-soft mt-1.5">Drop in a photo and choose a camera mood.</p>
-            <span className="glow-ring mt-6 inline-block">
+            <span className="glow-ring mt-5 inline-block">
               <span className="btn btn-hero btn-lg gap-2.5 border-0">
                 <IconUpload size={17} />
                 Upload photo
@@ -172,10 +171,12 @@ function HomeContent({
       <motion.section {...sectionIn} transition={{ duration: 0.3, delay: 0.05 }} className="mt-7">
         <div className="flex items-center justify-between px-5">
           <h2 className="text-[19px] font-bold tracking-[-0.02em]">Camera styles</h2>
-          <Link to="/studio" className="flex items-center gap-0.5 text-[13.5px] font-semibold text-ink-soft">
-            See all
-            <IconChevronRight size={13} />
-          </Link>
+          <button
+            onClick={() => setSpinSeed((s) => s + 1)}
+            className="hm-pill hm-press h-8 px-3.5 text-[13px] font-semibold text-ink-soft"
+          >
+            Surprise me
+          </button>
         </div>
         <CategoryChips active={category} onSelect={setCategory} />
         {moods.length > 0 ? (
@@ -192,14 +193,6 @@ function HomeContent({
         ) : (
           <div className="mx-5 mt-4 hm-tile px-5 py-5 text-[13px] text-ink-soft">Nothing here yet.</div>
         )}
-        <div className="flex justify-center mt-3">
-          <button
-            onClick={() => setSpinSeed((s) => s + 1)}
-            className="hm-pill hm-press h-9 px-4 text-[13px] font-semibold text-ink-soft"
-          >
-            Surprise me
-          </button>
-        </div>
       </motion.section>
 
       {/* recent edits */}
@@ -228,18 +221,20 @@ function HomeContent({
                 to="/studio?style=iphone-flash"
                 image={sampleFriends}
                 label="iPhone Flash"
-                sublabel="Tap to try it"
+                sublabel="Try this look"
                 filter={getStyle('iphone-flash')?.cardFilter}
                 chip="Example"
               />
-              <RecentProjectCard
-                to="/studio?style=a24-still"
-                image={sampleGolden}
-                label="A24 Movie Still"
-                sublabel="Tap to try it"
-                filter={getStyle('a24-still')?.cardFilter}
-                chip="Example"
-              />
+              <div className="-rotate-[0.6deg]">
+                <RecentProjectCard
+                  to="/studio?style=a24-still"
+                  image={sampleDog}
+                  label="A24 Still"
+                  sublabel="Try this look"
+                  filter={getStyle('a24-still')?.cardFilter}
+                  chip="Example"
+                />
+              </div>
             </>
           )}
         </div>
@@ -304,25 +299,23 @@ function HomeContent({
             <IconChevronRight size={13} />
           </Link>
         </div>
-        <div className="hm-card p-2">
-          <div className="rounded-[18px] overflow-hidden">
-            {demoAfter ? (
-              <BeforeAfterSlider
-                before={sampleGolden}
-                after={demoAfter}
-                auto
-                afterLabel="Film Noir"
-                variant="soft"
-                className="aspect-[4/3]"
-              />
-            ) : (
-              <img src={sampleGolden} alt="" className="aspect-[4/3] w-full object-cover" />
-            )}
-          </div>
-          <p className="px-2.5 pt-2.5 pb-1.5 text-[12px] text-ink-soft">
-            Drag to compare — Film Noir, rendered live on your device.
-          </p>
+        <div className="rounded-[22px] overflow-hidden">
+          {demoAfter ? (
+            <BeforeAfterSlider
+              before={sampleGolden}
+              after={demoAfter}
+              auto
+              afterLabel="Film Noir"
+              variant="soft"
+              className="aspect-[4/3]"
+            />
+          ) : (
+            <img src={sampleGolden} alt="" className="aspect-[4/3] w-full object-cover" />
+          )}
         </div>
+        <p className="px-1 pt-2.5 text-[12px] text-fog">
+          Film Noir — drag to compare. Rendered on your phone, nothing uploaded.
+        </p>
       </motion.section>
     </div>
   )
