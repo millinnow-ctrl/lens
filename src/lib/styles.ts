@@ -25,6 +25,14 @@ export interface StyleCharacter {
   timestamp?: boolean
   polaroidFrame?: boolean
   tint?: { color: string; alpha: number; blend: GlobalCompositeOperation }
+  /** 0..1 filmic S-curve — crushes blacks, rolls highlights */
+  curve?: number
+  /** color the shadows one way, the highlights another */
+  splitTone?: { shadows: string; highlights: string; amount: number }
+  /** chromatic fringe in px at 1000px reference width */
+  fringe?: number
+  /** 0..1 warm light leak bleeding in from one edge */
+  leak?: number
 }
 
 export interface CameraStyle {
@@ -66,6 +74,8 @@ export const CAMERA_STYLES: CameraStyle[] = [
     badge: 'trending',
     defaults: P({ grain: 62, contrast: 57, warmth: 66, flash: 48, shadows: 34 }),
     character: {
+      curve: 0.2,
+      leak: 0.3,
       sepia: 0.18,
       saturate: 1.06,
       brightness: 1.04,
@@ -86,6 +96,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
     tier: 'free',
     defaults: P({ grain: 16, contrast: 62, warmth: 46, flash: 82, shadows: 62 }),
     character: {
+      curve: 0.15,
       saturate: 1.03,
       brightness: 1.06,
       halation: 0.12,
@@ -102,6 +113,8 @@ export const CAMERA_STYLES: CameraStyle[] = [
     tier: 'premium',
     defaults: P({ grain: 46, contrast: 47, warmth: 52, flash: 8, shadows: 28 }),
     character: {
+      curve: 0.15,
+      fringe: 1.4,
       saturate: 0.78,
       brightness: 1.02,
       blur: 0.9,
@@ -122,6 +135,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
     tier: 'free',
     defaults: P({ grain: 26, contrast: 60, warmth: 48, flash: 0, shadows: 44 }),
     character: {
+      curve: 0.3,
       saturate: 0.94,
       brightness: 1.0,
       fade: 0.08,
@@ -139,6 +153,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
     badge: 'featured',
     defaults: P({ grain: 8, contrast: 64, warmth: 54, flash: 18, shadows: 52, smoothing: 38 }),
     character: {
+      curve: 0.25,
       saturate: 1.08,
       brightness: 1.03,
       halation: 0.1,
@@ -157,6 +172,8 @@ export const CAMERA_STYLES: CameraStyle[] = [
     badge: 'featured',
     defaults: P({ grain: 30, contrast: 55, warmth: 46, flash: 0, shadows: 58 }),
     character: {
+      curve: 0.25,
+      splitTone: { shadows: '#164e63', highlights: '#fcd34d', amount: 0.4 },
       saturate: 0.8,
       brightness: 0.99,
       fade: 0.3,
@@ -175,6 +192,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
     tier: 'premium',
     defaults: P({ grain: 40, contrast: 76, warmth: 50, flash: 6, shadows: 72 }),
     character: {
+      curve: 0.55,
       bw: true,
       brightness: 0.99,
       halation: 0.1,
@@ -193,6 +211,8 @@ export const CAMERA_STYLES: CameraStyle[] = [
     badge: 'trending',
     defaults: P({ grain: 20, contrast: 58, warmth: 45, flash: 72, shadows: 30 }),
     character: {
+      curve: 0.2,
+      fringe: 1.8,
       saturate: 1.24,
       brightness: 1.1,
       blur: 0.3,
@@ -230,6 +250,8 @@ export const CAMERA_STYLES: CameraStyle[] = [
     tier: 'premium',
     defaults: P({ grain: 58, contrast: 52, warmth: 68, flash: 0, shadows: 40 }),
     character: {
+      curve: 0.25,
+      leak: 0.55,
       saturate: 0.9,
       brightness: 1.03,
       blur: 0.8,
@@ -250,11 +272,15 @@ export const CAMERA_STYLES: CameraStyle[] = [
     badge: 'new',
     defaults: P({ grain: 36, contrast: 66, warmth: 52, flash: 0, shadows: 78 }),
     character: {
+      curve: 0.45,
+      fringe: 2.2,
+      leak: 0.5,
+      splitTone: { shadows: '#14532d', highlights: '#fef08a', amount: 0.55 },
       saturate: 1.35,
       hue: -8,
       brightness: 1.02,
       fade: 0.06,
-      tint: { color: '#1f6f5b', alpha: 0.1, blend: 'overlay' },
+      tint: { color: '#1f6f5b', alpha: 0.16, blend: 'overlay' },
     },
     cardFilter: 'saturate(1.45) contrast(1.18) hue-rotate(-8deg)',
     gradient: 'linear-gradient(135deg,#37c978,#0e5a46)',
@@ -268,6 +294,8 @@ export const CAMERA_STYLES: CameraStyle[] = [
     tier: 'premium',
     defaults: P({ grain: 18, contrast: 62, warmth: 58, flash: 0, shadows: 46 }),
     character: {
+      curve: 0.4,
+      splitTone: { shadows: '#7f1d1d', highlights: '#fde68a', amount: 0.45 },
       saturate: 1.22,
       brightness: 1.0,
       fade: 0.04,
@@ -286,6 +314,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
     tier: 'premium',
     defaults: P({ grain: 70, contrast: 58, warmth: 40, flash: 0, shadows: 36 }),
     character: {
+      curve: 0.35,
       saturate: 0.35,
       brightness: 1.05,
       blur: 1.1,
@@ -307,6 +336,8 @@ export const CAMERA_STYLES: CameraStyle[] = [
     badge: 'featured',
     defaults: P({ grain: 14, contrast: 64, warmth: 62, flash: 0, shadows: 54 }),
     character: {
+      curve: 0.4,
+      splitTone: { shadows: '#0e7490', highlights: '#fb923c', amount: 0.9 },
       saturate: 1.12,
       brightness: 1.0,
       halation: 0.12,
@@ -345,6 +376,9 @@ export const CAMERA_STYLES: CameraStyle[] = [
     badge: 'trending',
     defaults: P({ grain: 26, contrast: 66, warmth: 38, flash: 0, shadows: 62 }),
     character: {
+      curve: 0.35,
+      splitTone: { shadows: '#312e81', highlights: '#f0abfc', amount: 0.8 },
+      fringe: 1.6,
       saturate: 1.3,
       hue: -10,
       brightness: 0.98,
@@ -366,6 +400,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
     badge: 'new',
     defaults: P({ grain: 34, contrast: 70, warmth: 50, flash: 66, shadows: 44, smoothing: 12 }),
     character: {
+      curve: 0.45,
       bw: true,
       brightness: 1.08,
       halation: 0.12,
@@ -383,6 +418,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
     tier: 'premium',
     defaults: P({ grain: 64, contrast: 60, warmth: 60, flash: 0, shadows: 84 }),
     character: {
+      curve: 0.5,
       sepia: 0.85,
       saturate: 0.6,
       brightness: 0.98,

@@ -61,6 +61,21 @@ function fitted(source: Source, maxSize: number): { w: number; h: number } {
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t
 
+const hexRgb = (hex: string): [number, number, number] => {
+  const n = parseInt(hex.slice(1), 16)
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+}
+
+/** tiny deterministic hash — keeps light leaks stable per style */
+const hash32 = (str: string) => {
+  let h = 0x811c9dc5
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i)
+    h = Math.imul(h, 0x01000193)
+  }
+  return h >>> 0
+}
+
 /* ------------------------------------------------------------ pipeline */
 
 /**
@@ -105,6 +120,63 @@ export function renderStyled(
   ctx.filter = filters
   ctx.drawImage(source, 0, 0, w, h)
   ctx.filter = 'none'
+
+  /* 1.5 — film response: tone curve, split toning, channel fringe.
+     This per-pixel pass is where the heavy cameras earn their drama —
+     crushed blacks, colored shadows, lens fringing — and every part of
+     it rides the intensity slider like the rest of the look. */
+  const curveAmt = (ch.curve ?? 0) * s
+  const split = ch.splitTone
+  const splitAmt = (split?.amount ?? 0) * s
+  const fringePx = Math.round((ch.fringe ?? 0) * s * ref)
+  if (curveAmt > 0.02 || splitAmt > 0.02 || fringePx >= 1) {
+    const img = ctx.getImageData(0, 0, w, h)
+    const d = img.data
+
+    if (fringePx >= 1) {
+      // chromatic fringe: red shifts right, blue shifts left
+      const orig = new Uint8ClampedArray(d)
+      const stride = w * 4
+      for (let y = 0; y < h; y++) {
+        const row = y * stride
+        for (let x = 0; x < w; x++) {
+          const px = row + x * 4
+          const xr = Math.max(0, x - fringePx)
+          const xb = Math.min(w - 1, x + fringePx)
+          d[px] = orig[row + xr * 4]
+          d[px + 2] = orig[row + xb * 4 + 2]
+        }
+      }
+    }
+
+    // filmic S-curve LUT: smoothstep pulls blacks down and rolls highlights
+    const lut = new Uint8ClampedArray(256)
+    for (let i = 0; i < 256; i++) {
+      const x = i / 255
+      const sCurve = x * x * (3 - 2 * x)
+      lut[i] = Math.round(255 * lerp(x, sCurve, curveAmt))
+    }
+    const sh = split ? hexRgb(split.shadows) : null
+    const hi = split ? hexRgb(split.highlights) : null
+    const doSplit = !!(sh && hi && splitAmt > 0.02)
+    const k = splitAmt * 0.55
+    for (let i = 0; i < d.length; i += 4) {
+      let r = lut[d[i]]
+      let g = lut[d[i + 1]]
+      let b = lut[d[i + 2]]
+      if (doSplit) {
+        const lum = (r * 0.299 + g * 0.587 + b * 0.114) / 255
+        const wsh = 1 - lum
+        r += ((sh![0] - 128) * wsh + (hi![0] - 128) * lum) * k
+        g += ((sh![1] - 128) * wsh + (hi![1] - 128) * lum) * k
+        b += ((sh![2] - 128) * wsh + (hi![2] - 128) * lum) * k
+      }
+      d[i] = r
+      d[i + 1] = g
+      d[i + 2] = b
+    }
+    ctx.putImageData(img, 0, 0)
+  }
 
   /* 2 — skin smoothing: soft-blurred self-blend */
   if (params.smoothing > 0) {
@@ -202,6 +274,32 @@ export function renderStyled(
     g.addColorStop(0, 'rgba(8,8,12,0)')
     g.addColorStop(1, `rgba(8,8,12,${(vig * 0.55).toFixed(3)})`)
     ctx.fillStyle = g
+    ctx.fillRect(0, 0, w, h)
+    ctx.restore()
+  }
+
+  /* 8.5 — light leak: a warm flare bleeding in from one edge, position
+     hashed from the style id so the leak is a signature, not a dice roll */
+  const leak = (ch.leak ?? 0) * s
+  if (leak > 0.02) {
+    const seed = hash32(style.id)
+    const fromLeft = (seed & 1) === 0
+    const cy = h * (0.15 + ((seed >> 3) % 60) / 100) // 15%..75% down the edge
+    const cx = fromLeft ? -w * 0.08 : w * 1.08
+    const radius = Math.max(w, h) * 0.55
+    ctx.save()
+    ctx.globalCompositeOperation = 'screen'
+    const flare = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius)
+    flare.addColorStop(0, `rgba(255,120,40,${(leak * 0.55).toFixed(3)})`)
+    flare.addColorStop(0.45, `rgba(255,60,60,${(leak * 0.22).toFixed(3)})`)
+    flare.addColorStop(1, 'rgba(255,60,60,0)')
+    ctx.fillStyle = flare
+    ctx.fillRect(0, 0, w, h)
+    // thin hot streak along the same edge
+    const band = ctx.createLinearGradient(fromLeft ? 0 : w, 0, fromLeft ? w * 0.22 : w * 0.78, 0)
+    band.addColorStop(0, `rgba(255,180,90,${(leak * 0.35).toFixed(3)})`)
+    band.addColorStop(1, 'rgba(255,180,90,0)')
+    ctx.fillStyle = band
     ctx.fillRect(0, 0, w, h)
     ctx.restore()
   }

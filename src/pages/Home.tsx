@@ -224,7 +224,7 @@ function HomeContent({
               className="text-[12.5px] text-white/85 mt-0.5"
               style={{ textShadow: '0 1px 8px rgb(0 0 0 / 0.55)' }}
             >
-              {CAMERA_STYLES.length} camera looks, developed on your phone.
+              The $7,000 camera look, from your camera roll.
             </p>
             <button
               onClick={onUpload}
