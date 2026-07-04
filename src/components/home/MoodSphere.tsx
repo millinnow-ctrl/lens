@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { motion } from 'framer-motion'
 import { haptic } from '../../lib/native'
+import { deckCard, springPress } from '../../lib/motion'
 import type { CameraStyle } from '../../lib/styles'
 
 interface Props {
@@ -237,6 +239,16 @@ export default function MoodSphere({
                 }`}
                 style={{ willChange: 'transform' }}
               >
+                {/* entrance + press wrapper — composes with the ring transform
+                    written on the parent by paint(); never touches it. cards
+                    settle up on mount, the centered card springs on press */}
+                <motion.div
+                  variants={deckCard(i)}
+                  initial="initial"
+                  animate="animate"
+                  whileTap={isFront ? { scale: 0.94, transition: springPress } : undefined}
+                  className="rounded-[20px]"
+                >
                 <div className="relative rounded-[20px] overflow-hidden aspect-[10/23] bg-vf pointer-events-none">
                   <img
                     src={thumbs[s.id] ?? fallbackImage}
@@ -281,6 +293,7 @@ export default function MoodSphere({
                     </span>
                   )}
                 </div>
+                </motion.div>
               </div>
             )
           })}

@@ -44,12 +44,14 @@ export default function Dashboard() {
   }, [])
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-14 pb-28">
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-16 pb-28">
       {/* header */}
-      <div className="flex flex-wrap items-end justify-between gap-4 mb-10">
+      <div className="flex flex-wrap items-end justify-between gap-4 mb-12 pb-8 border-b border-hairline">
         <div>
-          <p className="text-[13px] font-semibold text-violet mb-2">Your library</p>
-          <h1 className="type-display text-3xl sm:text-4xl">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-violet mb-3">
+            Your library
+          </p>
+          <h1 className="type-display tracking-optical-lg text-3xl sm:text-5xl">
             {user ? `Welcome back, ${user.name}.` : 'Your darkroom.'}
           </h1>
         </div>
@@ -70,12 +72,12 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
-        <div className="space-y-6 min-w-0">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-6 lg:gap-8 items-start">
+        <div className="space-y-8 min-w-0">
           {/* recent transformations — contact sheet */}
           <section>
-            <div className="flex items-baseline justify-between gap-3 mb-3">
-              <h2 className="font-sans font-semibold text-[16px]">Contact sheet</h2>
+            <div className="flex items-baseline justify-between gap-3 mb-4 px-0.5">
+              <h2 className="font-sans font-semibold text-[16px] tracking-[-0.01em]">Contact sheet</h2>
               {history.length > 0 && (
                 <span className="value-mono uppercase tracking-[0.08em]">
                   {String(history.length).padStart(2, '0')} {history.length === 1 ? 'frame' : 'frames'}
@@ -140,8 +142,8 @@ export default function Dashboard() {
           </section>
 
           {/* saved presets */}
-          <section className="panel p-6">
-            <h2 className="font-sans font-semibold text-[16px] mb-4">Saved presets</h2>
+          <section className="panel p-6 sm:p-7">
+            <h2 className="font-sans font-semibold text-[16px] tracking-[-0.01em] mb-5">Saved presets</h2>
             {presets.length === 0 ? (
               <div>
                 <div className="border border-dashed border-hairline rounded-[14px] px-4 py-3 mb-3 font-mono text-[11px] tracking-[0.1em] uppercase text-fog">
@@ -186,14 +188,14 @@ export default function Dashboard() {
           </section>
 
           {/* the case — full mood collection */}
-          <section className="panel p-6">
-            <div className="flex items-baseline justify-between mb-4">
-              <h2 className="font-sans font-semibold text-[16px]">The case</h2>
+          <section className="panel p-6 sm:p-7">
+            <div className="flex items-baseline justify-between mb-5">
+              <h2 className="font-sans font-semibold text-[16px] tracking-[-0.01em]">The case</h2>
               <span className="value-mono uppercase tracking-[0.08em] tabular-nums">
                 {tried.length}/{CAMERA_STYLES.length} stocks shot
               </span>
             </div>
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
               {CAMERA_STYLES.map((s, i) => {
                 const shot = tried.includes(s.id)
                 const thumb = history.find((h) => h.styleId === s.id)?.thumb
@@ -246,7 +248,7 @@ export default function Dashboard() {
                 )
               })}
             </div>
-            <p className="text-fog text-[12px] mt-3">
+            <p className="text-fog text-[12px] mt-4">
               {tried.length === CAMERA_STYLES.length
                 ? 'Full case. Every stock, shot.'
                 : 'The case doesn’t fill itself.'}
@@ -254,8 +256,8 @@ export default function Dashboard() {
           </section>
 
           {/* favorite styles */}
-          <section className="panel p-6">
-            <h2 className="font-sans font-semibold text-[16px] mb-4">Favorite camera styles</h2>
+          <section className="panel p-6 sm:p-7">
+            <h2 className="font-sans font-semibold text-[16px] tracking-[-0.01em] mb-5">Favorite camera styles</h2>
             {favStyles.length === 0 ? (
               <p className="text-fog text-sm">
                 Tap the heart on any style card in the studio to keep your go-to moods here.
@@ -320,8 +322,8 @@ export default function Dashboard() {
 
           {/* weekly mood */}
           <section className="bg-vf rounded-[24px] p-6 shadow-[inset_0_1px_0_rgb(255_255_255/0.06),0_2px_12px_rgb(23_19_31/0.1)]">
-            <p className="text-[12px] font-semibold text-violet mb-2">Featured this week</p>
-            <h3 className="font-sans font-semibold text-[18px] text-paper mb-3">Tokyo Neon</h3>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-orchid mb-2.5">Featured this week</p>
+            <h3 className="font-sans font-semibold text-[18px] tracking-[-0.01em] text-paper mb-4">Tokyo Neon</h3>
             <img
               src={featuredThumb ?? sampleFriends}
               alt=""

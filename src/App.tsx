@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
+import { pageTransition } from './lib/motion'
 import Nav from './components/Nav'
 import Footer from './components/Footer'
 import AuthModal from './components/AuthModal'
@@ -36,8 +38,11 @@ function RootRoute() {
   return appLike ? <Home /> : <LandingPage />
 }
 
+const routeVariants = pageTransition()
+
 export default function App() {
-  const { pathname } = useLocation()
+  const location = useLocation()
+  const { pathname } = location
   const [accountOpen, setAccountOpen] = useState(false)
   const [uploadOpen, setUploadOpen] = useState(false)
 
@@ -56,16 +61,27 @@ export default function App() {
         <Nav />
       </div>
       <div className="flex-1">
-        <Routes>
-          <Route path="/" element={<RootRoute />} />
-          <Route path="/home" element={<Home />} />
-          <Route path="/studio" element={<Studio />} />
-          <Route path="/pricing" element={<PricingPage />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/privacy" element={<PrivacyPage />} />
-          <Route path="/terms" element={<TermsPage />} />
-          <Route path="*" element={<RootRoute />} />
-        </Routes>
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={pathname}
+            variants={routeVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            style={{ willChange: 'transform, opacity' }}
+          >
+            <Routes location={location}>
+              <Route path="/" element={<RootRoute />} />
+              <Route path="/home" element={<Home />} />
+              <Route path="/studio" element={<Studio />} />
+              <Route path="/pricing" element={<PricingPage />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="*" element={<RootRoute />} />
+            </Routes>
+          </motion.div>
+        </AnimatePresence>
       </div>
       {!isAppHome && <Footer />}
       {/* global mobile dock (the home screen embeds its own inside the frame on desktop) */}

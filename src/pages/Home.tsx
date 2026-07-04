@@ -13,6 +13,7 @@ import PhoneFrame from '../components/home/PhoneFrame'
 import BeforeAfterSlider from '../components/BeforeAfterSlider'
 import { ApertureMark } from '../components/Logo'
 import { IconCheck, IconChevronRight, IconClose, IconUpload } from '../components/icons'
+import { sectionStagger, sectionChild } from '../lib/motion'
 import { loadImage, renderStyled } from '../lib/engine'
 import { dailyRecipe, dailyStyle, isDailyClaimed, jitterParams } from '../lib/lab'
 import { CAMERA_STYLES, encodeParams, getStyle, type CameraStyle } from '../lib/styles'
@@ -74,10 +75,11 @@ function useIsDesktop() {
   return desktop
 }
 
-const sectionIn = {
-  initial: { opacity: 0, y: 10 },
-  animate: { opacity: 1, y: 0 },
-}
+/* section reveal choreography — a container staggers its children top-down;
+   each section rises softly into place. Presets live in ../lib/motion and
+   collapse to opacity-only under prefers-reduced-motion. */
+const staggerVariants = sectionStagger()
+const childVariants = sectionChild()
 
 /** the hero loop steps aside only for reduced-motion users */
 const heroVideoEnabled = () =>
@@ -149,11 +151,16 @@ function HomeContent({
   const recents = history.slice(0, 4)
 
   return (
-    <div className="pb-[112px]">
+    <motion.div
+      className="pb-[112px]"
+      variants={staggerVariants}
+      initial="initial"
+      animate="animate"
+    >
       <Header onAccount={onAccount} />
 
       {/* hero — the product itself, playing. gradient lives in the footage */}
-      <motion.section {...sectionIn} transition={{ duration: 0.3 }} className="mt-2 px-5">
+      <motion.section variants={childVariants} className="mt-2 px-5">
         <div className="relative rounded-[28px] overflow-hidden aspect-[4/3] bg-vf">
           {heroVideoEnabled() ? (
             <video
@@ -201,7 +208,7 @@ function HomeContent({
       </motion.section>
 
       {/* camera styles — the deck */}
-      <motion.section {...sectionIn} transition={{ duration: 0.3, delay: 0.05 }} className="mt-7">
+      <motion.section variants={childVariants} className="mt-7">
         <div className="flex items-center justify-between px-5">
           <h2 className="text-[19px] font-bold tracking-[-0.02em]">Looks</h2>
           <button
@@ -230,7 +237,7 @@ function HomeContent({
 
       {/* milestone moment — true, once per milestone, dismissible */}
       {milestone != null && (
-        <motion.section {...sectionIn} transition={{ duration: 0.3, delay: 0.07 }} className="mt-7 px-5">
+        <motion.section variants={childVariants} className="mt-7 px-5">
           <div className="hm-pill flex items-center gap-2.5 rounded-full pl-4 pr-2 py-2.5">
             <IconCheck size={14} className="shrink-0 text-violet" />
             <p className="flex-1 min-w-0 truncate text-[12.5px] font-semibold text-ink-soft">
@@ -248,7 +255,7 @@ function HomeContent({
       )}
 
       {/* recent edits */}
-      <motion.section {...sectionIn} transition={{ duration: 0.3, delay: 0.08 }} className="mt-7 px-5">
+      <motion.section variants={childVariants} className="mt-7 px-5">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-[19px] font-bold tracking-[-0.02em]">Your roll</h2>
           <Link to="/dashboard" className="flex items-center gap-0.5 text-[13.5px] font-semibold text-ink-soft">
@@ -293,7 +300,7 @@ function HomeContent({
       </motion.section>
 
       {/* today's free look — the look's own artwork is the surface */}
-      <motion.section {...sectionIn} transition={{ duration: 0.3, delay: 0.1 }} className="mt-7 px-5">
+      <motion.section variants={childVariants} className="mt-7 px-5">
         <div className="relative overflow-hidden rounded-[22px] bg-vf">
           <img
             src={STYLE_ART[daily.id] ?? sampleGolden}
@@ -331,7 +338,7 @@ function HomeContent({
       </motion.section>
 
       {/* tools — one wide, two small; shapes vary on purpose */}
-      <motion.section {...sectionIn} transition={{ duration: 0.3, delay: 0.12 }} className="mt-7 px-5">
+      <motion.section variants={childVariants} className="mt-7 px-5">
         <h2 className="text-[19px] font-bold tracking-[-0.02em] mb-3">Tools</h2>
         <ToolCard
           to="/studio"
@@ -348,7 +355,7 @@ function HomeContent({
       </motion.section>
 
       {/* before & after */}
-      <motion.section {...sectionIn} transition={{ duration: 0.3, delay: 0.15 }} className="mt-7 px-5">
+      <motion.section variants={childVariants} className="mt-7 px-5">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-[19px] font-bold tracking-[-0.02em]">Before & after</h2>
           <Link
@@ -377,7 +384,7 @@ function HomeContent({
           Film Noir — drag to compare. Rendered on your phone, nothing uploaded.
         </p>
       </motion.section>
-    </div>
+    </motion.div>
   )
 }
 

@@ -56,6 +56,9 @@ export default function Studio() {
   const [paywall, setPaywall] = useState(false)
   const [shutter, setShutter] = useState(false)
   const [videoPoster, setVideoPoster] = useState<string | null>(null)
+  /* presentation-only: play the wet-print reveal once when a develop lands,
+     not on every slider re-render. Does not touch develop timing/logic. */
+  const [revealing, setRevealing] = useState(false)
 
   const style = getStyle(styleId)
   const generationTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -172,6 +175,22 @@ export default function Studio() {
     return () => cancelAnimationFrame(renderRaf.current)
   }, [params, phase, source, style, focal])
 
+  /* fire the wet-print reveal exactly once per finished develop. Keyed off
+     the phase flip (not resultUrl) so slider edits update instantly without
+     re-running the emergence. Presentation only — no effect on timing. */
+  useEffect(() => {
+    if (phase !== 'done') {
+      setRevealing(false)
+      return
+    }
+    setRevealing(true)
+    const reduce =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    const t = setTimeout(() => setRevealing(false), reduce ? 300 : 2000)
+    return () => clearTimeout(t)
+  }, [phase])
+
   /* rotating progress copy while "developing" */
   useEffect(() => {
     if (phase !== 'generating') return
@@ -251,10 +270,19 @@ export default function Studio() {
                   src={showOriginal || !resultUrl ? photo! : resultUrl}
                   alt="Preview"
                   className={`w-full max-h-[62dvh] object-contain ${
-                    phase === 'done' && view === 'result' ? 'lm-develop' : ''
+                    phase === 'done' && view === 'result' && revealing ? 'lm-print-resolve' : ''
                   }`}
                   draggable={false}
                 />
+                {/* wet-print reveal — sheen, developer bloom and settling grain,
+                    played once as the print resolves (unmounts when it clears) */}
+                {phase === 'done' && view === 'result' && revealing && (
+                  <div aria-hidden className="absolute inset-0 pointer-events-none overflow-hidden">
+                    <div className="lm-print-bloom absolute inset-0" />
+                    <div className="lm-print-grain absolute inset-0" />
+                    <div className="lm-print-sheen absolute inset-0" />
+                  </div>
+                )}
               </div>
             )}
 
@@ -268,30 +296,31 @@ export default function Studio() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="absolute inset-0 z-20 bg-[#0a0710]/[0.96] flex flex-col items-center justify-center gap-5"
+                  transition={{ duration: 0.35, ease: 'easeOut' }}
+                  className="absolute inset-0 z-20 bg-[#08060c]/[0.97] flex flex-col items-center justify-center gap-5 overflow-hidden"
                 >
-                  {/* darkroom safelight — a faint red wash from above */}
-                  <div
-                    aria-hidden
-                    className="absolute inset-0 pointer-events-none bg-[radial-gradient(120%_85%_at_50%_-10%,rgba(225,37,27,0.13),rgba(225,37,27,0.03)_55%,transparent_80%)]"
-                  />
-                  <motion.svg
-                    viewBox="0 0 48 48"
-                    className="w-14 h-14 relative"
-                    animate={{ rotate: 360 }}
-                    transition={{ repeat: Infinity, duration: 2.4, ease: 'linear' }}
-                  >
-                    {[...Array(6)].map((_, i) => (
-                      <path
-                        key={i}
-                        d="M24 6 A18 18 0 0 1 39.6 15 L27 21.6 A6 6 0 0 0 24 21 Z"
-                        fill="#ffffff"
-                        opacity={0.35 + (i / 6) * 0.65}
-                        transform={`rotate(${i * 60} 24 24)`}
-                      />
-                    ))}
-                    <circle cx="24" cy="24" r="5" fill="#8b5cf6" />
-                  </motion.svg>
+                  {/* darkroom atmosphere — warm safelight flicker, tray vignette,
+                      grain drifting, and developer washing down the frame */}
+                  <div aria-hidden className="lm-safelight absolute inset-0 pointer-events-none" />
+                  <div aria-hidden className="lm-darkroom-vignette absolute inset-0 pointer-events-none" />
+                  <div aria-hidden className="lm-darkroom-grain absolute inset-0 pointer-events-none" />
+                  <div aria-hidden className="lm-darkroom-sweep absolute inset-0 pointer-events-none" />
+
+                  {/* iris emblem — a quiet mechanical iris breathing in the safelight */}
+                  <div aria-hidden className="lm-iris relative">
+                    <svg viewBox="0 0 48 48" className="w-12 h-12">
+                      {[...Array(6)].map((_, i) => (
+                        <path
+                          key={i}
+                          d="M24 6 A18 18 0 0 1 39.6 15 L27 21.6 A6 6 0 0 0 24 21 Z"
+                          fill="#ffffff"
+                          opacity={0.26 + (i / 6) * 0.5}
+                          transform={`rotate(${i * 60} 24 24)`}
+                        />
+                      ))}
+                      <circle cx="24" cy="24" r="4.5" fill="#8b5cf6" />
+                    </svg>
+                  </div>
                   <div className="relative flex flex-col items-center gap-2">
                     <AnimatePresence mode="wait">
                       <motion.p
@@ -317,9 +346,9 @@ export default function Studio() {
                     )}
                   </div>
                   {/* thin develop line running the bottom edge of the viewfinder */}
-                  <div className="absolute bottom-0 inset-x-0 h-[2px] bg-white/[0.07] overflow-hidden">
+                  <div className="absolute bottom-0 inset-x-0 h-[2px] bg-white/[0.06] overflow-hidden">
                     <motion.div
-                      className="h-full grad-fill"
+                      className="h-full grad-fill lm-develop-line"
                       initial={{ width: '2%' }}
                       animate={{ width: '98%' }}
                       transition={{ duration: 2.2, ease: 'easeInOut' }}

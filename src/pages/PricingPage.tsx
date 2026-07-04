@@ -124,15 +124,15 @@ export default function PricingPage() {
   }
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 py-14 sm:py-20 pb-28">
-      <div className="mb-12 max-w-2xl">
-        <p className="text-[12px] font-semibold tracking-[0.12em] uppercase text-violet mb-3">
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24 pb-28">
+      <div className="mb-14 sm:mb-16 max-w-2xl">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-violet mb-4">
           Membership
         </p>
-        <h1 className="type-display tracking-optical-lg text-4xl sm:text-6xl mb-4">
+        <h1 className="type-display tracking-optical-lg text-4xl sm:text-6xl mb-5">
           Rent the <span className="grad-text">camera bag.</span>
         </h1>
-        <p className="text-ink-soft">
+        <p className="text-[15px] leading-[1.65] text-ink-soft max-w-md">
           Every plan is month-to-month. What you export is yours to keep.
         </p>
       </div>
@@ -148,43 +148,43 @@ export default function PricingPage() {
               transition={{ duration: 0.15, ease: 'easeOut', delay: i * 0.05 }}
               className={
                 tier.highlight
-                  ? 'relative z-10 grad-fill rounded-[26px] p-[2px] shadow-[0_12px_32px_-16px_rgb(23_19_31/0.3)] lg:scale-[1.04] lg:-translate-y-1.5'
+                  ? 'relative z-10 grad-fill rounded-[26px] p-[2px] shadow-[0_20px_48px_-20px_rgb(23_19_31/0.4)] lg:scale-[1.045] lg:-translate-y-2'
                   : 'relative bg-surface rounded-[24px] border border-ink/5 shadow-[0_2px_12px_rgb(23_19_31/0.05)]'
               }
             >
-              <div className="relative flex flex-col h-full p-6 bg-surface rounded-[24px]">
+              <div className="relative flex flex-col h-full p-6 sm:p-7 bg-surface rounded-[24px]">
                 {/* reserved badge slot keeps titles/prices on shared baselines —
-                    only where cards actually sit side by side */}
-                <div className={tier.highlight ? 'h-5 mb-4' : 'hidden lg:block h-5 mb-4'}>
+                    wherever cards actually sit side by side */}
+                <div className={tier.highlight ? 'h-6 mb-5' : 'hidden md:block h-6 mb-5'}>
                   {tier.highlight && (
-                    <span className="inline-flex items-center text-[10px] font-semibold tracking-[0.08em] uppercase px-2.5 py-1 rounded-full bg-ink text-white">
+                    <span className="inline-flex items-center text-[10px] font-semibold tracking-[0.1em] uppercase px-2.5 py-1 rounded-full bg-ink text-white">
                       Most popular
                     </span>
                   )}
                 </div>
-                <h2 className="font-sans font-semibold text-[16px]">{tier.name}</h2>
-                <p className="font-mono text-[10px] tracking-wide text-fog tnum mt-0.5">
+                <h2 className="font-sans font-semibold text-[17px] tracking-[-0.01em]">{tier.name}</h2>
+                <p className="font-mono text-[10px] tracking-[0.1em] text-fog tnum mt-1">
                   LM·MEMBER · TIER 0{i + 1}
                 </p>
-                <p className="text-[13px] mt-2 mb-5 text-fog">{tier.blurb}</p>
-                <p className="mb-6">
-                  <span className="text-4xl font-bold tracking-tight tabular-nums">
+                <p className="text-[13px] leading-relaxed mt-2.5 mb-6 text-fog">{tier.blurb}</p>
+                <p className="mb-7 flex items-baseline gap-1">
+                  <span className="text-[40px] leading-none font-bold tracking-[-0.02em] tabular-nums">
                     ${tier.price}
                   </span>
                   <span className="text-[13px] text-fog">/month</span>
                 </p>
-                <ul className="mb-7 flex-1 space-y-2.5">
+                <ul className="mb-8 flex-1 space-y-3">
                   {tier.features.map((f) => {
                     const caveat =
                       f.toLowerCase().includes('watermark included') || f.includes('” watermark')
                     return (
-                      <li key={f} className="flex items-start gap-2.5 text-[13px]">
+                      <li key={f} className="flex items-start gap-2.5 text-[13px] leading-snug">
                         {caveat ? (
-                          <span className="mt-px shrink-0 text-[12px] leading-none text-fog">
+                          <span className="mt-0.5 shrink-0 w-[15px] text-center text-[13px] leading-none text-fog">
                             —
                           </span>
                         ) : (
-                          <IconCheck size={15} className="mt-0.5 shrink-0 text-violet" />
+                          <IconCheck size={15} className="mt-px shrink-0 text-violet" />
                         )}
                         <span className="text-ink-soft">{f}</span>
                       </li>
@@ -206,7 +206,7 @@ export default function PricingPage() {
         })}
       </div>
 
-      <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2">
+      <div className="mt-10 sm:mt-12 flex flex-wrap items-center gap-x-5 gap-y-2">
         <p className="text-[13px] text-fog">
           {appStore
             ? 'Billed through your Apple ID. Manage or cancel in Settings.'
@@ -225,7 +225,7 @@ export default function PricingPage() {
         <div className="p-8">
           {!done ? (
             <>
-              <p className="text-[12px] font-semibold tracking-[0.12em] uppercase text-violet mb-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-violet mb-3">
                 Checkout
               </p>
               <h3 className="type-display text-2xl mb-2">
