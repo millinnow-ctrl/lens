@@ -122,17 +122,17 @@ export default function StepControl({ scale, value, onChange }: Props) {
               style={{ left: `calc(${frac * 100}% ${frac === 0 ? '+ 2px' : frac === 1 ? '- 2px' : ''})`, transform: 'translate(-50%, -50%)' }}
             >
               {isActive ? (
-                // active stop = a machined disc: fill + scale + ink ring for
-                // contrast against the white panel (not white-on-white)
-                <span className="block h-[16px] w-[16px] rounded-full bg-violet ring-1 ring-[rgb(23_19_31_/_0.55)] shadow-[0_1px_4px_rgb(76_29_149_/_0.5),inset_0_1px_0_rgb(255_255_255_/_0.55)]" />
+                // active stop = a machined disc: violet fill + a bright ring for
+                // contrast against the dark instrument panel
+                <span className="block h-[16px] w-[16px] rounded-full bg-violet ring-1 ring-[rgb(255_255_255_/_0.4)] shadow-[0_1px_5px_rgb(139_92_246_/_0.6),inset_0_1px_0_rgb(255_255_255_/_0.55)]" />
               ) : (
                 // etched detent — tall notch; passed marks read violet, upcoming ink
                 <span
                   className="block w-[2px] rounded-full"
                   style={{
                     height: passed ? '15px' : '11px',
-                    background: passed ? 'rgb(139 92 246 / 0.9)' : 'rgb(23 19 31 / 0.28)',
-                    boxShadow: 'inset 0 1px 0 rgb(255 255 255 / 0.5)',
+                    background: passed ? 'rgb(139 92 246 / 0.95)' : 'rgb(255 255 255 / 0.22)',
+                    boxShadow: 'inset 0 1px 0 rgb(255 255 255 / 0.25)',
                   }}
                 />
               )}

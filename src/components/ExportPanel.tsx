@@ -171,7 +171,7 @@ export default function ExportPanel({
   return (
     <Modal open={open} onClose={onClose} wide>
       <div className="p-6 sm:p-8">
-        <p className="text-[11px] font-bold uppercase tracking-[0.14em] grad-text mb-1.5">
+        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft mb-1.5">
           Developed
         </p>
         <h3 className="type-display text-2xl sm:text-3xl mb-5">
@@ -198,7 +198,7 @@ export default function ExportPanel({
                   <div className="w-full max-w-56 mx-auto flex items-center gap-3">
                     <div className="flex-1 h-1 rounded-full bg-white/15 overflow-hidden">
                       <div
-                        className="h-full rounded-full grad-fill transition-[width] duration-200"
+                        className="h-full rounded-full bg-violet transition-[width] duration-200"
                         style={{ width: `${Math.round(progress * 100)}%` }}
                       />
                     </div>
@@ -215,7 +215,7 @@ export default function ExportPanel({
           <div className="flex flex-col gap-2.5">
             {!isVideo && (
               <div
-                className="grid grid-cols-3 bg-black/5 rounded-full p-1"
+                className="grid grid-cols-3 bg-black/20 rounded-full p-1 shadow-[inset_0_1px_2px_rgb(0_0_0/0.4)]"
                 role="tablist"
                 aria-label="Export format"
               >
@@ -232,7 +232,7 @@ export default function ExportPanel({
                     aria-selected={format === f.id}
                     onClick={() => setFormat(f.id)}
                     className={`h-8 rounded-full text-[12.5px] font-semibold transition-colors ${
-                      format === f.id ? 'bg-white text-ink shadow-sm' : 'text-ink-soft'
+                      format === f.id ? 'bg-white text-paper shadow-sm' : 'text-ink-soft'
                     }`}
                   >
                     {f.label}

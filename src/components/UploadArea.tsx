@@ -123,7 +123,7 @@ export default function UploadArea() {
         }}
         onClick={() => inputRef.current?.click()}
         className={`hm-drop relative cursor-pointer transition-colors duration-150 px-6 py-14 sm:py-18 text-center ${
-          dragOver ? 'border-violet bg-white/80' : 'hover:border-ink/30'
+          dragOver ? 'border-violet bg-violet/[0.08]' : 'hover:border-ink/30'
         }`}
       >
         <IconCamera size={40} className="relative mx-auto text-violet mb-6" />

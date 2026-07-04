@@ -91,7 +91,7 @@ export default function LandingPage() {
               transition={{ delay: 0.05, duration: 0.35, ease: 'easeOut' }}
               className="type-display tracking-optical-lg text-[clamp(2.6rem,6vw,4.75rem)]"
             >
-              Any photo, shot on the <span className="grad-text">camera</span> it deserved.
+              Any photo, shot on the <span className="text-violet">camera</span> it deserved.
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 12 * rise }}
@@ -276,7 +276,7 @@ export default function LandingPage() {
               Every export ships with a share card, an auto-written caption, and a link your friends
               can copy the style from. The jokes live in the captions, not the interface.
             </p>
-            <Link to="/studio" className="btn btn-lg bg-white text-ink border-0 hover:bg-paper">
+            <Link to="/studio" className="btn btn-lg bg-white text-paper border-0 hover:bg-white/90">
               Make one now
             </Link>
           </motion.div>

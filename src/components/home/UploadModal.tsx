@@ -77,7 +77,7 @@ export default function UploadModal({ open, onClose, container }: Props) {
             animate={{ y: 0 }}
             exit={{ y: 64, opacity: 0 }}
             transition={{ duration: 0.22, ease: [0.2, 0.9, 0.3, 1] }}
-            className="relative w-full max-w-md bg-white rounded-t-[28px] px-5 pt-3 pb-[calc(env(safe-area-inset-bottom)+20px)] shadow-2xl"
+            className="relative w-full max-w-md bg-surface rounded-t-[28px] px-5 pt-3 pb-[calc(env(safe-area-inset-bottom)+20px)] shadow-[0_-8px_44px_rgb(0_0_0/0.55),inset_0_1px_0_rgb(255_255_255/0.06)]"
           >
             <div className="w-10 h-[5px] rounded-full bg-ink/10 mx-auto mb-4" aria-hidden />
             <div className="flex items-center justify-between mb-4">
@@ -85,7 +85,7 @@ export default function UploadModal({ open, onClose, container }: Props) {
               <button
                 onClick={onClose}
                 aria-label="Close"
-                className="w-8 h-8 rounded-full bg-[#f4f1f4] flex items-center justify-center text-ink-soft"
+                className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-ink-soft"
               >
                 <IconClose size={13} />
               </button>
@@ -94,21 +94,21 @@ export default function UploadModal({ open, onClose, container }: Props) {
             <div className="space-y-2.5">
               <button
                 onClick={openCamera}
-                className="hm-press aura-soft w-full flex items-center gap-3.5 rounded-2xl bg-ink text-white px-4 py-3.5"
+                className="hm-press aura-soft w-full flex items-center gap-3.5 rounded-2xl bg-ink text-paper px-4 py-3.5"
               >
-                <span className="w-9 h-9 rounded-full bg-white/12 flex items-center justify-center">
+                <span className="w-9 h-9 rounded-full bg-paper/10 flex items-center justify-center">
                   <IconCamera size={17} />
                 </span>
                 <span className="text-left">
                   <span className="block text-[14px] font-semibold">Take a photo</span>
-                  <span className="block text-[11px] text-white/75">Shoot one, develop it here</span>
+                  <span className="block text-[11px] text-paper/60">Shoot one, develop it here</span>
                 </span>
               </button>
               <button
                 onClick={() => inputRef.current?.click()}
-                className="hm-press w-full flex items-center gap-3.5 rounded-2xl bg-[#f4f1f4] px-4 py-3.5"
+                className="hm-press w-full flex items-center gap-3.5 rounded-2xl bg-elevated px-4 py-3.5"
               >
-                <span className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-ink">
+                <span className="w-9 h-9 rounded-full bg-ink flex items-center justify-center text-paper">
                   <IconUpload size={17} />
                 </span>
                 <span className="text-left">

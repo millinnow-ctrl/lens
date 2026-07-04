@@ -235,7 +235,7 @@ export default function MoodSphere({
                 aria-selected={isFront}
                 onClick={() => (isFront ? onOpen(s) : scrollToIndex(i))}
                 className={`relative snap-center shrink-0 w-[112px] rounded-[22px] p-[2px] cursor-pointer transition-shadow duration-300 ${
-                  isFront ? 'grad-fill aura' : 'bg-transparent'
+                  isFront ? 'bg-white/80 aura' : 'bg-transparent'
                 }`}
                 style={{ willChange: 'transform' }}
               >
@@ -269,7 +269,7 @@ export default function MoodSphere({
                     <p className="text-white/70 text-[9.5px] leading-tight mt-0.5">{s.tagline}</p>
                   </div>
                   {dailyId === s.id && (
-                    <span className="absolute top-1.5 left-1.5 rounded-full grad-fill text-white text-[8.5px] font-bold tracking-[0.05em] uppercase px-1.5 py-0.5">
+                    <span className="absolute top-1.5 left-1.5 rounded-full bg-violet text-white text-[8.5px] font-bold tracking-[0.05em] uppercase px-1.5 py-0.5">
                       Today
                     </span>
                   )}
@@ -339,14 +339,14 @@ export default function MoodSphere({
             <span
               key={s.id}
               className={`rounded-full transition-all duration-200 ${
-                i === frontIdx ? 'w-2 h-2 bg-violet' : 'w-1.5 h-1.5 bg-ink/15'
-              } ${tried.includes(s.id) && i !== frontIdx ? 'bg-violet/40' : ''}`}
+                i === frontIdx ? 'w-2 h-2 bg-ink' : 'w-1.5 h-1.5 bg-ink/15'
+              } ${tried.includes(s.id) && i !== frontIdx ? 'bg-ink/40' : ''}`}
             />
           ))}
         </div>
       ) : (
         <p className="text-center text-[11.5px] font-semibold text-fog tabular-nums mt-1">
-          <span className="text-violet">{frontIdx + 1}</span> / {n}
+          <span className="text-ink">{frontIdx + 1}</span> / {n}
           <span className="mx-1.5 text-ink/20">·</span>
           {tried.filter((t) => styles.some((s) => s.id === t)).length} tried
         </p>

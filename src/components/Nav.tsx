@@ -9,7 +9,7 @@ export default function Nav() {
   return (
     <>
       {/* top bar */}
-      <header className="sticky top-0 z-50 bg-white/85 backdrop-blur-md border-b border-ink/5 pt-[env(safe-area-inset-top)]">
+      <header className="sticky top-0 z-50 bg-paper/80 backdrop-blur-xl border-b border-white/[0.06] pt-[env(safe-area-inset-top)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
           <Link to="/" className="shrink-0">
             <Logo />
@@ -57,7 +57,7 @@ export default function Nav() {
             {user ? (
               <Link
                 to="/dashboard"
-                className="w-8 h-8 rounded-full bg-ink text-white font-semibold text-[12px] flex items-center justify-center hover:opacity-90 transition-opacity"
+                className="w-8 h-8 rounded-full bg-ink text-paper font-semibold text-[12px] flex items-center justify-center hover:opacity-90 transition-opacity"
                 title={user.name}
               >
                 {user.name.charAt(0).toUpperCase()}

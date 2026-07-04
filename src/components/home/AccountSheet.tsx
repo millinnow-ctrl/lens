@@ -30,14 +30,14 @@ export default function AccountSheet({ open, onClose, container }: Props) {
             animate={{ y: 0 }}
             exit={{ y: 64, opacity: 0 }}
             transition={{ duration: 0.22, ease: [0.2, 0.9, 0.3, 1] }}
-            className="relative w-full max-w-md bg-white rounded-t-[28px] px-5 pt-3 pb-[calc(env(safe-area-inset-bottom)+20px)] shadow-2xl"
+            className="relative w-full max-w-md bg-surface rounded-t-[28px] px-5 pt-3 pb-[calc(env(safe-area-inset-bottom)+20px)] shadow-[0_-8px_44px_rgb(0_0_0/0.55),inset_0_1px_0_rgb(255_255_255/0.06)]"
           >
             <div className="w-10 h-[5px] rounded-full bg-ink/10 mx-auto mb-4" aria-hidden />
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-3">
                 <span className="w-11 h-11 rounded-full bg-ink flex items-center justify-center">
                   {user ? (
-                    <span className="text-white font-bold text-[16px]">{user.name.charAt(0).toUpperCase()}</span>
+                    <span className="text-paper font-bold text-[16px]">{user.name.charAt(0).toUpperCase()}</span>
                   ) : (
                     <ApertureMark className="w-6 h-6" />
                   )}
@@ -58,7 +58,7 @@ export default function AccountSheet({ open, onClose, container }: Props) {
               <button
                 onClick={onClose}
                 aria-label="Close"
-                className="w-8 h-8 rounded-full bg-[#f4f1f4] flex items-center justify-center text-ink-soft"
+                className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-ink-soft"
               >
                 <IconClose size={13} />
               </button>
@@ -70,14 +70,14 @@ export default function AccountSheet({ open, onClose, container }: Props) {
                   onClose()
                   setAuthOpen(true)
                 }}
-                className="hm-press aura-soft w-full flex items-center justify-center h-11 rounded-full bg-ink text-white text-[14px] font-semibold mb-3"
+                className="hm-press aura-soft w-full flex items-center justify-center h-11 rounded-full bg-ink text-paper text-[14px] font-semibold mb-3"
               >
                 Sign in
               </button>
             )}
 
             {!isPaid && (
-              <div className="rounded-2xl bg-[#f4f1f4] p-4 mb-3">
+              <div className="rounded-2xl bg-elevated p-4 mb-3">
                 <div className="flex items-baseline justify-between mb-2">
                   <span className="text-[13px] font-semibold">This month’s roll</span>
                   <span className="text-[12px] tabular-nums text-ink-soft">
@@ -86,7 +86,7 @@ export default function AccountSheet({ open, onClose, container }: Props) {
                 </div>
                 <div className="h-1 rounded-full bg-ink/[0.08] overflow-hidden mb-3">
                   <div
-                    className="h-full rounded-full grad-fill transition-all"
+                    className="h-full rounded-full bg-ink/80 transition-all"
                     style={{ width: `${(creditsLeft / FREE_CREDITS) * 100}%` }}
                   />
                 </div>
@@ -96,7 +96,7 @@ export default function AccountSheet({ open, onClose, container }: Props) {
                   className="flex items-center justify-between text-[13px] font-semibold text-ink"
                 >
                   <span>
-                    Go <span className="grad-text">Creator</span> — $7/mo
+                    Go <span className="text-violet">Creator</span> — $7/mo
                   </span>
                   <IconChevronRight size={13} className="text-fog" />
                 </Link>
@@ -144,7 +144,7 @@ export default function AccountSheet({ open, onClose, container }: Props) {
                   }
                   window.location.assign('/')
                 }}
-                className="w-full text-left py-3 text-[14px] font-medium text-[#c62828]"
+                className="w-full text-left py-3 text-[14px] font-medium text-[#f2555a]"
               >
                 Delete account & data
               </button>
