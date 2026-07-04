@@ -11,7 +11,7 @@ import UploadModal from '../components/home/UploadModal'
 import AccountSheet from '../components/home/AccountSheet'
 import PhoneFrame from '../components/home/PhoneFrame'
 import BeforeAfterSlider from '../components/BeforeAfterSlider'
-import { IconChevronRight, IconImagePlus, IconUpload } from '../components/icons'
+import { IconCheck, IconChevronRight, IconClose, IconImagePlus, IconUpload } from '../components/icons'
 import { loadImage, renderStyled } from '../lib/engine'
 import { dailyRecipe, dailyStyle, isDailyClaimed, jitterParams } from '../lib/lab'
 import { CAMERA_STYLES, encodeParams, getStyle, type CameraStyle } from '../lib/styles'
@@ -69,6 +69,31 @@ const TOOLS = [
   { title: 'Presets', sub: 'Saved looks', image: sampleHandprint, to: '/dashboard' },
 ]
 
+/* collection milestones — celebrated once each, positive framing only */
+const MILESTONE_KEY = 'lensmood.milestone.v1'
+const MILESTONES = [6, 12, 18] as const
+const MILESTONE_COPY: Record<number, string> = {
+  6: '6 of 18 looks shot — a third of the case.',
+  12: '12 of 18 — the case is filling up.',
+  18: '18 of 18 — full case. Every look, shot.',
+}
+
+const readMilestone = (): number => {
+  try {
+    return Number(localStorage.getItem(MILESTONE_KEY) ?? 0) || 0
+  } catch {
+    return 0
+  }
+}
+
+const writeMilestone = (m: number) => {
+  try {
+    if (m > readMilestone()) localStorage.setItem(MILESTONE_KEY, String(m))
+  } catch {
+    /* storage unavailable */
+  }
+}
+
 const timeAgo = (t: number) => {
   const m = Math.max(1, Math.round((Date.now() - t) / 60000))
   if (m < 60) return `Edited ${m}m ago`
@@ -112,6 +137,21 @@ function HomeContent({
   const [spinSeed, setSpinSeed] = useState(0)
   const daily = dailyStyle()
   const dailyDone = isDailyClaimed()
+
+  /* one-time milestone strip — highest newly-crossed milestone, shown once */
+  const [milestone, setMilestone] = useState<number | null>(() => {
+    const last = readMilestone()
+    return [...MILESTONES].reverse().find((m) => tried.length >= m && m > last) ?? null
+  })
+  useEffect(() => {
+    if (milestone == null) return
+    // persist on unmount too, so the strip shows at most once per milestone
+    return () => writeMilestone(milestone)
+  }, [milestone])
+  const dismissMilestone = () => {
+    if (milestone != null) writeMilestone(milestone)
+    setMilestone(null)
+  }
 
   const openMood = (style: CameraStyle) => navigate(`/studio?style=${style.id}`)
   const onSpinEnd = (style: CameraStyle) => {
@@ -195,6 +235,25 @@ function HomeContent({
         )}
       </motion.section>
 
+      {/* milestone moment — true, once per milestone, dismissible */}
+      {milestone != null && (
+        <motion.section {...sectionIn} transition={{ duration: 0.3, delay: 0.07 }} className="mt-7 px-5">
+          <div className="hm-pill flex items-center gap-2.5 rounded-full pl-4 pr-2 py-2.5">
+            <IconCheck size={14} className="shrink-0 text-violet" />
+            <p className="flex-1 min-w-0 truncate text-[12.5px] font-semibold text-ink-soft">
+              {MILESTONE_COPY[milestone]}
+            </p>
+            <button
+              onClick={dismissMilestone}
+              aria-label="Dismiss milestone"
+              className="hm-press shrink-0 flex items-center justify-center w-7 h-7 rounded-full text-fog"
+            >
+              <IconClose size={13} />
+            </button>
+          </div>
+        </motion.section>
+      )}
+
       {/* recent edits */}
       <motion.section {...sectionIn} transition={{ duration: 0.3, delay: 0.08 }} className="mt-7 px-5">
         <div className="flex items-center justify-between mb-3">
@@ -262,6 +321,9 @@ function HomeContent({
               )}
             </div>
             <p className="text-white font-bold text-[16px] mt-1 leading-tight truncate">{daily.name}</p>
+            <p className="text-[11px] text-vf-chrome mt-0.5 tabular-nums truncate">
+              The case: {tried.length}/{CAMERA_STYLES.length}
+            </p>
             <p className="text-[12px] text-vf-chrome mt-0.5 truncate">Ends at midnight</p>
           </div>
           <button

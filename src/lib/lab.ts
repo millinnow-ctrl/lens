@@ -41,9 +41,10 @@ function fnv1a(str: string): number {
   return h >>> 0
 }
 
-/** the whole world gets the same stock today */
-export function dailyStyle(date = todayKey()): CameraStyle {
-  return CAMERA_STYLES[fnv1a(date) % CAMERA_STYLES.length]
+/** the whole world gets the same stock today — pass a Date (or YYYY-MM-DD key) to peek at another day */
+export function dailyStyle(date: string | Date = todayKey()): CameraStyle {
+  const key = typeof date === 'string' ? date : date.toISOString().slice(0, 10)
+  return CAMERA_STYLES[fnv1a(key) % CAMERA_STYLES.length]
 }
 
 /** date-seeded recipe: the style's defaults, nudged so each day tastes different */

@@ -7,6 +7,7 @@ import { makeSplitCard, makeStoryCard } from '../lib/shareCards'
 import { renderStyledVideo, videoExportSupported } from '../lib/video'
 import { deliverFile, haptic } from '../lib/native'
 import { HASHTAGS, randomCaption } from '../lib/captions'
+import { dailyStyle, isDailyClaimed } from '../lib/lab'
 import { encodeParams, type CameraStyle, type StyleParams } from '../lib/styles'
 import { useApp } from '../lib/store'
 
@@ -39,6 +40,8 @@ export default function ExportPanel({
   const [progress, setProgress] = useState(0)
   const [renderError, setRenderError] = useState<string | null>(null)
   const [delivered, setDelivered] = useState<string | null>(null)
+  /** stays true after the first successful save/share so the next-look hook can linger */
+  const [exported, setExported] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
 
   const hd = plan === 'pro' || plan === 'studio'
@@ -47,7 +50,10 @@ export default function ExportPanel({
   /** photo exports come in three cuts: the shot, a 9:16 story card, a 4:5 split */
   const [format, setFormat] = useState<'photo' | 'story' | 'split'>('photo')
   useEffect(() => {
-    if (open) setFormat('photo')
+    if (open) {
+      setFormat('photo')
+      setExported(false)
+    }
   }, [open])
 
   useEffect(() => {
@@ -127,6 +133,7 @@ export default function ExportPanel({
       haptic('light')
       const res = await deliverFile(blob, filename, withCaption ? `${caption} ${HASHTAGS}` : undefined)
       if (res.ok) {
+        setExported(true)
         setDelivered(
           res.via === 'download'
             ? 'Saved to downloads'
@@ -266,6 +273,23 @@ export default function ExportPanel({
             {delivered && (
               <p className="text-center text-[12px] font-semibold text-violet">{delivered}</p>
             )}
+
+            {/* next-trigger: the (true, deterministic) free look that's up next */}
+            {exported &&
+              (isDailyClaimed() ? (
+                <p className="text-center text-[12px] text-fog">
+                  Tomorrow’s free look:{' '}
+                  <span className="font-semibold text-violet">
+                    {dailyStyle(new Date(Date.now() + 86_400_000)).name}
+                  </span>{' '}
+                  — it unlocks at midnight.
+                </p>
+              ) : (
+                <p className="text-center text-[12px] text-fog">
+                  Today’s free look is still waiting —{' '}
+                  <span className="font-semibold text-violet">{dailyStyle().name}</span>.
+                </p>
+              ))}
 
             <div className="mt-1 panel p-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-fog mb-1.5">Caption</p>

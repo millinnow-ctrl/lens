@@ -18,11 +18,16 @@ interface Props {
 
 const CARD_W = 112
 const GAP = 14
+/** signed-distance clamp — cards beyond this ride the ring's far edge */
+const REACH = 2.2
+/** resting opacity of the wide elliptical ground shadow */
+const GROUND_OPACITY = 0.32
 
 /**
- * Look picker — the hero carousel. Native scroll-snap with a stage
- * treatment: the centered card rises, grows and earns the gradient
- * glow ring; side cards fall back on a soft elliptical orbit line.
+ * Look picker — the hero carousel. Native scroll-snap with a 3D ring
+ * treatment: cards turn around a rotating sphere (rotateY + a cosine
+ * crown arc + cosine scale falloff), grounded by a wide soft ground
+ * shadow that squashes and fades with scroll velocity.
  */
 export default function MoodSphere({
   styles,
@@ -37,19 +42,43 @@ export default function MoodSphere({
   const n = styles.length
   const scrollerRef = useRef<HTMLDivElement>(null)
   const cardRefs = useRef<(HTMLDivElement | null)[]>([])
+  const groundRef = useRef<HTMLDivElement>(null)
   const raf = useRef(0)
   const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastFront = useRef(-1)
   const spinning = useRef(false)
+  /* scroll velocity tracking — drives the ground-shadow squash */
+  const lastX = useRef(0)
+  const lastPaintT = useRef(0)
+  const vel = useRef(0)
 
   const [frontIdx, setFrontIdx] = useState(0)
   const frontStyle = styles[Math.min(frontIdx, n - 1)]
+  const [reduceMotion] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  )
 
   /* depth pass — runs on scroll, writes transforms directly */
   const paint = useCallback(() => {
     const el = scrollerRef.current
     if (!el) return
     const mid = el.scrollLeft + el.clientWidth / 2
+
+    /* velocity (px/ms, smoothed) → the wide ground shadow stretches
+       and fades while the ring spins fast, springs back on settle */
+    const now = performance.now()
+    const dt = Math.max(1, now - lastPaintT.current)
+    const v = Math.abs(el.scrollLeft - lastX.current) / dt
+    lastPaintT.current = now
+    lastX.current = el.scrollLeft
+    vel.current = vel.current * 0.75 + v * 0.25
+    const ground = groundRef.current
+    if (ground && !reduceMotion) {
+      const k = Math.min(vel.current / 2.5, 1) // ~2.5px/ms = full squash
+      ground.style.transform = `scaleX(${(1 + 0.08 * k).toFixed(3)}) scaleY(${(1 - 0.18 * k).toFixed(3)})`
+      ground.style.opacity = (GROUND_OPACITY * (1 - 0.3 * k)).toFixed(3)
+    }
+
     let nearest = 0
     let nearestDist = Infinity
     for (let i = 0; i < n; i++) {
@@ -62,12 +91,18 @@ export default function MoodSphere({
         nearestDist = abs
         nearest = i
       }
-      const focus = 1 - Math.min(abs, 1) // 1 at center → 0 one card away
-      const scale = 1 + focus * 0.24
-      const lift = focus * 10
-      const tilt = Math.max(-1.5, Math.min(1.5, d)) * -6
-      card.style.transform = `translateY(${-lift}px) scale(${scale}) rotateY(${tilt}deg)`
-      card.style.opacity = String(1 - Math.min(abs / 3.5, 0.2))
+      const t = Math.min(abs, REACH)
+      const arc = Math.cos((t / REACH) * (Math.PI / 2)) // 1 center → 0 far edge
+      const scale = 0.86 + 0.38 * arc // 1.24 center → 0.86 far edge
+      if (reduceMotion) {
+        card.style.transform = `scale(${scale.toFixed(4)})`
+      } else {
+        const tilt = -Math.max(-REACH, Math.min(REACH, d)) * 16 // ring rotation
+        const y = 10 - 24 * arc // crown arc: -14px lift center → +10px sink edge
+        card.style.transform = `translateY(${y.toFixed(2)}px) rotateY(${tilt.toFixed(2)}deg) scale(${scale.toFixed(4)})`
+        card.style.filter = abs > 1.6 ? 'blur(0.5px)' : ''
+      }
+      card.style.opacity = (1 - 0.45 * (t / REACH)).toFixed(3) // 1 → 0.55
       card.style.zIndex = String(100 - Math.round(abs * 10))
     }
     if (nearest !== lastFront.current) {
@@ -76,13 +111,20 @@ export default function MoodSphere({
       setFrontIdx(nearest)
       if (moved) haptic('light')
     }
-  }, [n])
+  }, [n, reduceMotion])
 
   const onScroll = useCallback(() => {
     cancelAnimationFrame(raf.current)
     raf.current = requestAnimationFrame(paint)
     if (settleTimer.current) clearTimeout(settleTimer.current)
     settleTimer.current = setTimeout(() => {
+      /* settled — spring the ground shadow back to rest */
+      vel.current = 0
+      const ground = groundRef.current
+      if (ground) {
+        ground.style.transform = 'scaleX(1) scaleY(1)'
+        ground.style.opacity = String(GROUND_OPACITY)
+      }
       if (spinning.current) {
         spinning.current = false
         haptic('medium')
@@ -122,11 +164,16 @@ export default function MoodSphere({
     [],
   )
 
-  /* surprise: scroll-spin to a random other mood */
+  /* surprise: fling-spin to a random other mood — travel 5+ cards when
+     the deck allows so the ring visibly rotates before settling */
   useEffect(() => {
     if (spinSeed === 0 || n < 2) return
+    const cur = Math.max(0, lastFront.current)
+    const minDist = Math.min(5, n - 1)
     let t = Math.floor(Math.random() * n)
-    if (t === lastFront.current) t = (t + 1) % n
+    let guard = 0
+    while (Math.abs(t - cur) < minDist && guard++ < 60) t = Math.floor(Math.random() * n)
+    if (Math.abs(t - cur) < minDist) t = cur < (n - 1) / 2 ? n - 1 : 0 // farthest end
     spinning.current = true
     haptic('medium')
     scrollToIndex(t)
@@ -137,7 +184,7 @@ export default function MoodSphere({
 
   return (
     <div className="select-none">
-      <div className="relative" style={{ perspective: '1100px' }}>
+      <div className="relative">
         {/* orbit line — the elliptical gradient track the deck rides on */}
         <svg
           viewBox="0 0 400 90"
@@ -170,8 +217,14 @@ export default function MoodSphere({
         <div
           ref={scrollerRef}
           onScroll={onScroll}
-          className="flex items-center gap-[14px] overflow-x-auto no-scrollbar snap-x snap-mandatory pt-11 pb-6"
-          style={{ paddingInline: `calc(50% - ${CARD_W / 2}px)` }}
+          className="flex items-center gap-[14px] overflow-x-auto no-scrollbar snap-x snap-mandatory pt-12 pb-6"
+          style={{
+            paddingInline: `calc(50% - ${CARD_W / 2}px)`,
+            /* perspective lives here — it only reaches direct children,
+               and the cards are this element's direct children */
+            perspective: '950px',
+            perspectiveOrigin: '50% 40%',
+          }}
           role="listbox"
           aria-label="Camera styles — swipe to browse"
           aria-activedescendant={frontStyle ? `mood-${frontStyle.id}` : undefined}
@@ -242,12 +295,29 @@ export default function MoodSphere({
           })}
         </div>
 
-        {/* soft contact shadow under the raised center card */}
+        {/* wide soft ground shadow — grounds the whole ring; squashes and
+            fades with scroll velocity (written directly in paint()) */}
+        <div
+          ref={groundRef}
+          className="absolute w-[260px] h-[26px] pointer-events-none rounded-[50%]"
+          style={{
+            left: '50%',
+            marginLeft: '-130px',
+            bottom: '-9px',
+            background: 'radial-gradient(ellipse at center, rgb(0 0 0 / 0.9) 0%, transparent 70%)',
+            opacity: GROUND_OPACITY,
+            filter: 'blur(10px)',
+            transition: 'transform 180ms ease-out, opacity 180ms ease-out',
+            willChange: 'transform, opacity',
+          }}
+          aria-hidden
+        />
+        {/* crisp contact shadow under the raised center card */}
         <div
           className="absolute left-1/2 -translate-x-1/2 bottom-[6px] w-[130px] h-[12px] pointer-events-none rounded-[50%]"
           style={{
             background: 'radial-gradient(ellipse at center, rgb(76 29 149 / 0.9) 0%, transparent 70%)',
-            opacity: 0.18,
+            opacity: 0.24,
             filter: 'blur(5px)',
           }}
           aria-hidden
