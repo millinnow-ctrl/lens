@@ -130,7 +130,7 @@ export default function PricingPage() {
           Membership
         </p>
         <h1 className="type-display tracking-optical-lg text-4xl sm:text-6xl mb-5">
-          Rent the <span className="text-violet">camera bag.</span>
+          Rent the <span className="grad-text">camera bag.</span>
         </h1>
         <p className="text-[15px] leading-[1.65] text-ink-soft max-w-md">
           Every plan is month-to-month. What you export is yours to keep.
@@ -148,7 +148,7 @@ export default function PricingPage() {
               transition={{ duration: 0.15, ease: 'easeOut', delay: i * 0.05 }}
               className={
                 tier.highlight
-                  ? 'relative z-10 bg-violet rounded-[26px] p-[2px] shadow-[0_20px_48px_-20px_rgb(139_92_246/0.5)] lg:scale-[1.045] lg:-translate-y-2'
+                  ? 'relative z-10 grad-fill rounded-[26px] p-[2px] shadow-[0_20px_48px_-20px_rgb(23_19_31/0.4)] lg:scale-[1.045] lg:-translate-y-2'
                   : 'relative bg-surface rounded-[24px] border border-ink/5 shadow-[0_2px_12px_rgb(23_19_31/0.05)]'
               }
             >
@@ -157,7 +157,7 @@ export default function PricingPage() {
                     wherever cards actually sit side by side */}
                 <div className={tier.highlight ? 'h-6 mb-5' : 'hidden md:block h-6 mb-5'}>
                   {tier.highlight && (
-                    <span className="inline-flex items-center text-[10px] font-semibold tracking-[0.1em] uppercase px-2.5 py-1 rounded-full bg-ink text-paper">
+                    <span className="inline-flex items-center text-[10px] font-semibold tracking-[0.1em] uppercase px-2.5 py-1 rounded-full bg-ink text-white">
                       Most popular
                     </span>
                   )}

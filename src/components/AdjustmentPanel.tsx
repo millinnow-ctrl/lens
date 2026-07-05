@@ -20,10 +20,10 @@ export default function AdjustmentPanel({ style, params, onChange }: Props) {
     <div className="space-y-6">
       {/* recipes — recessed engraved plates milled into the panel, not pills */}
       <div>
-        <p className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-fog [text-shadow:0_1px_0_rgb(0_0_0/0.4)] mb-2.5">
+        <p className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-fog [text-shadow:0_1px_0_rgba(255,255,255,0.7)] mb-2.5">
           Recipes
         </p>
-        <div className="grid grid-cols-3 gap-1.5 rounded-[12px] bg-black/20 p-1.5 shadow-[inset_0_1px_2px_rgb(0_0_0/0.45)]">
+        <div className="grid grid-cols-3 gap-1.5 rounded-[12px] bg-[rgb(23_19_31_/_0.04)] p-1.5 shadow-[inset_0_1px_2px_rgb(23_19_31_/_0.07)]">
           {QUICK_PRESETS.map((p) => {
             const on = activePreset === p.id
             return (
@@ -37,7 +37,7 @@ export default function AdjustmentPanel({ style, params, onChange }: Props) {
                 className={`h-8 rounded-[8px] font-mono text-[10.5px] font-medium uppercase tracking-[0.1em] transition-all duration-150 active:scale-[0.97] ${
                   on
                     ? 'bg-violet text-white shadow-[0_1px_3px_rgb(76_29_149_/_0.4),inset_0_1px_0_rgb(255_255_255_/_0.3)]'
-                    : 'text-ink-soft [text-shadow:0_1px_0_rgb(0_0_0/0.35)] hover:bg-white/[0.06]'
+                    : 'text-ink-soft [text-shadow:0_1px_0_rgba(255,255,255,0.7)] hover:bg-[rgb(255_255_255_/_0.6)]'
                 }`}
               >
                 {p.name}
@@ -50,7 +50,7 @@ export default function AdjustmentPanel({ style, params, onChange }: Props) {
       {/* etched divider between preset shelf and the dials */}
       <div
         aria-hidden
-        className="h-px bg-white/[0.07] shadow-[0_1px_0_rgb(0_0_0/0.4)]"
+        className="h-px bg-[rgb(23_19_31_/_0.08)] shadow-[0_1px_0_rgba(255,255,255,0.7)]"
       />
 
       {/* detented dials — fixed order, never reflow (muscle memory) */}

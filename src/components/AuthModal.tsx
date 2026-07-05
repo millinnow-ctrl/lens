@@ -29,7 +29,7 @@ export default function AuthModal() {
         {/* Apple first — HIG requires prominence when offered on iOS */}
         <button
           onClick={() => submit('Alex', 'alex@icloud.com')}
-          className="btn w-full mb-2.5 bg-black text-white border border-white/12 hover:bg-[#1a1a1a]"
+          className="btn w-full mb-2.5 bg-black text-white border border-black hover:bg-[#1a1a1a]"
         >
           <IconApple size={17} className="-mt-0.5" />
           Continue with Apple

@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import Header from '../components/home/Header'
@@ -199,7 +198,7 @@ function HomeContent({
             </p>
             <button
               onClick={onUpload}
-              className="btn gap-2 border-0 bg-white text-paper mt-3 shadow-[0_4px_18px_rgb(0_0_0/0.4)]"
+              className="btn gap-2 border-0 bg-white text-ink mt-3 shadow-[0_4px_18px_rgb(0_0_0/0.4)]"
             >
               <IconUpload size={16} />
               Start with a photo
@@ -329,7 +328,7 @@ function HomeContent({
                 navigate(`/studio?style=${daily.id}&p=${encodeParams(dailyRecipe())}${dailyDone ? '' : '&daily=1'}`)
               }
               className={`hm-press relative shrink-0 h-10 px-5 rounded-full text-[13.5px] font-semibold ${
-                dailyDone ? 'bg-white/15 text-white/80' : 'bg-white text-paper'
+                dailyDone ? 'bg-white/15 text-white/80' : 'bg-white text-ink'
               }`}
             >
               {dailyDone ? 'Shot today' : 'Shoot it'}
@@ -417,13 +416,10 @@ export default function Home() {
     if (thenUpload) setUploadOpen(true)
   }
 
-  // portal to body: a fixed overlay inside the route's transformed motion.div
-  // would be trapped by its transform containing-block, rendering off-screen
-  const welcomeOverlay = welcome
-    ? createPortal(
+  const welcomeOverlay = welcome ? (
     <div className="fixed inset-0 z-[70] flex items-end justify-center" role="dialog" aria-label="Welcome">
       <div className="absolute inset-0 bg-vf/55" aria-hidden />
-      <div className="hm-sheet relative w-full max-w-md bg-surface rounded-t-[28px] px-6 pt-8 pb-[calc(env(safe-area-inset-bottom)+24px)] shadow-[0_-8px_44px_rgb(0_0_0/0.55),inset_0_1px_0_rgb(255_255_255/0.06)]">
+      <div className="hm-sheet relative w-full max-w-md bg-white rounded-t-[28px] px-6 pt-8 pb-[calc(env(safe-area-inset-bottom)+24px)]">
         <ApertureMark className="w-12 h-12 mb-4" />
         <h2 className="type-display text-[26px] mb-2">Your camera roll is full of movie stills.</h2>
         <p className="text-[14.5px] text-ink-soft leading-relaxed mb-6">
@@ -432,7 +428,7 @@ export default function Home() {
         </p>
         <button
           onClick={() => dismissWelcome(true)}
-          className="btn btn-lg w-full gap-2.5 border-0 bg-violet text-white shadow-[0_6px_20px_rgb(139_92_246/0.35)]"
+          className="btn btn-lg w-full gap-2.5 border-0 grad-fill text-white shadow-[0_6px_20px_rgb(242_106_46/0.35)]"
         >
           <IconUpload size={17} />
           Pick a photo
@@ -444,10 +440,8 @@ export default function Home() {
           Look around first
         </button>
       </div>
-    </div>,
-        document.body,
-      )
-    : null
+    </div>
+  ) : null
 
   const content = (
     <HomeContent
@@ -464,7 +458,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto grid xl:grid-cols-[1fr_auto] items-center gap-8 px-6">
           {/* demo-page framing so the phone never floats in a void */}
           <div className="hidden xl:block max-w-md">
-            <p className="text-[12px] font-bold tracking-[0.12em] uppercase text-ink-soft mb-4">The app</p>
+            <p className="text-[12px] font-bold tracking-[0.12em] uppercase grad-text mb-4">The app</p>
             <h1 className="type-display text-5xl mb-5">The studio in your pocket.</h1>
             <p className="text-[15px] leading-[1.6] text-ink-soft mb-8">
               This is LensMood’s home screen, running live — swipe the styles, open the upload

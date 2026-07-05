@@ -10,26 +10,28 @@
   --font-brand: 'Poppins', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
 
-  /* LensMood palette — VSCO-grade dark editorial: warm near-black canvas,
-     monochrome chrome, one restrained violet accent. Photos are the color. */
-  --color-paper: #131217; /* app canvas — warm near-black (not pure black) */
-  --color-surface: #1c1a22; /* elevated card / panel */
-  --color-elevated: #24222c; /* raised control wells */
-  --color-ink: #f3f1f6; /* primary text — warm off-white */
-  --color-ink-soft: #a7a2b2; /* secondary text */
-  --color-fog: #6d6879; /* tertiary / captions */
-  --color-hairline: #2b2833; /* dividers, borders */
-  --color-violet: #8b5cf6; /* THE single accent — used sparingly */
-  --color-orchid: #a855f7;
-  --color-magenta: #ec4899;
-  /* legacy accent name used across the app — maps to brand violet */
-  --color-signal: #8b5cf6;
-  --color-vf: #0d0c11; /* deepest well — viewfinder / contact sheet */
-  --color-vf-chrome: #8a8594;
+  /* LensMood palette — "golden-hour darkroom": warm oatmeal-cream paper,
+     rich terracotta clay for feature blocks, one addicting tangerine accent.
+     Warm, tactile, human — the photograph is still the loudest color. */
+  --color-paper: #f1e8d6; /* app canvas — warm oatmeal cream */
+  --color-surface: #fbf6eb; /* raised cards / sheets — warm sand near-white */
+  --color-clay: #b0512e; /* rich terracotta — hero / feature blocks */
+  --color-clay-deep: #8f3d22; /* pressed / darker terracotta */
+  --color-ink: #261e15; /* primary text — warm espresso (not pure black) */
+  --color-ink-soft: #6e6250; /* secondary text — warm taupe */
+  --color-fog: #9c907b; /* tertiary / captions — warm grey */
+  --color-hairline: #e2d8c5; /* dividers, borders — warm hairline */
+  --color-violet: #f26a2e; /* THE accent — addicting tangerine (name kept for reach) */
+  --color-orchid: #f2863a; /* warm amber (logo mid-stop) */
+  --color-magenta: #e14d5a; /* warm rose-red — favorites / hearts */
+  /* legacy accent name used across the app — maps to the tangerine accent */
+  --color-signal: #f26a2e;
+  --color-vf: #201811; /* deepest well — viewfinder / contact sheet (dark espresso) */
+  --color-vf-chrome: #94886f;
 
   --radius-xs: 10px;
 
-  --shadow-modal: 0 0 0 1px rgb(255 255 255 / 0.06), 0 24px 64px -16px rgb(0 0 0 / 0.7);
+  --shadow-modal: 0 1px 0 rgb(38 30 21 / 0.05), 0 24px 64px -16px rgb(38 30 21 / 0.28);
 }
 
 html {
@@ -46,7 +48,7 @@ body {
 }
 
 ::selection {
-  background: rgb(139 92 246 / 0.18);
+  background: rgb(242 106 46 / 0.20);
 }
 
 :focus-visible {
@@ -56,38 +58,46 @@ body {
 
 /* ---------- brand gradient helpers ---------- */
 
-/* violet → pink text, e.g. the "Mood" in LensMood */
+/* warm clay → tangerine → amber, e.g. the "Mood" in LensMood */
 .grad-text {
-  background: linear-gradient(96deg, #7c3aed 0%, #a855f7 45%, #ec4899 100%);
+  background: linear-gradient(96deg, #b0512e 0%, #f26a2e 55%, #f2a03a 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
+/* glossy tangerine fill — the addicting primary action */
 .grad-fill {
-  background: linear-gradient(96deg, #7c3aed 0%, #a855f7 45%, #ec4899 100%);
+  background: linear-gradient(180deg, #f47a3e 0%, #ee5c26 100%);
 }
 
-/* near-zero accent on dark: what were violet glow blooms become quiet
-   elevation. Kept as classes so existing usages don't break. */
+/* soft warm glow behind the primary action / focal card */
 .aura {
-  box-shadow: 0 8px 28px -8px rgb(0 0 0 / 0.7);
+  box-shadow:
+    0 0 0 1px rgb(242 106 46 / 0.22),
+    0 4px 18px rgb(242 106 46 / 0.32),
+    0 4px 24px rgb(176 81 46 / 0.20);
 }
 .aura-soft {
-  box-shadow: 0 6px 20px -10px rgb(0 0 0 / 0.6);
+  box-shadow:
+    0 0 0 1px rgb(242 106 46 / 0.14),
+    0 3px 14px rgb(242 106 46 / 0.18),
+    0 3px 18px rgb(176 81 46 / 0.10);
 }
 
-/* the single primary action may still wear a restrained violet ring */
+/* warm gradient ring around a pill/card: wrap content in an element with this class */
 .glow-ring {
   position: relative;
   border-radius: 999px;
-  padding: 1.5px;
-  background: var(--color-violet);
-  box-shadow: 0 6px 22px -8px rgb(139 92 246 / 0.5);
+  padding: 2px;
+  background: linear-gradient(120deg, #f2a03a 0%, #f26a2e 45%, #e14d5a 100%);
+  box-shadow:
+    0 6px 22px rgb(242 106 46 / 0.35),
+    0 6px 26px rgb(225 77 90 / 0.18);
 }
 .glow-ring-card {
   border-radius: 28px;
-  padding: 2px;
+  padding: 2.5px;
 }
 
 /* ---------- material depth (dark surfaces) ---------- */
@@ -152,9 +162,9 @@ body {
 
 .panel {
   background: var(--color-surface);
-  border: 1px solid rgb(255 255 255 / 0.06);
+  border: 1px solid rgb(23 19 31 / 0.06);
   border-radius: 20px;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+  box-shadow: 0 2px 10px rgb(23 19 31 / 0.04);
 }
 
 .rule {
@@ -202,42 +212,40 @@ body {
   font-size: 13px;
 }
 
-/* the single primary action per screen — the one place violet fills */
 .btn-primary {
-  background: var(--color-violet);
+  background: var(--color-ink);
   color: #ffffff;
-  border: 1px solid var(--color-violet);
+  border: 1px solid var(--color-ink);
 }
 .btn-primary:hover {
-  background: #7c4ef0;
-  border-color: #7c4ef0;
+  background: #241d30;
+  border-color: #241d30;
 }
 .btn-primary:disabled {
-  background: rgb(255 255 255 / 0.07);
+  background: rgb(23 19 31 / 0.08);
   border-color: transparent;
   color: var(--color-fog);
   cursor: default;
   box-shadow: none;
 }
 
-/* hero action — violet, clean (no rainbow ring on dark) */
+/* dark pill with the gradient aura — hero actions */
 .btn-hero {
-  background: var(--color-violet);
+  background: var(--color-ink);
   color: #ffffff;
   border: 1px solid transparent;
 }
 .btn-hero:hover {
-  background: #7c4ef0;
+  background: #241d30;
 }
 
 .btn-outline {
-  background: transparent;
+  background: var(--color-surface);
   color: var(--color-ink);
-  border: 1px solid rgb(255 255 255 / 0.16);
+  border: 1px solid rgb(23 19 31 / 0.12);
 }
 .btn-outline:hover {
-  border-color: rgb(255 255 255 / 0.34);
-  background: rgb(255 255 255 / 0.03);
+  border-color: rgb(23 19 31 / 0.3);
 }
 .btn-outline:disabled {
   opacity: 0.35;
@@ -266,20 +274,20 @@ body {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   padding: 3px 8px;
-  border: 1px solid rgb(255 255 255 / 0.12);
+  border: 1px solid rgb(23 19 31 / 0.1);
   border-radius: 999px;
   color: var(--color-ink-soft);
-  background: var(--color-elevated);
+  background: var(--color-surface);
 }
 .tag-signal {
   color: var(--color-violet);
-  border-color: rgb(139 92 246 / 0.4);
-  background: rgb(139 92 246 / 0.12);
+  border-color: rgb(242 106 46 / 0.35);
+  background: rgb(242 106 46 / 0.10);
 }
 .tag-fill {
   background: var(--color-ink);
   border-color: var(--color-ink);
-  color: var(--color-paper);
+  color: #ffffff;
 }
 .tag-chrome {
   background: rgb(22 18 29 / 0.66);
@@ -334,8 +342,8 @@ input[type='range'].lm-slider::-webkit-slider-runnable-track {
     to right,
     var(--color-violet) 0%,
     var(--color-violet) var(--fill, 50%),
-    rgb(255 255 255 / 0.14) var(--fill, 50%),
-    rgb(255 255 255 / 0.14) 100%
+    rgb(23 19 31 / 0.1) var(--fill, 50%),
+    rgb(23 19 31 / 0.1) 100%
   );
 }
 input[type='range'].lm-slider::-webkit-slider-thumb {
@@ -346,8 +354,8 @@ input[type='range'].lm-slider::-webkit-slider-thumb {
   margin-top: -7px;
   border-radius: 999px;
   background: #ffffff;
-  border: 1.5px solid rgb(0 0 0 / 0.2);
-  box-shadow: 0 1px 4px rgb(0 0 0 / 0.4);
+  border: 1.5px solid rgb(23 19 31 / 0.12);
+  box-shadow: 0 1px 4px rgb(23 19 31 / 0.18);
   transition: transform 0.12s ease;
 }
 input[type='range'].lm-slider::-webkit-slider-thumb:hover {
@@ -356,7 +364,7 @@ input[type='range'].lm-slider::-webkit-slider-thumb:hover {
 input[type='range'].lm-slider::-moz-range-track {
   height: 4px;
   border-radius: 999px;
-  background: rgb(255 255 255 / 0.14);
+  background: rgb(23 19 31 / 0.1);
 }
 input[type='range'].lm-slider::-moz-range-progress {
   height: 4px;
@@ -368,8 +376,8 @@ input[type='range'].lm-slider::-moz-range-thumb {
   height: 16px;
   border-radius: 999px;
   background: #ffffff;
-  border: 1.5px solid rgb(0 0 0 / 0.2);
-  box-shadow: 0 1px 4px rgb(0 0 0 / 0.4);
+  border: 1.5px solid rgb(23 19 31 / 0.15);
+  box-shadow: 0 1px 4px rgb(23 19 31 / 0.18);
 }
 
 /* ---------- marquee carousel ---------- */
@@ -550,9 +558,9 @@ input[type='range'].lm-slider::-moz-range-thumb {
   animation: lm-iris-breathe 2.4s ease-in-out infinite;
 }
 
-/* develop line — soft magenta leading edge where the chemistry is working */
+/* develop line — warm tangerine leading edge where the chemistry is working */
 .lm-develop-line {
-  box-shadow: 0 0 7px rgba(236, 72, 153, 0.45);
+  box-shadow: 0 0 7px rgba(242, 106, 46, 0.5);
 }
 
 /* --- the print resolving (phase: done, first reveal only) --- */
@@ -716,24 +724,24 @@ input[type='range'].lm-slider::-moz-range-thumb {
 }
 
 .hm-card {
-  background: var(--color-surface);
+  background: #ffffff;
   border-radius: 24px;
-  border: 1px solid rgb(255 255 255 / 0.06);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+  border: 1px solid rgb(23 19 31 / 0.05);
+  box-shadow: 0 2px 12px rgb(23 19 31 / 0.05);
 }
 
 .hm-tile {
-  background: var(--color-surface);
+  background: #ffffff;
   border-radius: 18px;
-  border: 1px solid rgb(255 255 255 / 0.06);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+  border: 1px solid rgb(23 19 31 / 0.05);
+  box-shadow: 0 1px 6px rgb(23 19 31 / 0.04);
 }
 
 .hm-pill {
-  background: var(--color-elevated);
+  background: #ffffff;
   border-radius: 999px;
-  border: 1px solid rgb(255 255 255 / 0.08);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05);
+  border: 1px solid rgb(23 19 31 / 0.06);
+  box-shadow: 0 1px 4px rgb(23 19 31 / 0.05);
 }
 
 .hm-chip {
@@ -743,8 +751,8 @@ input[type='range'].lm-slider::-moz-range-thumb {
   height: 36px;
   padding: 0 15px;
   border-radius: 999px;
-  background: var(--color-elevated);
-  border: 1px solid rgb(255 255 255 / 0.08);
+  background: #ffffff;
+  border: 1px solid rgb(23 19 31 / 0.07);
   font-size: 13px;
   font-weight: 500;
   color: var(--color-ink-soft);
@@ -759,11 +767,10 @@ input[type='range'].lm-slider::-moz-range-thumb {
 .hm-chip:active {
   transform: scale(0.97);
 }
-/* active filter = white fill, dark text (VSCO selection is monochrome) */
 .hm-chip[data-active='true'] {
   background: var(--color-ink);
   border-color: var(--color-ink);
-  color: var(--color-paper);
+  color: #ffffff;
   font-weight: 600;
 }
 
@@ -771,26 +778,26 @@ input[type='range'].lm-slider::-moz-range-thumb {
 .hm-drop {
   position: relative;
   border-radius: 28px;
-  border: 1px solid rgb(255 255 255 / 0.1);
-  background: rgb(255 255 255 / 0.02);
+  border: 1px solid rgb(23 19 31 / 0.08);
+  background: rgb(255 255 255 / 0.55);
 }
 
 .hm-cta {
   box-shadow:
-    0 2px 6px rgb(0 0 0 / 0.4),
-    0 10px 28px -8px rgb(139 92 246 / 0.4);
+    0 2px 6px rgb(38 30 21 / 0.16),
+    0 10px 28px rgb(242 106 46 / 0.30);
 }
 
-/* floating pill tab bar — dark glass */
+/* floating pill tab bar — like the reference */
 .hm-dock {
-  background: rgb(22 20 28 / 0.82);
-  backdrop-filter: blur(18px) saturate(1.3);
-  -webkit-backdrop-filter: blur(18px) saturate(1.3);
-  border: 1px solid rgb(255 255 255 / 0.08);
+  background: rgb(255 255 255 / 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgb(23 19 31 / 0.05);
   border-radius: 32px;
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.06),
-    0 12px 32px rgb(0 0 0 / 0.5);
+    0 2px 8px rgb(23 19 31 / 0.06),
+    0 12px 32px rgb(23 19 31 / 0.10);
 }
 
 @keyframes hm-sheet-in {

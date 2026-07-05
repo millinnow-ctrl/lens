@@ -106,11 +106,11 @@ export default function BeforeAfterSlider({
 
       {/* divider + handle — a machined disc riding a hairline rail */}
       <div
-        className="absolute top-0 bottom-0 w-px bg-white/85 pointer-events-none shadow-[0_0_0_0.5px_rgb(0_0_0/0.35)]"
+        className="absolute top-0 bottom-0 w-px bg-paper/90 pointer-events-none shadow-[0_0_0_0.5px_rgb(23_19_31/0.25)]"
         style={{ left: `${pos}%` }}
       >
         <div
-          className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-10 h-10 flex items-center justify-center text-vf rounded-full bg-white ring-1 ${
+          className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-10 h-10 flex items-center justify-center text-ink rounded-full bg-white ring-1 ${
             variant === 'instrument'
               ? 'ring-ink/10 shadow-[inset_0_1px_0_rgb(255_255_255/0.9),inset_0_-1px_0_rgb(23_19_31/0.06),0_1px_2px_rgb(23_19_31/0.25),0_8px_20px_-8px_rgb(23_19_31/0.5)]'
               : 'ring-ink/[0.06] shadow-[inset_0_1px_0_rgb(255_255_255/0.9),0_1px_2px_rgb(23_19_31/0.08),0_6px_20px_-6px_rgb(23_19_31/0.3)]'

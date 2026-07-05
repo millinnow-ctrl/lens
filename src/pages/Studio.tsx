@@ -213,7 +213,7 @@ export default function Studio() {
     return (
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20 pb-28">
         <div className="mb-10">
-          <p className="text-[12px] font-bold tracking-[0.12em] uppercase text-ink-soft mb-3">The Studio</p>
+          <p className="text-[12px] font-bold tracking-[0.12em] uppercase grad-text mb-3">The Studio</p>
           <h1 className="type-display text-3xl sm:text-5xl">
             Every photo has a mood.
             <br className="hidden sm:block" /> Let’s find yours.
@@ -234,7 +234,7 @@ export default function Studio() {
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_400px] gap-6 lg:gap-8 items-start">
         {/* ---------- preview column ---------- */}
         <div className="lg:sticky lg:top-20 min-w-0">
-          <div className="bg-vf rounded-[24px] overflow-hidden border border-white/[0.06] shadow-[0_18px_48px_-20px_rgb(0_0_0/0.7),inset_0_1px_0_rgb(255_255_255/0.07)]">
+          <div className="bg-vf rounded-[24px] overflow-hidden shadow-[0_2px_12px_rgb(23_19_31/0.10),inset_0_1px_0_rgb(255_255_255/0.07)]">
             {/* viewfinder chrome strip — etched machined bezel */}
             <div className="h-9 px-4 flex items-center justify-between gap-3 border-b border-white/[0.08]">
               <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-vf-chrome truncate">
@@ -318,7 +318,7 @@ export default function Studio() {
                           transform={`rotate(${i * 60} 24 24)`}
                         />
                       ))}
-                      <circle cx="24" cy="24" r="4.5" fill="#8b5cf6" />
+                      <circle cx="24" cy="24" r="4.5" fill="#f26a2e" />
                     </svg>
                   </div>
                   <div className="relative flex flex-col items-center gap-2">
@@ -348,7 +348,7 @@ export default function Studio() {
                   {/* thin develop line running the bottom edge of the viewfinder */}
                   <div className="absolute bottom-0 inset-x-0 h-[2px] bg-white/[0.06] overflow-hidden">
                     <motion.div
-                      className="h-full bg-violet lm-develop-line"
+                      className="h-full grad-fill lm-develop-line"
                       initial={{ width: '2%' }}
                       animate={{ width: '98%' }}
                       transition={{ duration: 2.2, ease: 'easeInOut' }}
@@ -381,7 +381,7 @@ export default function Studio() {
                     >
                       <img src={item.url} alt="" className="w-full h-full object-cover" draggable={false} />
                     </span>
-                    <span className={`block h-1 rounded-full ${active ? 'bg-ink' : 'bg-transparent'}`} aria-hidden />
+                    <span className={`block h-1 rounded-full ${active ? 'grad-fill' : 'bg-transparent'}`} aria-hidden />
                     <span
                       className={`font-mono text-[10px] tracking-[0.1em] tabular-nums text-center ${
                         active ? 'text-ink' : 'text-fog'
@@ -397,7 +397,7 @@ export default function Studio() {
 
           {/* view toggles + actions under preview */}
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex w-full sm:w-auto sm:inline-flex items-center gap-0.5 rounded-full bg-black/20 p-1 shadow-[inset_0_1px_2px_rgb(0_0_0/0.45)]">
+            <div className="flex w-full sm:w-auto sm:inline-flex items-center gap-0.5 rounded-full bg-black/5 p-1 shadow-[inset_0_1px_2px_rgb(23_19_31/0.08)]">
               {(
                 [
                   { id: 'original', label: 'Original' },
@@ -416,7 +416,7 @@ export default function Studio() {
                     className={`px-4 h-8 font-mono text-[11px] tracking-[0.12em] uppercase rounded-full transition-[background-color,color,box-shadow,transform] duration-150 flex-1 sm:flex-none ${
                       active
                         ? // solid machined pill — fill + scale + soft shadow, stays lifted even while siblings disable
-                          'bg-white text-paper shadow-[0_1px_4px_rgb(0_0_0/0.4)] scale-[1.02]'
+                          'bg-white text-ink shadow-[0_1px_4px_rgb(23_19_31/0.16)] scale-[1.02]'
                         : disabled
                           ? 'text-fog/60'
                           : 'text-ink-soft hover:text-ink'

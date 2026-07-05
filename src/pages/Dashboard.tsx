@@ -105,7 +105,7 @@ export default function Dashboard() {
                       transition={{ duration: 0.15, ease: 'easeOut', delay: i * 0.03 }}
                       className="group relative"
                     >
-                      <div className="relative overflow-hidden rounded-[12px] aspect-4/5 bg-elevated">
+                      <div className="relative overflow-hidden rounded-[12px] aspect-4/5 bg-ink">
                         <img src={h.thumb} alt={h.styleName} className="w-full h-full object-cover" />
                         <button
                           onClick={() => removeHistory(h.id)}
@@ -334,7 +334,7 @@ export default function Dashboard() {
                   : { filter: 'saturate(1.35) contrast(1.2) hue-rotate(-10deg) brightness(0.96)' }
               }
             />
-            <Link to="/studio?style=tokyo-neon" className="btn w-full bg-white text-paper hover:bg-white/90">
+            <Link to="/studio?style=tokyo-neon" className="btn w-full bg-white text-ink hover:bg-white/90">
               Shoot it
             </Link>
           </section>

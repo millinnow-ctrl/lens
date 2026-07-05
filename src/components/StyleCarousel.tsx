@@ -35,8 +35,8 @@ export default function StyleCarousel({ previewSrc, selectedId, onSelect, showFa
             onClick={() => onSelect(style)}
             className={`group relative shrink-0 w-36 snap-start rounded-[18px] bg-surface border text-left transition-all duration-150 ${
               selected
-                ? 'border-ink ring-2 ring-ink/45 scale-[1.02] shadow-[0_6px_18px_-6px_rgb(0_0_0/0.6)]'
-                : 'border-white/[0.07] hover:border-white/20'
+                ? 'border-violet ring-2 ring-violet/60 scale-[1.02] shadow-[0_4px_14px_-4px_rgb(23_19_31/0.25)]'
+                : 'border-black/[0.06] hover:border-black/20 shadow-[0_1px_6px_rgb(23_19_31/0.04)]'
             }`}
             aria-pressed={selected}
           >
@@ -79,7 +79,7 @@ export default function StyleCarousel({ previewSrc, selectedId, onSelect, showFa
             <div className="px-2.5 pt-2 pb-2.5">
               <p className="flex items-center gap-1.5 font-mono text-[10px] font-medium tracking-[0.1em] uppercase text-fog">
                 {index}
-                {selected && <span className="w-1.5 h-1.5 rounded-full bg-ink inline-block" aria-hidden />}
+                {selected && <span className="w-1.5 h-1.5 rounded-full grad-fill inline-block" aria-hidden />}
               </p>
               <p className="font-semibold text-[13px] leading-tight mt-1 text-ink">
                 {style.name}

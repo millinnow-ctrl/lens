@@ -22,14 +22,14 @@ export default function Header({ onAccount }: Props) {
 
       <div className="relative">
         {isPaid ? (
-          <span className="h-9 inline-flex items-center gap-1.5 rounded-full bg-elevated border border-white/10 px-4 text-[14px] font-semibold text-ink">
+          <span className="h-9 inline-flex items-center gap-1.5 rounded-full bg-white border border-ink/[0.08] px-4 text-[14px] font-semibold text-ink">
             <span className="capitalize">{plan}</span>
             <IconSparkle size={14} className="text-violet" />
           </span>
         ) : (
           <Link
             to="/pricing"
-            className="hm-press h-9 inline-flex items-center gap-1.5 rounded-full bg-elevated border border-white/10 px-4 text-[14px] font-semibold text-ink"
+            className="hm-press h-9 inline-flex items-center gap-1.5 rounded-full bg-white border border-ink/[0.08] px-4 text-[14px] font-semibold text-ink"
           >
             Pro
             <IconSparkle size={14} className="text-violet" />

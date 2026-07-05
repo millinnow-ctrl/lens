@@ -27,29 +27,29 @@ export function ApertureMark({
     <svg viewBox="0 0 48 48" className={className} aria-hidden>
       <defs>
         <linearGradient id="lmRing" x1="0" y1="1" x2="1" y2="0">
-          <stop offset="0" stopColor="#7c3aed" />
-          <stop offset="0.55" stopColor="#a855f7" />
-          <stop offset="1" stopColor="#ec4899" />
+          <stop offset="0" stopColor="#b0512e" />
+          <stop offset="0.55" stopColor="#f26a2e" />
+          <stop offset="1" stopColor="#f2a03a" />
         </linearGradient>
         <radialGradient id="lmLens" cx="0.38" cy="0.34" r="0.9">
-          <stop offset="0" stopColor="#c084fc" />
-          <stop offset="0.45" stopColor="#7e22ce" />
-          <stop offset="1" stopColor="#3b0764" />
+          <stop offset="0" stopColor="#f4bd6a" />
+          <stop offset="0.45" stopColor="#c56a24" />
+          <stop offset="1" stopColor="#3a2410" />
         </radialGradient>
       </defs>
-      {tile && <rect x="0.5" y="0.5" width="47" height="47" rx="13" fill="#17131f" />}
+      {tile && <rect x="0.5" y="0.5" width="47" height="47" rx="13" fill="#241c12" />}
       <circle cx="24" cy="24" r="17.6" fill="none" stroke="url(#lmRing)" strokeWidth="2.8" />
       {/* solid blade annulus with twisted seams cut through it */}
-      <circle cx="24" cy="24" r="9.9" fill="none" stroke={tile ? '#f4f1f7' : '#e9e5ee'} strokeWidth="8.6" />
+      <circle cx="24" cy="24" r="9.9" fill="none" stroke={tile ? '#f3ecd9' : '#e6ddc8'} strokeWidth="8.6" />
       {seams.map((d) => (
-        <path key={d} d={d} stroke="#17131f" strokeWidth="1.7" strokeLinecap="round" />
+        <path key={d} d={d} stroke="#241c12" strokeWidth="1.7" strokeLinecap="round" />
       ))}
       <circle cx="24" cy="24" r="6" fill="url(#lmLens)" />
-      <circle cx="22" cy="22" r="1.7" fill="#fff" opacity="0.85" />
+      <circle cx="22" cy="22" r="1.7" fill="#fff6e6" opacity="0.9" />
       {/* sparkle */}
       <path
         d="M38.5 6.5 L39.6 9.4 L42.5 10.5 L39.6 11.6 L38.5 14.5 L37.4 11.6 L34.5 10.5 L37.4 9.4 Z"
-        fill="#f9a8d4"
+        fill="#f7d59a"
       />
     </svg>
   )

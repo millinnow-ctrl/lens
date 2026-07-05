@@ -91,7 +91,7 @@ export default function LandingPage() {
               transition={{ delay: 0.05, duration: 0.35, ease: 'easeOut' }}
               className="type-display tracking-optical-lg text-[clamp(2.6rem,6vw,4.75rem)]"
             >
-              Any photo, shot on the <span className="text-violet">camera</span> it deserved.
+              Any photo, shot on the <span className="grad-text">camera</span> it deserved.
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 12 * rise }}
@@ -141,7 +141,7 @@ export default function LandingPage() {
             transition={{ delay: 0.15, duration: 0.4, ease: 'easeOut' }}
             className="lg:col-span-6 w-full max-w-md mx-auto lg:max-w-[460px] lg:ml-auto"
           >
-            <div className="bg-vf rounded-[24px] overflow-hidden shadow-[0_2px_8px_rgb(23_19_31/0.10),0_28px_64px_-24px_rgb(139_92_246/0.45)]">
+            <div className="bg-vf rounded-[24px] overflow-hidden shadow-[0_2px_8px_rgb(23_19_31/0.10),0_28px_64px_-24px_rgb(242_106_46/0.45)]">
               <div className="h-9 px-4 flex items-center justify-between border-b border-white/10">
                 <span className="inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.14em] text-vf-chrome">
                   <span className="w-1.5 h-1.5 rounded-full bg-signal lm-breathe" />
@@ -202,7 +202,7 @@ export default function LandingPage() {
               <Link
                 key={`${style.id}-${i}`}
                 to={`/studio?style=${style.id}`}
-                className="group w-52 sm:w-60 shrink-0 bg-surface rounded-[20px] border border-ink/5 p-2 shadow-[0_2px_10px_rgb(23_19_31/0.04)] hover:-translate-y-1 hover:shadow-[0_14px_32px_-8px_rgb(139_92_246/0.25)] transition-[box-shadow,transform] duration-200 ease-out"
+                className="group w-52 sm:w-60 shrink-0 bg-surface rounded-[20px] border border-ink/5 p-2 shadow-[0_2px_10px_rgb(23_19_31/0.04)] hover:-translate-y-1 hover:shadow-[0_14px_32px_-8px_rgb(242_106_46/0.25)] transition-[box-shadow,transform] duration-200 ease-out"
               >
                 <div className="relative aspect-4/5 overflow-hidden rounded-[14px] bg-vf">
                   <img
@@ -276,7 +276,7 @@ export default function LandingPage() {
               Every export ships with a share card, an auto-written caption, and a link your friends
               can copy the style from. The jokes live in the captions, not the interface.
             </p>
-            <Link to="/studio" className="btn btn-lg bg-white text-paper border-0 hover:bg-white/90">
+            <Link to="/studio" className="btn btn-lg bg-white text-ink border-0 hover:bg-paper">
               Make one now
             </Link>
           </motion.div>

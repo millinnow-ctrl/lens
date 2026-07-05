@@ -198,10 +198,10 @@ export default function MoodSphere({
           <defs>
             <linearGradient id="orbit" x1="0" y1="0" x2="1" y2="0">
               <stop offset="0" stopColor="#60a5fa" stopOpacity="0" />
-              <stop offset="0.2" stopColor="#8b5cf6" stopOpacity="0.275" />
-              <stop offset="0.5" stopColor="#d946ef" stopOpacity="0.35" />
-              <stop offset="0.8" stopColor="#ec4899" stopOpacity="0.275" />
-              <stop offset="1" stopColor="#ec4899" stopOpacity="0" />
+              <stop offset="0.2" stopColor="#f2863a" stopOpacity="0.28" />
+              <stop offset="0.5" stopColor="#f26a2e" stopOpacity="0.36" />
+              <stop offset="0.8" stopColor="#e14d5a" stopOpacity="0.28" />
+              <stop offset="1" stopColor="#e14d5a" stopOpacity="0" />
             </linearGradient>
           </defs>
           <ellipse cx="200" cy="45" rx="192" ry="38" fill="none" stroke="url(#orbit)" strokeWidth="2" />
@@ -235,7 +235,7 @@ export default function MoodSphere({
                 aria-selected={isFront}
                 onClick={() => (isFront ? onOpen(s) : scrollToIndex(i))}
                 className={`relative snap-center shrink-0 w-[112px] rounded-[22px] p-[2px] cursor-pointer transition-shadow duration-300 ${
-                  isFront ? 'bg-white/80 aura' : 'bg-transparent'
+                  isFront ? 'grad-fill aura' : 'bg-transparent'
                 }`}
                 style={{ willChange: 'transform' }}
               >
@@ -269,7 +269,7 @@ export default function MoodSphere({
                     <p className="text-white/70 text-[9.5px] leading-tight mt-0.5">{s.tagline}</p>
                   </div>
                   {dailyId === s.id && (
-                    <span className="absolute top-1.5 left-1.5 rounded-full bg-violet text-white text-[8.5px] font-bold tracking-[0.05em] uppercase px-1.5 py-0.5">
+                    <span className="absolute top-1.5 left-1.5 rounded-full grad-fill text-white text-[8.5px] font-bold tracking-[0.05em] uppercase px-1.5 py-0.5">
                       Today
                     </span>
                   )}
@@ -283,7 +283,7 @@ export default function MoodSphere({
                         width="9"
                         height="9"
                         fill="none"
-                        stroke="#8b5cf6"
+                        stroke="#f26a2e"
                         strokeWidth="1.8"
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -323,7 +323,7 @@ export default function MoodSphere({
           style={{
             zIndex: 1,
             background:
-              'radial-gradient(ellipse 50% 50% at center, rgb(76 29 149 / 0.38) 0%, rgb(76 29 149 / 0.24) 55%, rgb(76 29 149 / 0) 100%)',
+              'radial-gradient(ellipse 50% 50% at center, rgb(176 81 46 / 0.36) 0%, rgb(176 81 46 / 0.22) 55%, rgb(176 81 46 / 0) 100%)',
           }}
           aria-hidden
         />
@@ -339,14 +339,14 @@ export default function MoodSphere({
             <span
               key={s.id}
               className={`rounded-full transition-all duration-200 ${
-                i === frontIdx ? 'w-2 h-2 bg-ink' : 'w-1.5 h-1.5 bg-ink/15'
-              } ${tried.includes(s.id) && i !== frontIdx ? 'bg-ink/40' : ''}`}
+                i === frontIdx ? 'w-2 h-2 bg-violet' : 'w-1.5 h-1.5 bg-ink/15'
+              } ${tried.includes(s.id) && i !== frontIdx ? 'bg-violet/40' : ''}`}
             />
           ))}
         </div>
       ) : (
         <p className="text-center text-[11.5px] font-semibold text-fog tabular-nums mt-1">
-          <span className="text-ink">{frontIdx + 1}</span> / {n}
+          <span className="text-violet">{frontIdx + 1}</span> / {n}
           <span className="mx-1.5 text-ink/20">·</span>
           {tried.filter((t) => styles.some((s) => s.id === t)).length} tried
         </p>
