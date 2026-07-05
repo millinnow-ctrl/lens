@@ -85,7 +85,7 @@ export default function UploadModal({ open, onClose, container }: Props) {
               <button
                 onClick={onClose}
                 aria-label="Close"
-                className="w-8 h-8 rounded-full bg-[#f4f1f4] flex items-center justify-center text-ink-soft"
+                className="w-10 h-10 rounded-full bg-[#f4f1f4] flex items-center justify-center text-ink-soft"
               >
                 <IconClose size={13} />
               </button>

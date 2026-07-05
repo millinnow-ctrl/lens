@@ -19,7 +19,7 @@
   --color-clay-deep: #7d2b1a; /* pressed / darker brick */
   --color-ink: #261e15; /* primary text — warm espresso (not pure black) */
   --color-ink-soft: #6e6250; /* secondary text — warm taupe */
-  --color-fog: #9c907b; /* tertiary / captions — warm grey */
+  --color-fog: #877b62; /* tertiary / captions — warm grey (>=3:1 on cream) */
   --color-hairline: #e2d8c5; /* dividers, borders — warm hairline */
   --color-violet: #e0392b; /* THE accent — addicting film-red (name kept for reach) */
   --color-orchid: #d33f2b; /* warm brick-red (eyebrows / logo mid-stop) */
@@ -45,6 +45,15 @@ body {
   font-size: 15px;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior-y: none;
+}
+
+/* kill the 300ms tap delay + double-tap-zoom on controls (a11y §2 tap-delay) */
+button,
+[role='button'],
+a,
+label,
+summary {
+  touch-action: manipulation;
 }
 
 ::selection {
@@ -455,6 +464,27 @@ input[type='range'].lm-slider::-moz-range-thumb {
   .lm-develop,
   .lm-shutter-flash {
     animation-duration: 0.01s;
+  }
+  /* silence the ambient darkroom loops — they convey no state, only mood,
+     so a motion-sensitive user loses nothing when they stop */
+  .lm-breathe,
+  .lm-safelight,
+  .lm-darkroom-grain,
+  .lm-darkroom-sweep,
+  .lm-darkroom-vignette,
+  .lm-iris,
+  .lm-develop-line {
+    animation: none !important;
+  }
+  /* global safety net: no keyframe loop should run more than once, and
+     transitions collapse to near-instant (functional feedback stays) */
+  *,
+  *::before,
+  *::after {
+    animation-iteration-count: 1 !important;
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.06ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
