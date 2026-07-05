@@ -209,7 +209,7 @@ function HomeContent({
             </p>
             <button
               onClick={onUpload}
-              className="btn gap-2 border-0 bg-ink text-[#fbf6eb] mt-3 shadow-[0_6px_18px_rgb(0_0_0/0.45)]"
+              className="btn gap-2 border-0 glass-dark text-white mt-3"
             >
               <IconUpload size={16} />
               Start with a photo
@@ -226,6 +226,7 @@ function HomeContent({
         </p>
         <div className="flex items-center justify-between px-5">
           <h2 className="type-display text-[21px]">Looks</h2>
+          <span className="flex-1 mx-3 h-px bg-ink/10 self-center" aria-hidden />
           <button
             onClick={() => setSpinSeed((s) => s + 1)}
             className="hm-pill hm-press h-8 px-3.5 text-[13px] font-semibold text-ink-soft"
@@ -274,16 +275,18 @@ function HomeContent({
         <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-fog mb-1">Recent develops</p>
         <div className="flex items-center justify-between mb-3">
           <h2 className="type-display text-[21px]">Your roll</h2>
+          <span className="flex-1 mx-3 h-px bg-ink/10 self-center" aria-hidden />
           <Link to="/dashboard" className="flex items-center gap-0.5 text-[13.5px] font-semibold text-ink-soft">
             See all
             <IconChevronRight size={13} />
           </Link>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-4">
           {recents.length > 0 ? (
-            recents.map((h) => (
+            recents.map((h, i) => (
               <RecentProjectCard
                 key={h.id}
+                index={i}
                 to={`/studio?style=${h.styleId}`}
                 image={h.thumb}
                 label={h.styleName}
@@ -293,6 +296,7 @@ function HomeContent({
           ) : (
             <>
               <RecentProjectCard
+                index={0}
                 to="/studio?style=iphone-flash"
                 image={sampleFriends}
                 label="iPhone Flash"
@@ -300,16 +304,15 @@ function HomeContent({
                 filter={getStyle('iphone-flash')?.cardFilter}
                 chip="Sample"
               />
-              <div className="-rotate-[0.6deg]">
-                <RecentProjectCard
-                  to="/studio?style=a24-still"
-                  image={sampleDog}
-                  label="A24 Still"
-                  sublabel="Try this look"
-                  filter={getStyle('a24-still')?.cardFilter}
-                  chip="Sample"
-                />
-              </div>
+              <RecentProjectCard
+                index={1}
+                to="/studio?style=a24-still"
+                image={sampleDog}
+                label="A24 Still"
+                sublabel="Try this look"
+                filter={getStyle('a24-still')?.cardFilter}
+                chip="Sample"
+              />
             </>
           )}
         </div>
@@ -341,10 +344,10 @@ function HomeContent({
                 onClick={() =>
                   navigate(`/studio?style=${daily.id}&p=${encodeParams(dailyRecipe())}${dailyDone ? '' : '&daily=1'}`)
                 }
-                className={`hm-press mt-3 inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-[13px] font-semibold ${
+                className={`hm-press mt-3 inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-[13px] font-semibold border ${
                   dailyDone
-                    ? 'bg-white/15 text-white/85'
-                    : 'bg-surface text-clay-deep shadow-[0_2px_6px_rgb(60_20_10/0.28)]'
+                    ? 'bg-white/10 border-white/20 text-white/85'
+                    : 'bg-white/20 border-white/45 text-white backdrop-blur-md shadow-[inset_0_1px_0_rgb(255_255_255/0.5),0_2px_8px_rgb(60_20_10/0.3)]'
                 }`}
               >
                 {dailyDone ? 'Shot today' : 'Shoot it'}
@@ -366,7 +369,10 @@ function HomeContent({
       {/* tools — one wide, two small; shapes vary on purpose */}
       <motion.section variants={childVariants} className="mt-7 px-5">
         <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-fog mb-1">The darkroom</p>
-        <h2 className="type-display text-[21px] mb-3">Tools</h2>
+        <div className="flex items-center mb-3">
+          <h2 className="type-display text-[21px]">Tools</h2>
+          <span className="flex-1 ml-3 h-px bg-ink/10 self-center" aria-hidden />
+        </div>
         <ToolCard
           to="/studio"
           title="Video"
@@ -386,6 +392,7 @@ function HomeContent({
         <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-fog mb-1">LM engine · live</p>
         <div className="flex items-center justify-between mb-3">
           <h2 className="type-display text-[21px]">Before & after</h2>
+          <span className="flex-1 mx-3 h-px bg-ink/10 self-center" aria-hidden />
           <Link
             to="/studio?style=film-noir"
             className="flex items-center gap-0.5 text-[13.5px] font-semibold text-ink-soft"

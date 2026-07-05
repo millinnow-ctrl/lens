@@ -36,6 +36,23 @@ export async function haptic(kind: HapticKind = 'light'): Promise<void> {
 }
 
 /**
+ * The detent tick for dials and carousels — iOS's picker-wheel selection
+ * haptic on native (crisper and quieter than an impact), a 4ms buzz on
+ * Android web. One tick per detent crossing makes a scroll feel ratcheted.
+ */
+export async function hapticTick(): Promise<void> {
+  if (isNative()) {
+    try {
+      await Haptics.selectionChanged()
+      return
+    } catch {
+      /* fall through */
+    }
+  }
+  navigator.vibrate?.(4)
+}
+
+/**
  * Native camera capture. Returns a data URL, or null when we're on the web —
  * callers fall back to an <input capture> there.
  */

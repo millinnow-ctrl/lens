@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { haptic } from '../../lib/native'
+import { haptic, hapticTick } from '../../lib/native'
 import { deckCard, springPress } from '../../lib/motion'
 import type { CameraStyle } from '../../lib/styles'
 
@@ -112,7 +112,9 @@ export default function MoodSphere({
       const moved = lastFront.current !== -1
       lastFront.current = nearest
       setFrontIdx(nearest)
-      if (moved) haptic('light')
+      // one detent tick per card crossing the lens — the ratchet of a film
+      // advance wheel (selection haptic on iOS, micro-buzz on Android web)
+      if (moved) hapticTick()
     }
   }, [n, reduceMotion])
 
