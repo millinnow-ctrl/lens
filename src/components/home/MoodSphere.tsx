@@ -198,10 +198,10 @@ export default function MoodSphere({
           <defs>
             <linearGradient id="orbit" x1="0" y1="0" x2="1" y2="0">
               <stop offset="0" stopColor="#60a5fa" stopOpacity="0" />
-              <stop offset="0.2" stopColor="#f2863a" stopOpacity="0.28" />
-              <stop offset="0.5" stopColor="#f26a2e" stopOpacity="0.36" />
-              <stop offset="0.8" stopColor="#e14d5a" stopOpacity="0.28" />
-              <stop offset="1" stopColor="#e14d5a" stopOpacity="0" />
+              <stop offset="0.2" stopColor="#f2593f" stopOpacity="0.28" />
+              <stop offset="0.5" stopColor="#e0392b" stopOpacity="0.38" />
+              <stop offset="0.8" stopColor="#b02a26" stopOpacity="0.28" />
+              <stop offset="1" stopColor="#b02a26" stopOpacity="0" />
             </linearGradient>
           </defs>
           <ellipse cx="200" cy="45" rx="192" ry="38" fill="none" stroke="url(#orbit)" strokeWidth="2" />
@@ -283,7 +283,7 @@ export default function MoodSphere({
                         width="9"
                         height="9"
                         fill="none"
-                        stroke="#f26a2e"
+                        stroke="#e0392b"
                         strokeWidth="1.8"
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -323,7 +323,7 @@ export default function MoodSphere({
           style={{
             zIndex: 1,
             background:
-              'radial-gradient(ellipse 50% 50% at center, rgb(176 81 46 / 0.36) 0%, rgb(176 81 46 / 0.22) 55%, rgb(176 81 46 / 0) 100%)',
+              'radial-gradient(ellipse 50% 50% at center, rgb(200 50 40 / 0.34) 0%, rgb(200 50 40 / 0.20) 55%, rgb(200 50 40 / 0) 100%)',
           }}
           aria-hidden
         />

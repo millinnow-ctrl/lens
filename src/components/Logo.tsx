@@ -27,9 +27,9 @@ export function ApertureMark({
     <svg viewBox="0 0 48 48" className={className} aria-hidden>
       <defs>
         <linearGradient id="lmRing" x1="0" y1="1" x2="1" y2="0">
-          <stop offset="0" stopColor="#b0512e" />
-          <stop offset="0.55" stopColor="#f26a2e" />
-          <stop offset="1" stopColor="#f2a03a" />
+          <stop offset="0" stopColor="#a02220" />
+          <stop offset="0.55" stopColor="#e0392b" />
+          <stop offset="1" stopColor="#f2673f" />
         </linearGradient>
         <radialGradient id="lmLens" cx="0.38" cy="0.34" r="0.9">
           <stop offset="0" stopColor="#f4bd6a" />

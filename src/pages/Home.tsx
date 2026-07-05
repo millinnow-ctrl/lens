@@ -428,7 +428,7 @@ export default function Home() {
         </p>
         <button
           onClick={() => dismissWelcome(true)}
-          className="btn btn-lg w-full gap-2.5 border-0 grad-fill text-white shadow-[0_6px_20px_rgb(242_106_46/0.35)]"
+          className="btn btn-lg w-full gap-2.5 border-0 grad-fill text-white shadow-[0_6px_20px_rgb(224_57_43/0.35)]"
         >
           <IconUpload size={17} />
           Pick a photo

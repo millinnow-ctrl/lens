@@ -131,7 +131,7 @@ export default function StepControl({ scale, value, onChange }: Props) {
                   className="block w-[2px] rounded-full"
                   style={{
                     height: passed ? '15px' : '11px',
-                    background: passed ? 'rgb(242 106 46 / 0.95)' : 'rgb(23 19 31 / 0.28)',
+                    background: passed ? 'rgb(224 57 43 / 0.95)' : 'rgb(23 19 31 / 0.28)',
                     boxShadow: 'inset 0 1px 0 rgb(255 255 255 / 0.5)',
                   }}
                 />

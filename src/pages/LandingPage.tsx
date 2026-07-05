@@ -141,7 +141,7 @@ export default function LandingPage() {
             transition={{ delay: 0.15, duration: 0.4, ease: 'easeOut' }}
             className="lg:col-span-6 w-full max-w-md mx-auto lg:max-w-[460px] lg:ml-auto"
           >
-            <div className="bg-vf rounded-[24px] overflow-hidden shadow-[0_2px_8px_rgb(23_19_31/0.10),0_28px_64px_-24px_rgb(242_106_46/0.45)]">
+            <div className="bg-vf rounded-[24px] overflow-hidden shadow-[0_2px_8px_rgb(23_19_31/0.10),0_28px_64px_-24px_rgb(224_57_43/0.45)]">
               <div className="h-9 px-4 flex items-center justify-between border-b border-white/10">
                 <span className="inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.14em] text-vf-chrome">
                   <span className="w-1.5 h-1.5 rounded-full bg-signal lm-breathe" />
@@ -202,7 +202,7 @@ export default function LandingPage() {
               <Link
                 key={`${style.id}-${i}`}
                 to={`/studio?style=${style.id}`}
-                className="group w-52 sm:w-60 shrink-0 bg-surface rounded-[20px] border border-ink/5 p-2 shadow-[0_2px_10px_rgb(23_19_31/0.04)] hover:-translate-y-1 hover:shadow-[0_14px_32px_-8px_rgb(242_106_46/0.25)] transition-[box-shadow,transform] duration-200 ease-out"
+                className="group w-52 sm:w-60 shrink-0 bg-surface rounded-[20px] border border-ink/5 p-2 shadow-[0_2px_10px_rgb(23_19_31/0.04)] hover:-translate-y-1 hover:shadow-[0_14px_32px_-8px_rgb(224_57_43/0.25)] transition-[box-shadow,transform] duration-200 ease-out"
               >
                 <div className="relative aspect-4/5 overflow-hidden rounded-[14px] bg-vf">
                   <img

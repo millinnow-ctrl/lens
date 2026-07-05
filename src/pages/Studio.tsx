@@ -318,7 +318,7 @@ export default function Studio() {
                           transform={`rotate(${i * 60} 24 24)`}
                         />
                       ))}
-                      <circle cx="24" cy="24" r="4.5" fill="#f26a2e" />
+                      <circle cx="24" cy="24" r="4.5" fill="#e0392b" />
                     </svg>
                   </div>
                   <div className="relative flex flex-col items-center gap-2">

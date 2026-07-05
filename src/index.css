@@ -15,17 +15,17 @@
      Warm, tactile, human — the photograph is still the loudest color. */
   --color-paper: #f1e8d6; /* app canvas — warm oatmeal cream */
   --color-surface: #fbf6eb; /* raised cards / sheets — warm sand near-white */
-  --color-clay: #b0512e; /* rich terracotta — hero / feature blocks */
-  --color-clay-deep: #8f3d22; /* pressed / darker terracotta */
+  --color-clay: #a83a26; /* rich brick-red — hero / feature blocks */
+  --color-clay-deep: #7d2b1a; /* pressed / darker brick */
   --color-ink: #261e15; /* primary text — warm espresso (not pure black) */
   --color-ink-soft: #6e6250; /* secondary text — warm taupe */
   --color-fog: #9c907b; /* tertiary / captions — warm grey */
   --color-hairline: #e2d8c5; /* dividers, borders — warm hairline */
-  --color-violet: #f26a2e; /* THE accent — addicting tangerine (name kept for reach) */
-  --color-orchid: #f2863a; /* warm amber (logo mid-stop) */
-  --color-magenta: #e14d5a; /* warm rose-red — favorites / hearts */
-  /* legacy accent name used across the app — maps to the tangerine accent */
-  --color-signal: #f26a2e;
+  --color-violet: #e0392b; /* THE accent — addicting film-red (name kept for reach) */
+  --color-orchid: #d33f2b; /* warm brick-red (eyebrows / logo mid-stop) */
+  --color-magenta: #e0453b; /* warm red — favorites / hearts */
+  /* legacy accent name used across the app — maps to the film-red accent */
+  --color-signal: #e0392b;
   --color-vf: #201811; /* deepest well — viewfinder / contact sheet (dark espresso) */
   --color-vf-chrome: #94886f;
 
@@ -48,7 +48,7 @@ body {
 }
 
 ::selection {
-  background: rgb(242 106 46 / 0.20);
+  background: rgb(224 57 43 / 0.20);
 }
 
 :focus-visible {
@@ -58,31 +58,31 @@ body {
 
 /* ---------- brand gradient helpers ---------- */
 
-/* warm clay → tangerine → amber, e.g. the "Mood" in LensMood */
+/* deep-red → red → warm coral, e.g. the "Mood" in LensMood */
 .grad-text {
-  background: linear-gradient(96deg, #b0512e 0%, #f26a2e 55%, #f2a03a 100%);
+  background: linear-gradient(96deg, #a02220 0%, #e0392b 52%, #f2593f 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-/* glossy tangerine fill — the addicting primary action */
+/* glossy film-red fill — the addicting primary action */
 .grad-fill {
-  background: linear-gradient(180deg, #f47a3e 0%, #ee5c26 100%);
+  background: linear-gradient(180deg, #ea4436 0%, #d62a1f 100%);
 }
 
 /* soft warm glow behind the primary action / focal card */
 .aura {
   box-shadow:
-    0 0 0 1px rgb(242 106 46 / 0.22),
-    0 4px 18px rgb(242 106 46 / 0.32),
-    0 4px 24px rgb(176 81 46 / 0.20);
+    0 0 0 1px rgb(224 57 43 / 0.22),
+    0 4px 18px rgb(224 57 43 / 0.32),
+    0 4px 24px rgb(168 45 40 / 0.20);
 }
 .aura-soft {
   box-shadow:
-    0 0 0 1px rgb(242 106 46 / 0.14),
-    0 3px 14px rgb(242 106 46 / 0.18),
-    0 3px 18px rgb(176 81 46 / 0.10);
+    0 0 0 1px rgb(224 57 43 / 0.14),
+    0 3px 14px rgb(224 57 43 / 0.18),
+    0 3px 18px rgb(168 45 40 / 0.10);
 }
 
 /* warm gradient ring around a pill/card: wrap content in an element with this class */
@@ -90,10 +90,10 @@ body {
   position: relative;
   border-radius: 999px;
   padding: 2px;
-  background: linear-gradient(120deg, #f2a03a 0%, #f26a2e 45%, #e14d5a 100%);
+  background: linear-gradient(120deg, #f2593f 0%, #e0392b 45%, #a82a26 100%);
   box-shadow:
-    0 6px 22px rgb(242 106 46 / 0.35),
-    0 6px 26px rgb(225 77 90 / 0.18);
+    0 6px 22px rgb(224 57 43 / 0.35),
+    0 6px 26px rgb(168 42 42 / 0.18);
 }
 .glow-ring-card {
   border-radius: 28px;
@@ -281,8 +281,8 @@ body {
 }
 .tag-signal {
   color: var(--color-violet);
-  border-color: rgb(242 106 46 / 0.35);
-  background: rgb(242 106 46 / 0.10);
+  border-color: rgb(224 57 43 / 0.35);
+  background: rgb(224 57 43 / 0.10);
 }
 .tag-fill {
   background: var(--color-ink);
@@ -558,9 +558,9 @@ input[type='range'].lm-slider::-moz-range-thumb {
   animation: lm-iris-breathe 2.4s ease-in-out infinite;
 }
 
-/* develop line — warm tangerine leading edge where the chemistry is working */
+/* develop line — warm red leading edge where the chemistry is working */
 .lm-develop-line {
-  box-shadow: 0 0 7px rgba(242, 106, 46, 0.5);
+  box-shadow: 0 0 7px rgba(224, 57, 43, 0.5);
 }
 
 /* --- the print resolving (phase: done, first reveal only) --- */
@@ -785,7 +785,7 @@ input[type='range'].lm-slider::-moz-range-thumb {
 .hm-cta {
   box-shadow:
     0 2px 6px rgb(38 30 21 / 0.16),
-    0 10px 28px rgb(242 106 46 / 0.30);
+    0 10px 28px rgb(224 57 43 / 0.30);
 }
 
 /* floating pill tab bar — like the reference */
