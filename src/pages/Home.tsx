@@ -225,7 +225,7 @@ function HomeContent({
           The case · 18 cameras
         </p>
         <div className="flex items-center justify-between px-5">
-          <h2 className="text-[19px] font-bold tracking-[-0.02em]">Looks</h2>
+          <h2 className="type-display text-[21px]">Looks</h2>
           <button
             onClick={() => setSpinSeed((s) => s + 1)}
             className="hm-pill hm-press h-8 px-3.5 text-[13px] font-semibold text-ink-soft"
@@ -273,7 +273,7 @@ function HomeContent({
       <motion.section variants={childVariants} className="mt-7 px-5">
         <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-fog mb-1">Recent develops</p>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-[19px] font-bold tracking-[-0.02em]">Your roll</h2>
+          <h2 className="type-display text-[21px]">Your roll</h2>
           <Link to="/dashboard" className="flex items-center gap-0.5 text-[13.5px] font-semibold text-ink-soft">
             See all
             <IconChevronRight size={13} />
@@ -333,7 +333,7 @@ function HomeContent({
                   <span className="text-[10.5px] font-semibold text-white/60 tabular-nums">· Day {streak.count}</span>
                 )}
               </div>
-              <p className="text-white font-bold text-[19px] mt-1 leading-tight truncate">{daily.name}</p>
+              <p className="type-display text-white text-[22px] mt-1 leading-tight truncate">{daily.name}</p>
               <p className="text-[11.5px] text-white/70 mt-0.5 tabular-nums truncate">
                 Ends at midnight · {tried.length}/{CAMERA_STYLES.length} in the case
               </p>
@@ -366,7 +366,7 @@ function HomeContent({
       {/* tools — one wide, two small; shapes vary on purpose */}
       <motion.section variants={childVariants} className="mt-7 px-5">
         <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-fog mb-1">The darkroom</p>
-        <h2 className="text-[19px] font-bold tracking-[-0.02em] mb-3">Tools</h2>
+        <h2 className="type-display text-[21px] mb-3">Tools</h2>
         <ToolCard
           to="/studio"
           title="Video"
@@ -385,7 +385,7 @@ function HomeContent({
       <motion.section variants={childVariants} className="mt-7 px-5">
         <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-fog mb-1">LM engine · live</p>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-[19px] font-bold tracking-[-0.02em]">Before & after</h2>
+          <h2 className="type-display text-[21px]">Before & after</h2>
           <Link
             to="/studio?style=film-noir"
             className="flex items-center gap-0.5 text-[13.5px] font-semibold text-ink-soft"
@@ -410,6 +410,15 @@ function HomeContent({
         </div>
         <p className="px-1 pt-2.5 text-[12px] text-fog">
           Film Noir — drag to compare. Rendered on your phone, nothing uploaded.
+        </p>
+      </motion.section>
+
+      {/* colophon — the maker's mark at the end of the roll (doubles as a
+          visible build stamp so you always know which cut you're holding) */}
+      <motion.section variants={childVariants} className="mt-10 px-5 flex flex-col items-center gap-1.5">
+        <ApertureMark className="w-7 h-7 opacity-80" />
+        <p className="font-mono text-[9.5px] tracking-[0.2em] uppercase text-fog tabular-nums">
+          LensMood · Cut R10 “Fraunces” · Made in the darkroom
         </p>
       </motion.section>
     </motion.div>

@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import '@fontsource-variable/inter';
+@import '@fontsource-variable/fraunces';
 @import '@fontsource/poppins/600.css';
 @import '@fontsource/poppins/700.css';
 @import '@fontsource/ibm-plex-mono/400.css';
@@ -9,6 +10,9 @@
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-brand: 'Poppins', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  /* editorial display voice — a warm, soft-serif with real character; the
+     film-journal headline face. Inter stays for UI/body, Plex Mono for spec. */
+  --font-display: 'Fraunces Variable', Georgia, 'Times New Roman', serif;
 
   /* LensMood palette — "golden-hour darkroom": warm oatmeal-cream paper,
      rich terracotta clay for feature blocks, one addicting tangerine accent.
@@ -60,6 +64,25 @@ body {
   font-size: 15px;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior-y: none;
+}
+
+/* paper tooth — a whisper of print-stock texture over the cream so the
+   canvas reads as material, not a flat digital fill. Fixed so it doesn't
+   swim while scrolling; pointer-events none keeps it inert. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.24 0 0 0 0 0.17 0 0 0 0 0.09 0 0 0 0.045 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)'/%3E%3C/svg%3E");
+  background-size: 240px 240px;
+}
+/* app content sits above the tooth */
+#root {
+  position: relative;
+  z-index: 1;
 }
 
 /* kill the 300ms tap delay + double-tap-zoom on controls (a11y §2 tap-delay) */
@@ -198,12 +221,13 @@ summary {
 /* ---------- type ---------- */
 
 .type-display {
-  font-family: var(--font-sans);
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.05;
+  font-family: var(--font-display);
+  font-weight: 590;
+  letter-spacing: -0.015em;
+  line-height: 1.04;
   text-wrap: balance;
-  font-feature-settings: 'ss01' on;
+  /* large optical size = the elegant high-contrast cut of the face */
+  font-variation-settings: 'opsz' 72;
 }
 
 /* optical tracking for display sizes ≥28px */

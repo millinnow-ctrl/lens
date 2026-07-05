@@ -454,7 +454,7 @@ export default function Studio() {
         <div className="space-y-6 min-w-0">
           <section className="panel p-5">
             <div className="flex items-baseline justify-between mb-1">
-              <h2 className="text-lg font-semibold tracking-[-0.01em]">Camera mood</h2>
+              <h2 className="type-display text-[21px]">Camera mood</h2>
               {!isPaid && (
                 <span className="font-mono text-[10px] tracking-[0.1em] uppercase text-fog tabular-nums">
                   {creditsLeft} free {creditsLeft === 1 ? 'shot' : 'shots'} left
@@ -481,7 +481,7 @@ export default function Studio() {
                 exit={{ opacity: 0, y: 8 }}
                 className="panel p-5"
               >
-                <h2 className="text-lg font-semibold tracking-[-0.01em] mb-1">Fine-tune</h2>
+                <h2 className="type-display text-[21px] mb-1">Fine-tune</h2>
                 {video && (
                   <p className="text-[12px] text-fog mb-3">Adjustments apply to the clip live.</p>
                 )}

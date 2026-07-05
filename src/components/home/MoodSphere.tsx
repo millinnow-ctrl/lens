@@ -347,11 +347,38 @@ export default function MoodSphere({
           ))}
         </div>
       ) : (
-        <p className="text-center text-[11.5px] font-semibold text-fog tabular-nums mt-1">
-          <span className="text-violet">{frontIdx + 1}</span> / {n}
-          <span className="mx-1.5 text-ink/20">·</span>
-          {tried.filter((t) => styles.some((s) => s.id === t)).length} tried
-        </p>
+        /* the case, as an object: one tick per camera. Shot frames fill red,
+           the frame under the lens stands tall — a film counter, not a stat. */
+        <div className="mt-1.5 flex flex-col items-center gap-1">
+          <div
+            className="flex items-end gap-[3px]"
+            aria-label={`${tried.filter((t) => styles.some((s) => s.id === t)).length} of ${n} looks shot`}
+          >
+            {styles.map((s, i) => {
+              const shot = tried.includes(s.id)
+              const isFront = i === frontIdx
+              return (
+                <span
+                  key={s.id}
+                  className="rounded-[1px] transition-all duration-200"
+                  style={{
+                    width: 3,
+                    height: isFront ? 14 : 8,
+                    background: shot
+                      ? 'rgb(224 57 43 / 0.9)'
+                      : isFront
+                        ? 'rgb(38 30 21 / 0.85)'
+                        : 'rgb(60 42 24 / 0.22)',
+                  }}
+                />
+              )
+            })}
+          </div>
+          <p className="font-mono text-[9.5px] tracking-[0.14em] uppercase text-fog tabular-nums">
+            Frame {String(frontIdx + 1).padStart(2, '0')}/{n} ·{' '}
+            {tried.filter((t) => styles.some((s) => s.id === t)).length} shot
+          </p>
+        </div>
       )}
     </div>
   )
