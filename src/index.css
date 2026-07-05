@@ -107,6 +107,27 @@ summary {
   }
 }
 
+/* the "LIVE" indicator actually breathes — a recording light, not a dot */
+@keyframes lm-live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.78);
+  }
+}
+.lm-live {
+  animation: lm-live-pulse 1.8s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .lm-live {
+    animation: none;
+  }
+}
+
 ::selection {
   background: rgb(224 57 43 / 0.20);
 }

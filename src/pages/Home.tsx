@@ -165,7 +165,7 @@ function HomeContent({
           {/* viewfinder chrome strip — the same machined bezel as the studio */}
           <div className="h-8 px-3.5 flex items-center justify-between gap-3 border-b border-white/[0.08]">
             <span className="flex items-center gap-2 font-mono text-[10px] tracking-[0.16em] uppercase text-vf-chrome">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#e0392b]" aria-hidden />
+              <span className="lm-live w-1.5 h-1.5 rounded-full bg-[#e0392b]" aria-hidden />
               LM Engine · Live
             </span>
             <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-vf-chrome tabular-nums">

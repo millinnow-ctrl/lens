@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import Modal from '../components/Modal'
+import AnimatedNumber from '../components/AnimatedNumber'
 import { IconCheck } from '../components/icons'
 import { useApp, type Plan } from '../lib/store'
 import { purchaseNative, requiresAppStoreBilling, restorePurchases } from '../lib/purchases'
@@ -169,9 +170,11 @@ export default function PricingPage() {
                 </p>
                 <p className="text-[13px] leading-relaxed mt-2.5 mb-6 text-fog">{tier.blurb}</p>
                 <p className="mb-7 flex items-baseline gap-1">
-                  <span className="text-[40px] leading-none font-bold tracking-[-0.02em] tabular-nums">
-                    ${tier.price}
-                  </span>
+                  <AnimatedNumber
+                    value={tier.price}
+                    format={(n) => `$${Math.round(n)}`}
+                    className="text-[40px] leading-none font-bold tracking-[-0.02em]"
+                  />
                   <span className="text-[13px] text-fog">/month</span>
                 </p>
                 <ul className="mb-8 flex-1 space-y-3">

@@ -1,7 +1,8 @@
 import { useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, type PanInfo } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
+import { springSheet } from '../../lib/motion'
 import { IconCamera, IconClose, IconFilm, IconUpload } from '../icons'
 import { fileToDataURL } from '../../lib/engine'
 import { captureWithNativeCamera, haptic, isNative } from '../../lib/native'
@@ -73,13 +74,23 @@ export default function UploadModal({ open, onClose, container }: Props) {
         >
           <div className="absolute inset-0 bg-vf/45" onClick={onClose} aria-hidden />
           <motion.div
-            initial={{ y: 48 }}
+            initial={{ y: '100%' }}
             animate={{ y: 0 }}
-            exit={{ y: 64, opacity: 0 }}
-            transition={{ duration: 0.22, ease: [0.2, 0.9, 0.3, 1] }}
-            className="relative w-full max-w-md bg-white rounded-t-[28px] px-5 pt-3 pb-[calc(env(safe-area-inset-bottom)+20px)] shadow-2xl"
+            exit={{ y: '100%' }}
+            transition={springSheet}
+            drag="y"
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.6 }}
+            dragMomentum={false}
+            onDragEnd={(_e, info: PanInfo) => {
+              if (info.offset.y > 96 || info.velocity.y > 620) {
+                haptic('light')
+                onClose()
+              }
+            }}
+            className="relative w-full max-w-md bg-surface rounded-t-[28px] px-5 pt-3 pb-[calc(env(safe-area-inset-bottom)+20px)] shadow-[0_-8px_44px_rgb(60_42_24/0.4),inset_0_1px_0_rgb(255_255_255/0.6)] cursor-grab active:cursor-grabbing"
           >
-            <div className="w-10 h-[5px] rounded-full bg-ink/10 mx-auto mb-4" aria-hidden />
+            <div className="w-11 h-[5px] rounded-full bg-ink/15 mx-auto mb-4" aria-hidden />
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[17px] font-bold tracking-[-0.01em]">Start from a photo</h3>
               <button

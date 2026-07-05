@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { haptic } from '../../lib/native'
+import { springPress } from '../../lib/motion'
 
 interface Props {
   to: string
@@ -26,10 +28,13 @@ export default function ToolCard({ to, title, sub, image, tag, ratio = 'aspect-[
   }
 
   return (
-    <button
+    <motion.button
       onClick={go}
       aria-pressed={active}
-      className={`hm-press lift shadow-[var(--shadow-e2)] relative block w-full text-left ${ratio} rounded-[18px] overflow-hidden bg-vf ${
+      whileHover={{ y: -3 }}
+      whileTap={{ scale: 0.955 }}
+      transition={springPress}
+      className={`shadow-[var(--shadow-e2)] relative block w-full text-left ${ratio} rounded-[18px] overflow-hidden bg-vf ${
         active ? 'ring-2 ring-ink/70 ring-offset-2 ring-offset-paper' : ''
       }`}
     >
@@ -50,6 +55,6 @@ export default function ToolCard({ to, title, sub, image, tag, ratio = 'aspect-[
         <p className="text-white font-semibold text-[14px] leading-tight truncate">{title}</p>
         {sub && <p className="text-white/80 text-[11px] leading-tight mt-0.5 truncate">{sub}</p>}
       </div>
-    </button>
+    </motion.button>
   )
 }

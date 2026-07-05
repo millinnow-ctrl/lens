@@ -23,12 +23,13 @@ export const springSoft: Transition = {
   mass: 0.9,
 }
 
-/** slightly livelier spring for small press/tap feedback (chips, cards) */
+/** press/tap feedback — snappy down, springs back with the faintest overshoot
+ *  so a tap feels like touching a physical, sprung object (not a CSS ease) */
 export const springPress: Transition = {
   type: 'spring',
-  stiffness: 520,
-  damping: 30,
-  mass: 0.7,
+  stiffness: 600,
+  damping: 20,
+  mass: 0.6,
 }
 
 /** a calm eased tween for opacity/position on big surfaces */
@@ -36,6 +37,44 @@ export const easeOut: Transition = {
   duration: 0.28,
   ease: [0.22, 0.61, 0.36, 1],
 }
+
+/** a spring with a little life in it — a touch of overshoot so interactive
+ *  elements feel physical, not merely eased. Use on cards / focal surfaces. */
+export const springLively: Transition = {
+  type: 'spring',
+  stiffness: 420,
+  damping: 26,
+  mass: 0.8,
+}
+
+/** the spring a bottom sheet settles on after a gestural drag — heavier, with
+ *  the faintest settle so it reads as a real panel with mass. */
+export const springSheet: Transition = {
+  type: 'spring',
+  stiffness: 360,
+  damping: 36,
+  mass: 1.05,
+}
+
+/**
+ * Scroll-reveal: a section rises and settles as it enters the viewport, so the
+ * feed feels alive as you scroll instead of arriving all at once. Pair with
+ * `whileInView="animate"` + `viewport={{ once: true, margin: '-12% 0px' }}`.
+ */
+export const revealOnScroll = (reduced = prefersReducedMotion()): Variants =>
+  reduced
+    ? {
+        initial: { opacity: 0 },
+        animate: { opacity: 1, transition: { duration: 0.2 } },
+      }
+    : {
+        initial: { opacity: 0, y: 26 },
+        animate: {
+          opacity: 1,
+          y: 0,
+          transition: { type: 'spring', stiffness: 300, damping: 30, mass: 0.9 },
+        },
+      }
 
 /* -------------------------------------------------------------- page routes */
 

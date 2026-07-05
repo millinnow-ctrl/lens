@@ -1,5 +1,9 @@
 import { Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { IconDots } from '../icons'
+import { springPress } from '../../lib/motion'
+
+const MotionLink = motion(Link)
 
 interface Props {
   to: string
@@ -15,7 +19,13 @@ interface Props {
 /** big rounded photo card — the "Recent edits" tile from the reference */
 export default function RecentProjectCard({ to, image, label, sublabel, filter, chip }: Props) {
   return (
-    <Link to={to} className="hm-press lift shadow-[var(--shadow-e2)] relative block rounded-[20px] overflow-hidden aspect-[4/4.6] bg-vf">
+    <MotionLink
+      to={to}
+      whileHover={{ y: -3 }}
+      whileTap={{ scale: 0.97 }}
+      transition={springPress}
+      className="shadow-[var(--shadow-e2)] relative block rounded-[20px] overflow-hidden aspect-[4/4.6] bg-vf"
+    >
       <img
         src={image}
         alt=""
@@ -42,6 +52,6 @@ export default function RecentProjectCard({ to, image, label, sublabel, filter, 
           <IconDots size={15} />
         </span>
       </div>
-    </Link>
+    </MotionLink>
   )
 }
