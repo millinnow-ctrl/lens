@@ -238,7 +238,7 @@ export default function MoodSphere({
                 onClick={() => (isFront ? onOpen(s) : scrollToIndex(i))}
                 className={`relative snap-center shrink-0 w-[112px] rounded-[22px] p-[3px] cursor-pointer transition-shadow duration-300 ${
                   isFront
-                    ? 'bg-[#fbf6eb] shadow-[var(--shadow-e4)]'
+                    ? 'bg-[#fdfbf7] shadow-[var(--shadow-e4)]'
                     : 'bg-transparent'
                 }`}
                 style={{ willChange: 'transform' }}

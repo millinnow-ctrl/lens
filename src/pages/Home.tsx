@@ -442,7 +442,7 @@ function HomeContent({
               </button>
             </div>
             {/* the day's frame as a pinned instant print, leaning on the slip */}
-            <div className="shrink-0 -rotate-3 rounded-[7px] bg-[#fbf6eb] p-1.5 pb-3.5 shadow-[0_10px_22px_-6px_rgb(60_20_10/0.5)] [box-shadow:0_10px_22px_-6px_rgb(60_20_10/0.5),inset_0_1px_0_rgb(255_255_255/0.8)]">
+            <div className="shrink-0 -rotate-3 rounded-[7px] bg-[#fdfbf7] p-1.5 pb-3.5 shadow-[0_10px_22px_-6px_rgb(60_20_10/0.5)] [box-shadow:0_10px_22px_-6px_rgb(60_20_10/0.5),inset_0_1px_0_rgb(255_255_255/0.8)]">
               <img
                 src={STYLE_ART[daily.id] ?? sampleGolden}
                 alt=""

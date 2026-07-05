@@ -74,7 +74,7 @@ export default function AccountSheet({ open, onClose, container }: Props) {
                 <button
                   onClick={onClose}
                   aria-label="Close"
-                  className="w-10 h-10 rounded-full bg-[#efe7d6] flex items-center justify-center text-ink-soft"
+                  className="w-10 h-10 rounded-full bg-[#efece5] flex items-center justify-center text-ink-soft"
                 >
                   <IconClose size={13} />
                 </button>
@@ -94,7 +94,7 @@ export default function AccountSheet({ open, onClose, container }: Props) {
             )}
 
             {!isPaid && (
-              <div className="rounded-2xl bg-[#f6efe2] border border-[rgb(60_42_24/0.08)] p-4 mb-3">
+              <div className="rounded-2xl bg-[#f4f0e8] border border-[rgb(60_42_24/0.08)] p-4 mb-3">
                 <div className="flex items-baseline justify-between mb-2.5">
                   <span className="text-[13px] font-semibold">This month’s roll</span>
                   <span className="font-mono text-[10.5px] tracking-[0.08em] uppercase tabular-nums text-ink-soft">

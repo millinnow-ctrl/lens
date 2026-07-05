@@ -18,14 +18,14 @@
   /* LensMood palette — "golden-hour darkroom": warm oatmeal-cream paper,
      rich terracotta clay for feature blocks, one addicting tangerine accent.
      Warm, tactile, human — the photograph is still the loudest color. */
-  --color-paper: #f1e8d6; /* app canvas — warm oatmeal cream */
-  --color-surface: #fbf6eb; /* raised cards / sheets — warm sand near-white */
+  --color-paper: #f5f1ea; /* app canvas — warm porcelain (warm, not coffee) */
+  --color-surface: #fdfbf7; /* raised cards / sheets — warm near-white */
   --color-clay: #a83a26; /* rich brick-red — hero / feature blocks */
   --color-clay-deep: #7d2b1a; /* pressed / darker brick */
   --color-ink: #261e15; /* primary text — warm espresso (not pure black) */
   --color-ink-soft: #6e6250; /* secondary text — warm taupe */
   --color-fog: #877b62; /* tertiary / captions — warm grey (>=3:1 on cream) */
-  --color-hairline: #e2d8c5; /* dividers, borders — warm hairline */
+  --color-hairline: #e8e2d8; /* dividers, borders — warm hairline */
   --color-violet: #e0392b; /* THE accent — addicting film-red (name kept for reach) */
   --color-orchid: #d33f2b; /* warm brick-red (eyebrows / logo mid-stop) */
   --color-magenta: #e0453b; /* warm red — favorites / hearts */
@@ -983,7 +983,7 @@ body[data-sheet-open='true'] .hm-dock {
 /* browsers without backdrop-filter get a solid fallback that stays legible */
 @supports not (backdrop-filter: blur(1px)) {
   .glass {
-    background: rgb(251 246 235 / 0.94);
+    background: rgb(253 251 247 / 0.94);
   }
   .glass-dark {
     background: rgb(24 18 12 / 0.78);
@@ -1074,7 +1074,7 @@ body[data-sheet-open='true'] .hm-dock {
 
 /* floating pill tab bar — lifted off the bench, like the reference */
 .hm-dock {
-  background: linear-gradient(180deg, rgb(255 254 250 / 0.68), rgb(249 243 230 / 0.5));
+  background: linear-gradient(180deg, rgb(255 255 253 / 0.7), rgb(250 248 243 / 0.52));
   backdrop-filter: blur(36px) saturate(1.7);
   -webkit-backdrop-filter: blur(36px) saturate(1.7);
   border: 1px solid rgb(255 255 255 / 0.75);
@@ -1086,7 +1086,7 @@ body[data-sheet-open='true'] .hm-dock {
 }
 @supports not (backdrop-filter: blur(1px)) {
   .hm-dock {
-    background: rgb(251 246 235 / 0.96);
+    background: rgb(253 251 247 / 0.96);
   }
 }
 
