@@ -272,8 +272,12 @@ export default function MoodSphere({
                     </p>
                     <p className="text-white/70 text-[9.5px] leading-tight mt-0.5">{s.tagline}</p>
                   </div>
+                  {/* frame number — the camera's slot in the case */}
+                  <span className="tag-glass absolute top-1.5 left-1.5 rounded-full text-white/80 font-mono text-[8px] tracking-[0.08em] px-1.5 py-0.5 tabular-nums">
+                    LM·{String(i + 1).padStart(2, '0')}
+                  </span>
                   {dailyId === s.id && (
-                    <span className="absolute top-1.5 left-1.5 rounded-full grad-fill text-white text-[8.5px] font-bold tracking-[0.05em] uppercase px-1.5 py-0.5">
+                    <span className="absolute top-1.5 right-1.5 rounded-full bg-[#e0392b] text-white text-[8.5px] font-bold tracking-[0.05em] uppercase px-1.5 py-0.5 shadow-[0_1px_4px_rgb(120_18_8/0.4)]">
                       Today
                     </span>
                   )}

@@ -23,7 +23,7 @@ import { useApp } from '../lib/store'
 import { STYLE_ART } from '../lib/styleArt'
 import sampleGolden from '../assets/sample-golden.jpg'
 import heroPoster from '../assets/hero-poster.jpg'
-import heroLoop from '../assets/hero-loop.mp4'
+import demoReel from '../assets/demo-reel.mp4'
 import sampleFriends from '../assets/sample-friends.jpg'
 import sampleDog from '../assets/sample-dog.jpg'
 import samplePrints from '../assets/sample-prints.jpg'
@@ -83,20 +83,46 @@ function useIsDesktop() {
 const staggerVariants = sectionStagger()
 const childVariants = sectionChild()
 
-/** hero is a clean, real film still (a golden-hour road) rather than the
- *  motion loop — a genuine photograph reinforces "real cameras, not AI" */
-const heroVideoEnabled = () => false
+/** the demo reel — a print developing in the tray, playable from the hero */
+function DemoModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  useSheetOpen(open)
+  if (!open) return null
+  return createPortal(
+    <div className="fixed inset-0 z-[95] flex items-center justify-center p-6" role="dialog" aria-label="Demo">
+      <div className="absolute inset-0 bg-vf/70" onClick={onClose} aria-hidden />
+      <div className="relative w-full max-w-sm rounded-[24px] overflow-hidden bg-vf border border-white/10 shadow-[var(--shadow-e4)]">
+        <div className="h-9 px-4 flex items-center justify-between border-b border-white/[0.08]">
+          <span className="flex items-center gap-2 font-mono text-[10px] tracking-[0.16em] uppercase text-vf-chrome">
+            <span className="lm-live w-1.5 h-1.5 rounded-full bg-[#e0392b]" aria-hidden />
+            The develop · demo
+          </span>
+          <button
+            onClick={onClose}
+            aria-label="Close demo"
+            className="hit w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-white/80"
+          >
+            <IconClose size={12} />
+          </button>
+        </div>
+        <video src={demoReel} autoPlay loop muted playsInline controls className="w-full block" />
+      </div>
+    </div>,
+    document.body,
+  )
+}
 
 function HomeContent({
   onAccount,
   onUpload,
   category,
   setCategory,
+  onDemo,
 }: {
   onAccount: () => void
   onUpload: () => void
   category: CategoryId
   setCategory: (c: CategoryId) => void
+  onDemo: () => void
 }) {
   const { history, tried, streak } = useApp()
   const navigate = useNavigate()
@@ -161,73 +187,135 @@ function HomeContent({
     >
       <Header onAccount={onAccount} />
 
-      {/* hero — the product itself, playing. gradient lives in the footage */}
-      <motion.section variants={childVariants} className="mt-2 px-5">
-        <div className="relative rounded-[28px] overflow-hidden bg-vf border border-white/[0.06] shadow-[var(--shadow-e3)]">
-          {/* viewfinder chrome strip — the same machined bezel as the studio */}
-          <div className="h-8 px-3.5 flex items-center justify-between gap-3 border-b border-white/[0.08]">
-            <span className="flex items-center gap-2 font-mono text-[10px] tracking-[0.16em] uppercase text-vf-chrome">
-              <span className="lm-live w-1.5 h-1.5 rounded-full bg-[#e0392b]" aria-hidden />
+      {/* hero — the product itself. Light spec strip up top, the frame below,
+          the headline set large with the warm italic word. */}
+      <motion.section variants={childVariants} className="mt-3 px-5">
+        <div className="relative rounded-[28px] overflow-hidden bg-surface border border-[rgb(60_42_24/0.1)] shadow-[var(--shadow-e3)]">
+          {/* spec strip — paper, not chrome: the readout printed on the mount */}
+          <div className="h-10 px-4 flex items-center justify-between gap-3">
+            <span className="flex items-center gap-2 font-mono text-[10.5px] tracking-[0.14em] uppercase text-ink-soft">
+              <span className="lm-live w-2 h-2 rounded-full bg-[#e0392b]" aria-hidden />
               LM Engine · Live
             </span>
-            <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-vf-chrome tabular-nums">
-              35mm · ƒ1.4 · 400
+            <span className="font-mono text-[10.5px] tracking-[0.1em] uppercase text-ink-soft tabular-nums">
+              35mm <span className="text-ink/20 mx-1">|</span> ƒ1.4{' '}
+              <span className="text-ink/20 mx-1">|</span> ISO 400
             </span>
           </div>
-          <div className="relative aspect-[4/3] vf-corners overflow-hidden">
-          {heroVideoEnabled() ? (
-            <video
-              src={heroLoop}
-              poster={heroPoster}
-              autoPlay
-              muted
-              loop
-              playsInline
-              aria-hidden
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-          ) : (
+          <div className="relative aspect-[4/4] vf-corners overflow-hidden rounded-t-[14px] mx-1.5 mb-1.5 rounded-b-[22px]">
             <img
               src={heroPoster}
               alt=""
               className="absolute inset-0 w-full h-full object-cover"
               draggable={false}
             />
-          )}
-          {/* heavy scrim — the footage is fast and bright, the words stay still */}
-          <div className="absolute inset-x-0 bottom-0 h-[68%] bg-gradient-to-t from-black/85 via-black/45 to-transparent" />
-          <div className="absolute inset-x-0 bottom-0 p-4">
-            <h1
-              className="type-display text-[24px] text-white"
-              style={{ textShadow: '0 1px 12px rgb(0 0 0 / 0.5)' }}
-            >
-              Every photo has a mood.
-            </h1>
-            <p
-              className="text-[12.5px] text-white/85 mt-0.5"
-              style={{ textShadow: '0 1px 8px rgb(0 0 0 / 0.55)' }}
-            >
-              The $7,000 camera look, from your camera roll.
-            </p>
-            <button
-              onClick={onUpload}
-              className="btn gap-2 border-0 glass-dark text-white mt-3"
-            >
-              <IconUpload size={16} />
-              Start with a photo
-            </button>
-          </div>
+            {/* scrim carries the words */}
+            <div className="absolute inset-x-0 bottom-0 h-[74%] bg-gradient-to-t from-black/85 via-black/45 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 p-4">
+              <h1
+                className="type-display text-[34px] leading-[1.06] text-white"
+                style={{ textShadow: '0 1px 14px rgb(0 0 0 / 0.5)' }}
+              >
+                Every photo
+                <br />
+                has a <span className="serif-accent">mood.</span>
+              </h1>
+              <p
+                className="text-[13.5px] text-white/85 mt-2 max-w-[230px] leading-snug"
+                style={{ textShadow: '0 1px 8px rgb(0 0 0 / 0.55)' }}
+              >
+                The $7,000 camera look, from your camera roll.
+              </p>
+              <div className="flex items-center gap-2 mt-4">
+                <button
+                  onClick={onUpload}
+                  className="btn gap-1.5 border-0 btn-brass font-semibold px-3.5 text-[13px] whitespace-nowrap"
+                >
+                  <IconUpload size={14} />
+                  Start with a photo
+                </button>
+                <button
+                  onClick={onDemo}
+                  className="btn gap-1.5 border-0 glass-dark text-white px-3.5 text-[13px] whitespace-nowrap"
+                >
+                  <svg viewBox="0 0 12 12" width={10} height={10} fill="currentColor" aria-hidden>
+                    <path d="M2.5 1.5v9l8-4.5z" />
+                  </svg>
+                  Watch demo
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </motion.section>
 
+      {/* what's in the kit — the four instruments, one shelf */}
+      <motion.section variants={childVariants} className="mt-4 px-5">
+        <div className="panel rounded-[22px] grid grid-cols-4 divide-x divide-[rgb(60_42_24/0.08)] py-4">
+          {[
+            {
+              label: 'AI Looks',
+              sub: '18 camera styles',
+              tint: '#cf8d33',
+              icon: (
+                <svg viewBox="0 0 24 24" width={21} height={21} fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M12 3l1.7 4.3L18 9l-4.3 1.7L12 15l-1.7-4.3L6 9l4.3-1.7z" />
+                  <path d="M18.5 15.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z" />
+                </svg>
+              ),
+            },
+            {
+              label: 'Film',
+              sub: 'Authentic rendering',
+              tint: '#a83a26',
+              icon: (
+                <svg viewBox="0 0 24 24" width={21} height={21} fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <rect x="3" y="6" width="18" height="12" rx="2.5" />
+                  <circle cx="12" cy="12" r="3.2" />
+                  <path d="M7.5 6l1.2-2h6.6l1.2 2" />
+                </svg>
+              ),
+            },
+            {
+              label: 'Recipes',
+              sub: 'Pro starting points',
+              tint: '#5c6b3c',
+              icon: (
+                <svg viewBox="0 0 24 24" width={21} height={21} fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M12 3l9 5-9 5-9-5z" />
+                  <path d="M3 13l9 5 9-5" />
+                </svg>
+              ),
+            },
+            {
+              label: 'Fine-tune',
+              sub: 'Every detail, dialed',
+              tint: '#e0392b',
+              icon: (
+                <svg viewBox="0 0 24 24" width={21} height={21} fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M4 8h10M18 8h2M4 16h2M10 16h10" />
+                  <circle cx="16" cy="8" r="2" />
+                  <circle cx="8" cy="16" r="2" />
+                </svg>
+              ),
+            },
+          ].map((f) => (
+            <div key={f.label} className="flex flex-col items-center text-center gap-1.5 px-1.5">
+              <span style={{ color: f.tint }}>{f.icon}</span>
+              <p className="text-[12px] font-semibold text-ink leading-tight">{f.label}</p>
+              <p className="text-[10px] text-fog leading-tight">{f.sub}</p>
+            </div>
+          ))}
+        </div>
+      </motion.section>
+
       {/* camera styles — the deck */}
-      <motion.section variants={childVariants} className="mt-7">
+      <motion.section variants={childVariants} className="mt-9">
         <p className="px-5 font-mono text-[10px] tracking-[0.18em] uppercase text-fog mb-1">
           The case · 18 cameras
         </p>
         <div className="flex items-center justify-between px-5">
-          <h2 className="type-display text-[21px]">Looks</h2>
+          <h2 className="type-display text-[22px]">Explore looks</h2>
           <span className="flex-1 mx-3 h-px bg-ink/10 self-center" aria-hidden />
           <button
             onClick={() => setSpinSeed((s) => s + 1)}
@@ -255,7 +343,7 @@ function HomeContent({
 
       {/* milestone moment — true, once per milestone, dismissible */}
       {milestone != null && (
-        <motion.section variants={childVariants} className="mt-7 px-5">
+        <motion.section variants={childVariants} className="mt-9 px-5">
           <div className="hm-pill flex items-center gap-2.5 rounded-full pl-4 pr-2 py-2.5">
             <IconCheck size={14} className="shrink-0 text-violet" />
             <p className="flex-1 min-w-0 truncate text-[12.5px] font-semibold text-ink-soft">
@@ -273,7 +361,7 @@ function HomeContent({
       )}
 
       {/* recent edits */}
-      <motion.section variants={childVariants} className="mt-7 px-5">
+      <motion.section variants={childVariants} className="mt-9 px-5">
         <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-fog mb-1">Recent develops</p>
         <div className="flex items-center justify-between mb-3">
           <h2 className="type-display text-[21px]">Your roll</h2>
@@ -322,7 +410,7 @@ function HomeContent({
 
       {/* today's free look — a warm clay "darkroom slip" with the day's frame
           pinned to it as a little instant print (tactile, physical, on-brand) */}
-      <motion.section variants={childVariants} className="mt-7 px-5">
+      <motion.section variants={childVariants} className="mt-9 px-5">
         <div className="relative overflow-hidden rounded-[22px] bg-gradient-to-br from-clay to-clay-deep shadow-e2 [box-shadow:var(--shadow-e2)]">
           <div className="texture-film absolute inset-0 opacity-40 mix-blend-overlay pointer-events-none" aria-hidden />
           {/* warm rim-light catching the top edge */}
@@ -369,7 +457,7 @@ function HomeContent({
       </motion.section>
 
       {/* tools — one wide, two small; shapes vary on purpose */}
-      <motion.section variants={childVariants} className="mt-7 px-5">
+      <motion.section variants={childVariants} className="mt-9 px-5">
         <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-fog mb-1">The darkroom</p>
         <div className="flex items-center mb-3">
           <h2 className="type-display text-[21px]">Tools</h2>
@@ -394,7 +482,7 @@ function HomeContent({
       </motion.section>
 
       {/* before & after */}
-      <motion.section variants={childVariants} className="mt-7 px-5">
+      <motion.section variants={childVariants} className="mt-9 px-5">
         <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-fog mb-1">LM engine · live</p>
         <div className="flex items-center justify-between mb-3">
           <h2 className="type-display text-[21px]">Before & after</h2>
@@ -443,6 +531,7 @@ export default function Home() {
   const [category, setCategory] = useState<CategoryId>('all')
   const [uploadOpen, setUploadOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
+  const [demoOpen, setDemoOpen] = useState(false)
 
   /* first run: one screen, one job — get their photo into the engine.
      Never shown again after any choice; never shown to returning users. */
@@ -485,7 +574,7 @@ export default function Home() {
             <div className="flex items-center gap-5">
               <button
                 onClick={() => dismissWelcome(true)}
-                className="btn btn-lg gap-2.5 border-0 grad-fill text-white shadow-[0_6px_20px_rgb(224_57_43/0.35)] px-7"
+                className="btn btn-lg gap-2.5 btn-brass font-semibold px-7"
               >
                 <IconUpload size={17} />
                 Pick a photo
@@ -507,10 +596,12 @@ export default function Home() {
     <HomeContent
       onAccount={() => setAccountOpen(true)}
       onUpload={() => setUploadOpen(true)}
+      onDemo={() => setDemoOpen(true)}
       category={category}
       setCategory={setCategory}
     />
   )
+  const demoModal = <DemoModal open={demoOpen} onClose={() => setDemoOpen(false)} />
 
   if (isDesktop) {
     return (
@@ -549,6 +640,7 @@ export default function Home() {
             {content}
           </PhoneFrame>
         </div>
+        {demoModal}
       </main>
     )
   }
@@ -557,6 +649,7 @@ export default function Home() {
     <main className="hm-canvas min-h-dvh">
       {content}
       {welcomeOverlay}
+      {demoModal}
       <UploadModal open={uploadOpen} onClose={() => setUploadOpen(false)} />
       <AccountSheet open={accountOpen} onClose={() => setAccountOpen(false)} />
     </main>
