@@ -84,10 +84,10 @@ export default function AccountSheet({ open, onClose, container }: Props) {
                     {creditsLeft} of {FREE_CREDITS} frames left
                   </span>
                 </div>
-                <div className="h-1 rounded-full bg-ink/[0.08] overflow-hidden mb-3">
+                <div className="h-1.5 rounded-full bg-[rgb(60_42_24/0.1)] overflow-hidden mb-3 shadow-[inset_0_1px_1px_rgb(60_42_24/0.15)]">
                   <div
                     className="h-full rounded-full bg-clay transition-all"
-                    style={{ width: `${(creditsLeft / FREE_CREDITS) * 100}%` }}
+                    style={{ width: `${((FREE_CREDITS - creditsLeft) / FREE_CREDITS) * 100}%` }}
                   />
                 </div>
                 <Link

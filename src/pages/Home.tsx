@@ -81,9 +81,9 @@ function useIsDesktop() {
 const staggerVariants = sectionStagger()
 const childVariants = sectionChild()
 
-/** the hero loop steps aside only for reduced-motion users */
-const heroVideoEnabled = () =>
-  !(typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+/** hero is a clean, real film still (a golden-hour road) rather than the
+ *  motion loop — a genuine photograph reinforces "real cameras, not AI" */
+const heroVideoEnabled = () => false
 
 function HomeContent({
   onAccount,
@@ -209,7 +209,7 @@ function HomeContent({
             </p>
             <button
               onClick={onUpload}
-              className="btn gap-2 border-0 bg-white text-ink mt-3 shadow-[0_4px_18px_rgb(0_0_0/0.4)]"
+              className="btn gap-2 border-0 bg-ink text-[#fbf6eb] mt-3 shadow-[0_6px_18px_rgb(0_0_0/0.45)]"
             >
               <IconUpload size={16} />
               Start with a photo

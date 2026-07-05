@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 import { ApertureMark } from '../Logo'
-import { IconSparkle } from '../icons'
 import { useApp } from '../../lib/store'
 
 interface Props {
@@ -24,7 +23,6 @@ export default function Header({ onAccount }: Props) {
         {isPaid ? (
           <span className="h-9 inline-flex items-center gap-1.5 rounded-full bg-white border border-ink/[0.08] px-4 text-[14px] font-semibold text-ink">
             <span className="capitalize">{plan}</span>
-            <IconSparkle size={14} className="text-violet" />
           </span>
         ) : (
           <Link
@@ -32,7 +30,6 @@ export default function Header({ onAccount }: Props) {
             className="hm-press h-9 inline-flex items-center gap-1.5 rounded-full bg-white border border-ink/[0.08] px-4 text-[14px] font-semibold text-ink"
           >
             Pro
-            <IconSparkle size={14} className="text-violet" />
           </Link>
         )}
       </div>

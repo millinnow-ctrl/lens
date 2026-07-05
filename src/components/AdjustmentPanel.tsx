@@ -36,7 +36,7 @@ export default function AdjustmentPanel({ style, params, onChange }: Props) {
                 aria-pressed={on}
                 className={`h-8 rounded-[8px] font-mono text-[10.5px] font-medium uppercase tracking-[0.1em] transition-all duration-150 active:scale-[0.97] ${
                   on
-                    ? 'bg-violet text-white shadow-[0_1px_3px_rgb(76_29_149_/_0.4),inset_0_1px_0_rgb(255_255_255_/_0.3)]'
+                    ? 'bg-ink text-[#fbf6eb] shadow-[0_1px_3px_rgb(60_42_24_/_0.4),inset_0_1px_0_rgb(255_255_255_/_0.15)]'
                     : 'text-ink-soft [text-shadow:0_1px_0_rgba(255,255,255,0.7)] hover:bg-[rgb(255_255_255_/_0.6)]'
                 }`}
               >

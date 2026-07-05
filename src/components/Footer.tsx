@@ -8,7 +8,7 @@ export default function Footer() {
         <div className="max-w-xs">
           <Logo />
           <p className="mt-4 text-[13px] text-ink-soft leading-relaxed">
-            The AI aesthetic camera. Recreate the lighting, grain, and mood of iconic cameras —
+            The film-look camera. Recreate the lighting, grain, and mood of iconic cameras —
             from any photo, on your device.
           </p>
         </div>

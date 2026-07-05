@@ -131,18 +131,16 @@ summary {
   background: linear-gradient(180deg, #ea4436 0%, #d62a1f 100%);
 }
 
-/* soft warm glow behind the primary action / focal card */
+/* warm material lift behind primary actions / focal cards — depth, not neon */
 .aura {
   box-shadow:
-    0 0 0 1px rgb(224 57 43 / 0.22),
-    0 4px 18px rgb(224 57 43 / 0.32),
-    0 4px 24px rgb(168 45 40 / 0.20);
+    0 4px 10px rgb(60 42 24 / 0.16),
+    0 14px 28px -8px rgb(60 42 24 / 0.28);
 }
 .aura-soft {
   box-shadow:
-    0 0 0 1px rgb(224 57 43 / 0.14),
-    0 3px 14px rgb(224 57 43 / 0.18),
-    0 3px 18px rgb(168 45 40 / 0.10);
+    0 3px 8px rgb(60 42 24 / 0.14),
+    0 10px 20px -6px rgb(60 42 24 / 0.20);
 }
 
 /* warm gradient ring around a pill/card: wrap content in an element with this class */
