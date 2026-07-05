@@ -194,7 +194,7 @@ export default function MoodSphere({
         <svg
           viewBox="0 0 400 90"
           preserveAspectRatio="none"
-          className="absolute inset-x-[-6%] bottom-1 w-[112%] h-[74px] pointer-events-none"
+          className="absolute inset-x-0 bottom-1 w-full h-[74px] pointer-events-none"
           aria-hidden
         >
           <defs>

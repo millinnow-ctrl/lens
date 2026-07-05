@@ -190,19 +190,19 @@ function HomeContent({
       {/* hero — the product itself. Light spec strip up top, the frame below,
           the headline set large with the warm italic word. */}
       <motion.section variants={childVariants} className="mt-3 px-5">
-        <div className="relative rounded-[28px] overflow-hidden bg-surface border border-[rgb(60_42_24/0.1)] shadow-[var(--shadow-e3)]">
-          {/* spec strip — paper, not chrome: the readout printed on the mount */}
-          <div className="h-10 px-4 flex items-center justify-between gap-3">
-            <span className="flex items-center gap-2 font-mono text-[10.5px] tracking-[0.14em] uppercase text-ink-soft">
-              <span className="lm-live w-2 h-2 rounded-full bg-[#e0392b]" aria-hidden />
+        <div className="relative rounded-[28px] overflow-hidden bg-vf border border-white/[0.06] shadow-[var(--shadow-e3)]">
+          {/* viewfinder chrome strip — one frame, one material, one radius */}
+          <div className="h-9 px-4 flex items-center justify-between gap-3 border-b border-white/[0.08]">
+            <span className="flex items-center gap-2 font-mono text-[10px] tracking-[0.14em] uppercase text-vf-chrome">
+              <span className="lm-live w-1.5 h-1.5 rounded-full bg-[#e0392b]" aria-hidden />
               LM Engine · Live
             </span>
-            <span className="font-mono text-[10.5px] tracking-[0.1em] uppercase text-ink-soft tabular-nums">
-              35mm <span className="text-ink/20 mx-1">|</span> ƒ1.4{' '}
-              <span className="text-ink/20 mx-1">|</span> ISO 400
+            <span className="font-mono text-[10px] tracking-[0.1em] uppercase text-vf-chrome tabular-nums">
+              35mm <span className="text-white/15 mx-0.5">|</span> ƒ1.4{' '}
+              <span className="text-white/15 mx-0.5">|</span> ISO 400
             </span>
           </div>
-          <div className="relative aspect-[4/4] vf-corners overflow-hidden rounded-t-[14px] mx-1.5 mb-1.5 rounded-b-[22px]">
+          <div className="relative aspect-[4/3.6] vf-corners overflow-hidden">
             <img
               src={heroPoster}
               alt=""
@@ -213,15 +213,13 @@ function HomeContent({
             <div className="absolute inset-x-0 bottom-0 h-[74%] bg-gradient-to-t from-black/85 via-black/45 to-transparent" />
             <div className="absolute inset-x-0 bottom-0 p-4">
               <h1
-                className="type-display text-[34px] leading-[1.06] text-white"
+                className="type-display text-[30px] leading-[1.08] text-white"
                 style={{ textShadow: '0 1px 14px rgb(0 0 0 / 0.5)' }}
               >
-                Every photo
-                <br />
-                has a <span className="serif-accent">mood.</span>
+                Every photo has a <span className="serif-accent">mood.</span>
               </h1>
               <p
-                className="text-[13.5px] text-white/85 mt-2 max-w-[230px] leading-snug"
+                className="text-[13px] text-white/85 mt-1.5 leading-snug"
                 style={{ textShadow: '0 1px 8px rgb(0 0 0 / 0.55)' }}
               >
                 The $7,000 camera look, from your camera roll.
@@ -251,7 +249,7 @@ function HomeContent({
 
       {/* what's in the kit — the four instruments, one shelf */}
       <motion.section variants={childVariants} className="mt-4 px-5">
-        <div className="panel rounded-[22px] grid grid-cols-4 divide-x divide-[rgb(60_42_24/0.08)] py-4">
+        <div className="panel rounded-[22px] grid grid-cols-4 divide-x divide-[rgb(60_42_24/0.08)] py-3.5">
           {[
             {
               label: 'AI Looks',
@@ -310,7 +308,7 @@ function HomeContent({
       </motion.section>
 
       {/* camera styles — the deck */}
-      <motion.section variants={childVariants} className="mt-9">
+      <motion.section variants={childVariants} className="mt-8">
         <p className="px-5 font-mono text-[10px] tracking-[0.18em] uppercase text-fog mb-1">
           The case · 18 cameras
         </p>
@@ -343,7 +341,7 @@ function HomeContent({
 
       {/* milestone moment — true, once per milestone, dismissible */}
       {milestone != null && (
-        <motion.section variants={childVariants} className="mt-9 px-5">
+        <motion.section variants={childVariants} className="mt-8 px-5">
           <div className="hm-pill flex items-center gap-2.5 rounded-full pl-4 pr-2 py-2.5">
             <IconCheck size={14} className="shrink-0 text-violet" />
             <p className="flex-1 min-w-0 truncate text-[12.5px] font-semibold text-ink-soft">
@@ -361,7 +359,7 @@ function HomeContent({
       )}
 
       {/* recent edits */}
-      <motion.section variants={childVariants} className="mt-9 px-5">
+      <motion.section variants={childVariants} className="mt-8 px-5">
         <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-fog mb-1">Recent develops</p>
         <div className="flex items-center justify-between mb-3">
           <h2 className="type-display text-[21px]">Your roll</h2>
@@ -410,7 +408,7 @@ function HomeContent({
 
       {/* today's free look — a warm clay "darkroom slip" with the day's frame
           pinned to it as a little instant print (tactile, physical, on-brand) */}
-      <motion.section variants={childVariants} className="mt-9 px-5">
+      <motion.section variants={childVariants} className="mt-8 px-5">
         <div className="relative overflow-hidden rounded-[22px] bg-gradient-to-br from-clay to-clay-deep shadow-e2 [box-shadow:var(--shadow-e2)]">
           <div className="texture-film absolute inset-0 opacity-40 mix-blend-overlay pointer-events-none" aria-hidden />
           {/* warm rim-light catching the top edge */}
@@ -457,7 +455,7 @@ function HomeContent({
       </motion.section>
 
       {/* tools — one wide, two small; shapes vary on purpose */}
-      <motion.section variants={childVariants} className="mt-9 px-5">
+      <motion.section variants={childVariants} className="mt-8 px-5">
         <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-fog mb-1">The darkroom</p>
         <div className="flex items-center mb-3">
           <h2 className="type-display text-[21px]">Tools</h2>
@@ -482,7 +480,7 @@ function HomeContent({
       </motion.section>
 
       {/* before & after */}
-      <motion.section variants={childVariants} className="mt-9 px-5">
+      <motion.section variants={childVariants} className="mt-8 px-5">
         <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-fog mb-1">LM engine · live</p>
         <div className="flex items-center justify-between mb-3">
           <h2 className="type-display text-[21px]">Before & after</h2>

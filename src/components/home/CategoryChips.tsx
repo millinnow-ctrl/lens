@@ -31,44 +31,42 @@ interface Props {
  *  over the active shelf (the affordance lives in the material) */
 export default function CategoryChips({ active, onSelect }: Props) {
   return (
-    <div className="relative">
-      <div className="overflow-x-auto no-scrollbar px-5 pt-3 pb-1">
-        <div
-          className="glass rounded-full p-1 inline-flex items-center min-w-max"
-          role="tablist"
-          aria-label="Look categories"
-        >
-          {CATEGORIES.map((c) => {
-            const on = active === c.id
-            return (
-              <button
-                key={c.id}
-                role="tab"
-                aria-selected={on}
-                onClick={() => onSelect(c.id)}
-                className="relative shrink-0 h-9 px-4 rounded-full"
+    <div className="px-5 pt-3 pb-1">
+      {/* one rail, fully on screen — every shelf reachable without scrolling */}
+      <div
+        className="glass rounded-full p-1 flex items-center"
+        role="tablist"
+        aria-label="Look categories"
+      >
+        {CATEGORIES.map((c) => {
+          const on = active === c.id
+          return (
+            <button
+              key={c.id}
+              role="tab"
+              aria-selected={on}
+              onClick={() => onSelect(c.id)}
+              className="relative flex-1 h-9 rounded-full min-w-0"
+            >
+              {on && (
+                <motion.span
+                  layoutId="lm-tab-puck"
+                  transition={springSoft}
+                  className="tab-puck absolute inset-0 rounded-full"
+                  aria-hidden
+                />
+              )}
+              <span
+                className={`relative text-[12.5px] whitespace-nowrap transition-colors duration-150 ${
+                  on ? 'text-[#3a2410] font-semibold' : 'text-ink-soft font-medium'
+                }`}
               >
-                {on && (
-                  <motion.span
-                    layoutId="lm-tab-puck"
-                    transition={springSoft}
-                    className="tab-puck absolute inset-0 rounded-full"
-                    aria-hidden
-                  />
-                )}
-                <span
-                  className={`relative text-[13.5px] transition-colors duration-150 ${
-                    on ? 'text-[#3a2410] font-semibold' : 'text-ink-soft font-medium'
-                  }`}
-                >
-                  {c.label}
-                </span>
-              </button>
-            )
-          })}
-        </div>
+                {c.label}
+              </span>
+            </button>
+          )
+        })}
       </div>
-      <div className="absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-paper to-transparent pointer-events-none" aria-hidden />
     </div>
   )
 }
