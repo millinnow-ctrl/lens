@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import Header from '../components/home/Header'
@@ -14,6 +15,7 @@ import BeforeAfterSlider from '../components/BeforeAfterSlider'
 import { ApertureMark } from '../components/Logo'
 import { IconCheck, IconChevronRight, IconClose, IconUpload } from '../components/icons'
 import { sectionStagger, sectionChild } from '../lib/motion'
+import { useSheetOpen } from '../lib/useSheetOpen'
 import { loadImage, renderStyled } from '../lib/engine'
 import { dailyRecipe, dailyStyle, isDailyClaimed, jitterParams } from '../lib/lab'
 import { CAMERA_STYLES, encodeParams, getStyle, type CameraStyle } from '../lib/styles'
@@ -347,7 +349,7 @@ function HomeContent({
                 className={`hm-press mt-3 inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-[13px] font-semibold border ${
                   dailyDone
                     ? 'bg-white/10 border-white/20 text-white/85'
-                    : 'bg-white/20 border-white/45 text-white backdrop-blur-md shadow-[inset_0_1px_0_rgb(255_255_255/0.5),0_2px_8px_rgb(60_20_10/0.3)]'
+                    : 'bg-[rgb(28_12_8/0.3)] border-white/35 text-white backdrop-blur-[10px] shadow-[inset_0_1px_0_rgb(255_255_255/0.35),0_2px_8px_rgb(60_20_10/0.35)]'
                 }`}
               >
                 {dailyDone ? 'Shot today' : 'Shoot it'}
@@ -380,10 +382,14 @@ function HomeContent({
           image={STYLE_ART['camcorder-90s']}
           tag="Pro"
           ratio="aspect-[21/9]"
+          film
         />
-        <div className="grid grid-cols-2 gap-3 mt-3">
+        {/* uneven two-up — different widths, the narrow one set lower */}
+        <div className="grid grid-cols-[1.28fr_1fr] gap-3 mt-3 items-start">
           <ToolCard to="/studio?batch=1" title="Batch roll" sub="Up to 6 photos" image={samplePrints} />
-          <ToolCard to="/dashboard" title="Presets" sub="Saved looks" image={sampleHandprint} />
+          <div className="mt-3">
+            <ToolCard to="/dashboard" title="Presets" sub="Saved looks" image={sampleHandprint} ratio="aspect-[16/11.5]" />
+          </div>
         </div>
       </motion.section>
 
@@ -450,6 +456,7 @@ export default function Home() {
       return false
     }
   })
+  useSheetOpen(welcome)
   const dismissWelcome = (thenUpload: boolean) => {
     try {
       localStorage.setItem('lensmood.welcome.v1', '1')
@@ -460,32 +467,41 @@ export default function Home() {
     if (thenUpload) setUploadOpen(true)
   }
 
-  const welcomeOverlay = welcome ? (
-    <div className="fixed inset-0 z-[70] flex items-end justify-center" role="dialog" aria-label="Welcome">
-      <div className="absolute inset-0 bg-vf/55" aria-hidden />
-      <div className="hm-sheet relative w-full max-w-md bg-white rounded-t-[28px] px-6 pt-8 pb-[calc(env(safe-area-inset-bottom)+24px)]">
-        <ApertureMark className="w-12 h-12 mb-4" />
-        <h2 className="type-display text-[26px] mb-2">Your camera roll is full of movie stills.</h2>
-        <p className="text-[14.5px] text-ink-soft leading-relaxed mb-6">
-          Pick a photo, choose one of {CAMERA_STYLES.length} cameras, and watch it develop. Every
-          shot is its own take — and the first one’s on us.
-        </p>
-        <button
-          onClick={() => dismissWelcome(true)}
-          className="btn btn-lg w-full gap-2.5 border-0 grad-fill text-white shadow-[0_6px_20px_rgb(224_57_43/0.35)]"
-        >
-          <IconUpload size={17} />
-          Pick a photo
-        </button>
-        <button
-          onClick={() => dismissWelcome(false)}
-          className="btn btn-quiet w-full mt-1.5 text-[13.5px]"
-        >
-          Look around first
-        </button>
-      </div>
-    </div>
-  ) : null
+  // portal to body: a fixed overlay inside the route's transformed motion.div
+  // would be trapped by its transform containing-block (and z-capped under
+  // the dock). The sheet also bows the dock out via useSheetOpen.
+  const welcomeOverlay = welcome
+    ? createPortal(
+        <div className="fixed inset-0 z-[85] flex items-end justify-center" role="dialog" aria-label="Welcome">
+          <div className="absolute inset-0 bg-vf/55" aria-hidden />
+          <div className="hm-sheet relative w-full max-w-md bg-surface rounded-t-[28px] px-6 pt-8 pb-[calc(env(safe-area-inset-bottom)+28px)] shadow-[0_-8px_44px_rgb(60_42_24/0.4),inset_0_1px_0_rgb(255_255_255/0.6)]">
+            <ApertureMark className="w-12 h-12 mb-4" />
+            <h2 className="type-display text-[26px] mb-2">Your camera roll is full of movie stills.</h2>
+            <p className="text-[14.5px] text-ink-soft leading-relaxed mb-6">
+              Pick a photo, choose one of {CAMERA_STYLES.length} cameras, and watch it develop. Every
+              shot is its own take — and the first one’s on us.
+            </p>
+            {/* house grammar: one content-hugging pill + a quiet inline exit */}
+            <div className="flex items-center gap-5">
+              <button
+                onClick={() => dismissWelcome(true)}
+                className="btn btn-lg gap-2.5 border-0 grad-fill text-white shadow-[0_6px_20px_rgb(224_57_43/0.35)] px-7"
+              >
+                <IconUpload size={17} />
+                Pick a photo
+              </button>
+              <button
+                onClick={() => dismissWelcome(false)}
+                className="text-[13.5px] font-semibold text-ink-soft underline underline-offset-4 decoration-ink/25"
+              >
+                Look around first
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )
+    : null
 
   const content = (
     <HomeContent

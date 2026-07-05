@@ -397,7 +397,7 @@ export default function Studio() {
 
           {/* view toggles + actions under preview */}
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex w-full sm:w-auto sm:inline-flex items-center gap-0.5 rounded-full bg-black/5 p-1 shadow-[inset_0_1px_2px_rgb(23_19_31/0.08)]">
+            <div className="flex w-full sm:w-auto sm:inline-flex items-center gap-0.5 rounded-full bg-[rgb(60_42_24/0.07)] p-1 shadow-[inset_0_1px_2px_rgb(60_42_24/0.16)]">
               {(
                 [
                   { id: 'original', label: 'Original' },

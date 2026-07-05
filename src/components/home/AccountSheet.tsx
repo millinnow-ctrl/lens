@@ -6,6 +6,7 @@ import { IconChevronRight, IconClose } from '../icons'
 import { FREE_CREDITS, useApp } from '../../lib/store'
 import { springSheet } from '../../lib/motion'
 import { haptic } from '../../lib/native'
+import { useSheetOpen } from '../../lib/useSheetOpen'
 
 /** flung down hard, or dragged past ~a third of the way → dismiss */
 const shouldDismiss = (info: PanInfo) => info.offset.y > 96 || info.velocity.y > 620
@@ -18,6 +19,7 @@ interface Props {
 
 export default function AccountSheet({ open, onClose, container }: Props) {
   const { user, plan, isPaid, creditsLeft, setAuthOpen, signOut } = useApp()
+  useSheetOpen(open && !container)
 
   const sheet = (
     <AnimatePresence>
@@ -48,35 +50,35 @@ export default function AccountSheet({ open, onClose, container }: Props) {
             className="relative w-full max-w-md bg-surface rounded-t-[28px] px-5 pt-3 pb-[calc(env(safe-area-inset-bottom)+20px)] shadow-[0_-8px_44px_rgb(60_42_24/0.4),inset_0_1px_0_rgb(255_255_255/0.6)] cursor-grab active:cursor-grabbing"
           >
             <div className="w-11 h-[5px] rounded-full bg-ink/15 mx-auto mb-4" aria-hidden />
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-3">
-                <span className="w-11 h-11 rounded-full bg-ink flex items-center justify-center">
-                  {user ? (
-                    <span className="text-white font-bold text-[16px]">{user.name.charAt(0).toUpperCase()}</span>
-                  ) : (
-                    <ApertureMark className="w-6 h-6" />
-                  )}
-                </span>
-                <div>
-                  <p className="text-[15px] font-bold leading-tight">{user ? user.name : 'Guest'}</p>
-                  <p className="text-[12px] text-fog">
-                    {isPaid ? (
-                      <>
-                        <span className="capitalize">{plan}</span> plan
-                      </>
-                    ) : (
-                      'Free plan'
-                    )}
-                  </p>
+            {/* house grammar: mono eyebrow, serif name, magazine rule */}
+            <div className="flex items-start justify-between mb-5">
+              <div className="min-w-0 flex-1">
+                <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-fog mb-1">
+                  The counter · {isPaid ? `${plan} plan` : 'Free plan'}
+                </p>
+                <div className="flex items-center">
+                  <h2 className="type-display text-[24px] leading-tight truncate">
+                    {user ? user.name : 'Your darkroom'}
+                  </h2>
+                  <span className="flex-1 ml-3 mr-2 h-px bg-ink/10 self-center" aria-hidden />
                 </div>
               </div>
-              <button
-                onClick={onClose}
-                aria-label="Close"
-                className="w-10 h-10 rounded-full bg-[#f4f1f4] flex items-center justify-center text-ink-soft"
-              >
-                <IconClose size={13} />
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="w-10 h-10 rounded-full bg-ink flex items-center justify-center">
+                  {user ? (
+                    <span className="text-white font-bold text-[15px]">{user.name.charAt(0).toUpperCase()}</span>
+                  ) : (
+                    <ApertureMark className="w-5 h-5" />
+                  )}
+                </span>
+                <button
+                  onClick={onClose}
+                  aria-label="Close"
+                  className="w-10 h-10 rounded-full bg-[#efe7d6] flex items-center justify-center text-ink-soft"
+                >
+                  <IconClose size={13} />
+                </button>
+              </div>
             </div>
 
             {!user && (
@@ -92,18 +94,29 @@ export default function AccountSheet({ open, onClose, container }: Props) {
             )}
 
             {!isPaid && (
-              <div className="rounded-2xl bg-[#f4f1f4] p-4 mb-3">
-                <div className="flex items-baseline justify-between mb-2">
+              <div className="rounded-2xl bg-[#f6efe2] border border-[rgb(60_42_24/0.08)] p-4 mb-3">
+                <div className="flex items-baseline justify-between mb-2.5">
                   <span className="text-[13px] font-semibold">This month’s roll</span>
-                  <span className="text-[12px] tabular-nums text-ink-soft">
+                  <span className="font-mono text-[10.5px] tracking-[0.08em] uppercase tabular-nums text-ink-soft">
                     {creditsLeft} of {FREE_CREDITS} frames left
                   </span>
                 </div>
-                <div className="h-1.5 rounded-full bg-[rgb(60_42_24/0.1)] overflow-hidden mb-3 shadow-[inset_0_1px_1px_rgb(60_42_24/0.15)]">
-                  <div
-                    className="h-full rounded-full bg-clay transition-all"
-                    style={{ width: `${((FREE_CREDITS - creditsLeft) / FREE_CREDITS) * 100}%` }}
-                  />
+                {/* the roll as frames, not a progress bar: filled = still loaded */}
+                <div className="flex items-center gap-1.5 mb-3" aria-hidden>
+                  {Array.from({ length: FREE_CREDITS }, (_, i) => {
+                    const loaded = i < creditsLeft
+                    return (
+                      <span
+                        key={i}
+                        className="h-[18px] flex-1 max-w-[34px] rounded-[3px] transition-colors"
+                        style={{
+                          background: loaded ? 'var(--color-ink)' : 'transparent',
+                          border: loaded ? 'none' : '1px solid rgb(60 42 24 / 0.25)',
+                          boxShadow: loaded ? 'inset 0 1px 0 rgb(255 255 255 / 0.15)' : 'none',
+                        }}
+                      />
+                    )
+                  })}
                 </div>
                 <Link
                   to="/pricing"

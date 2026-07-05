@@ -23,7 +23,7 @@ export default function AdjustmentPanel({ style, params, onChange }: Props) {
         <p className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-fog [text-shadow:0_1px_0_rgba(255,255,255,0.7)] mb-2.5">
           Recipes
         </p>
-        <div className="grid grid-cols-3 gap-1.5 rounded-[12px] bg-[rgb(23_19_31_/_0.04)] p-1.5 shadow-[inset_0_1px_2px_rgb(23_19_31_/_0.07)]">
+        <div className="flex flex-wrap gap-2">
           {QUICK_PRESETS.map((p) => {
             const on = activePreset === p.id
             return (
@@ -34,12 +34,13 @@ export default function AdjustmentPanel({ style, params, onChange }: Props) {
                   onChange(p.apply({ ...style.defaults }))
                 }}
                 aria-pressed={on}
-                className={`h-8 rounded-[8px] font-mono text-[10.5px] font-medium uppercase tracking-[0.1em] transition-all duration-150 active:scale-[0.97] ${
+                className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-[7px] font-mono text-[10.5px] font-medium uppercase tracking-[0.1em] border transition-all duration-150 active:scale-[0.97] ${
                   on
-                    ? 'bg-ink text-[#fbf6eb] shadow-[0_1px_3px_rgb(60_42_24_/_0.4),inset_0_1px_0_rgb(255_255_255_/_0.15)]'
-                    : 'text-ink-soft [text-shadow:0_1px_0_rgba(255,255,255,0.7)] hover:bg-[rgb(255_255_255_/_0.6)]'
+                    ? 'bg-ink text-[#fbf6eb] border-ink shadow-[0_1px_3px_rgb(60_42_24_/_0.4),inset_0_1px_0_rgb(255_255_255_/_0.15)]'
+                    : 'text-ink-soft border-[rgb(60_42_24/0.22)] hover:border-[rgb(60_42_24/0.4)] bg-transparent'
                 }`}
               >
+                {on && <span className="w-1.5 h-1.5 rounded-full bg-[#e0392b]" aria-hidden />}
                 {p.name}
               </button>
             )

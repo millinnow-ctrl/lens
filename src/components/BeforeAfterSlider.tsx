@@ -83,10 +83,10 @@ export default function BeforeAfterSlider({
       {variant === 'instrument' ? (
         <>
           {/* labels — mono chrome slates, machined edge */}
-          <span className="absolute top-3 left-3 font-mono text-[10px] font-medium tracking-[0.12em] uppercase bg-vf/65 text-paper/90 px-2.5 py-1 rounded-full pointer-events-none shadow-[inset_0_1px_0_rgb(255_255_255/0.12)]">
+          <span className="absolute top-3 left-3 font-mono text-[10px] font-medium tracking-[0.12em] uppercase tag-glass text-white/85 px-2.5 py-1 rounded-full pointer-events-none">
             {beforeLabel}
           </span>
-          <span className="absolute top-3 right-3 font-mono text-[10px] font-medium tracking-[0.12em] uppercase bg-vf/65 text-paper px-2.5 py-1 rounded-full pointer-events-none shadow-[inset_0_1px_0_rgb(255_255_255/0.12)] inline-flex items-center gap-1.5">
+          <span className="absolute top-3 right-3 font-mono text-[10px] font-medium tracking-[0.12em] uppercase tag-glass text-white px-2.5 py-1 rounded-full pointer-events-none inline-flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-signal inline-block" aria-hidden />
             {afterLabel}
           </span>
@@ -94,10 +94,10 @@ export default function BeforeAfterSlider({
       ) : (
         <>
           {/* labels — soft mono pills, machined edge */}
-          <span className="absolute top-2.5 left-2.5 font-mono text-[10px] font-medium tracking-[0.12em] uppercase bg-vf/60 text-white/90 px-2.5 py-1 rounded-full pointer-events-none shadow-[inset_0_1px_0_rgb(255_255_255/0.10)]">
+          <span className="absolute top-2.5 left-2.5 font-mono text-[10px] font-medium tracking-[0.12em] uppercase tag-glass text-white/85 px-2.5 py-1 rounded-full pointer-events-none">
             {beforeLabel}
           </span>
-          <span className="absolute top-2.5 right-2.5 font-mono text-[10px] font-medium tracking-[0.12em] uppercase bg-vf/60 text-white px-2.5 py-1 rounded-full pointer-events-none shadow-[inset_0_1px_0_rgb(255_255_255/0.10)] inline-flex items-center gap-1.5">
+          <span className="absolute top-2.5 right-2.5 font-mono text-[10px] font-medium tracking-[0.12em] uppercase tag-glass text-white px-2.5 py-1 rounded-full pointer-events-none inline-flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-signal inline-block" aria-hidden />
             {afterLabel}
           </span>

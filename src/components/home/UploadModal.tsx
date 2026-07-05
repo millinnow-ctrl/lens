@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { AnimatePresence, motion, type PanInfo } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { springSheet } from '../../lib/motion'
+import { useSheetOpen } from '../../lib/useSheetOpen'
 import { IconCamera, IconClose, IconFilm, IconUpload } from '../icons'
 import { fileToDataURL } from '../../lib/engine'
 import { captureWithNativeCamera, haptic, isNative } from '../../lib/native'
@@ -32,6 +33,7 @@ interface Props {
 
 export default function UploadModal({ open, onClose, container }: Props) {
   const { setImage, setRoll } = useApp()
+  useSheetOpen(open && !container)
   const navigate = useNavigate()
   const inputRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)

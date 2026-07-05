@@ -13,10 +13,12 @@ interface Props {
   tag?: string
   /** tailwind aspect class — lets the grid vary tile shapes */
   ratio?: string
+  /** render cine film edges — sprocket-hole strips along top and bottom */
+  film?: boolean
 }
 
 /** image-led tool tile — the photo is the surface, text sits on a scrim */
-export default function ToolCard({ to, title, sub, image, tag, ratio = 'aspect-[16/10]' }: Props) {
+export default function ToolCard({ to, title, sub, image, tag, ratio = 'aspect-[16/10]', film }: Props) {
   const navigate = useNavigate()
   const [active, setActive] = useState(false)
 
@@ -45,9 +47,15 @@ export default function ToolCard({ to, title, sub, image, tag, ratio = 'aspect-[
         draggable={false}
         className="absolute inset-0 w-full h-full object-cover"
       />
+      {film && (
+        <>
+          <span aria-hidden className="sprockets absolute inset-x-0 top-0 h-[11px]" />
+          <span aria-hidden className="sprockets absolute inset-x-0 bottom-0 h-[11px]" />
+        </>
+      )}
       <div className="absolute inset-x-0 bottom-0 h-[68%] bg-gradient-to-t from-black/85 via-black/42 to-transparent" />
       {tag && (
-        <span className="absolute top-2 right-2 rounded-full bg-black/45 backdrop-blur-sm text-white/90 text-[9px] font-semibold tracking-[0.06em] uppercase px-2 py-0.5">
+        <span className="tag-glass absolute top-2 right-2 rounded-full text-white/85 text-[9px] font-mono tracking-[0.08em] uppercase px-2 py-0.5">
           {tag}
         </span>
       )}

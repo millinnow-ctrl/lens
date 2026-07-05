@@ -6,7 +6,7 @@ const MotionLink = motion(Link)
 
 /* prints never land perfectly square on the bench — a quiet alternating
    skew per position keeps the grid from reading machine-laid */
-const LEAN = [-1.4, 1.1, 0.9, -1.2, 1.3, -0.8]
+const LEAN = [-2.5, 1.5, 1.8, -2.1, 2.4, -1.6]
 
 interface Props {
   to: string
@@ -37,7 +37,7 @@ export default function RecentProjectCard({
     <MotionLink
       to={to}
       initial={false}
-      style={{ rotate: lean }}
+      style={{ rotate: lean, marginTop: index % 2 === 1 ? 14 : 0 }}
       whileHover={{ y: -4, rotate: 0 }}
       whileTap={{ scale: 0.965 }}
       transition={springPress}
@@ -53,7 +53,7 @@ export default function RecentProjectCard({
           style={filter ? { filter } : undefined}
         />
         {chip && (
-          <span className="absolute top-2 right-2 rounded-full bg-black/45 backdrop-blur-sm text-white/90 text-[9.5px] font-semibold tracking-[0.04em] uppercase px-2 py-0.5">
+          <span className="tag-glass absolute top-2 right-2 rounded-full text-white/85 text-[9.5px] font-mono tracking-[0.08em] uppercase px-2 py-0.5">
             {chip}
           </span>
         )}

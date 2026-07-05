@@ -22,26 +22,42 @@ interface Props {
   onSelect: (id: CategoryId) => void
 }
 
+/** shelf tabs in the camera-spec voice — typographic, not another row of
+ *  pills. The active tab carries a short film-red tick, rhyming with the
+ *  frame counter under the deck. */
 export default function CategoryChips({ active, onSelect }: Props) {
   return (
     <div className="relative">
       <div
-        className="flex gap-2 overflow-x-auto no-scrollbar px-5 pt-3 pb-0.5"
+        className="flex gap-6 overflow-x-auto no-scrollbar px-5 pt-3 pb-1"
         role="tablist"
         aria-label="Look categories"
       >
-        {CATEGORIES.map((c) => (
-          <button
-            key={c.id}
-            role="tab"
-            aria-selected={active === c.id}
-            data-active={active === c.id}
-            onClick={() => onSelect(c.id)}
-            className="hm-chip shrink-0"
-          >
-            {c.label}
-          </button>
-        ))}
+        {CATEGORIES.map((c) => {
+          const on = active === c.id
+          return (
+            <button
+              key={c.id}
+              role="tab"
+              aria-selected={on}
+              onClick={() => onSelect(c.id)}
+              className="hit shrink-0 flex flex-col items-start gap-1 pt-1 pb-0.5"
+            >
+              <span
+                className={`font-mono text-[12px] tracking-[0.14em] uppercase transition-colors duration-150 ${
+                  on ? 'text-ink font-medium' : 'text-fog'
+                }`}
+              >
+                {c.label}
+              </span>
+              <span
+                aria-hidden
+                className="block h-[2px] w-4 rounded-full transition-all duration-200"
+                style={{ background: on ? '#e0392b' : 'transparent' }}
+              />
+            </button>
+          )
+        })}
         <span className="shrink-0 w-3" aria-hidden />
       </div>
       <div className="absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-paper to-transparent pointer-events-none" aria-hidden />
