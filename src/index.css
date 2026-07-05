@@ -1,19 +1,18 @@
 @import 'tailwindcss';
-@import '@fontsource-variable/inter';
-@import '@fontsource-variable/fraunces';
-@import '@fontsource-variable/fraunces/standard-italic.css';
-@import '@fontsource/poppins/600.css';
-@import '@fontsource/poppins/700.css';
+@import '@fontsource-variable/instrument-sans';
+@import '@fontsource/instrument-serif/400.css';
+@import '@fontsource/instrument-serif/400-italic.css';
 @import '@fontsource/ibm-plex-mono/400.css';
 @import '@fontsource/ibm-plex-mono/500.css';
 
 @theme {
-  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-brand: 'Poppins', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  /* The Instrument pairing — the fashion-editorial serif of the moment and
+     its sibling UI sans (one family, genuinely designed together). Plex Mono
+     stays as the camera-spec voice. */
+  --font-sans: 'Instrument Sans Variable', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-brand: 'Instrument Sans Variable', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
-  /* editorial display voice — a warm, soft-serif with real character; the
-     film-journal headline face. Inter stays for UI/body, Plex Mono for spec. */
-  --font-display: 'Fraunces Variable', Georgia, 'Times New Roman', serif;
+  --font-display: 'Instrument Serif', Georgia, 'Times New Roman', serif;
 
   /* LensMood palette — "golden-hour darkroom": warm oatmeal-cream paper,
      rich terracotta clay for feature blocks, one addicting tangerine accent.
@@ -223,12 +222,12 @@ summary {
 
 .type-display {
   font-family: var(--font-display);
-  font-weight: 590;
-  letter-spacing: -0.015em;
+  /* Instrument Serif ships one perfect display weight — the life is in the
+     cut, not the boldness */
+  font-weight: 400;
+  letter-spacing: -0.005em;
   line-height: 1.04;
   text-wrap: balance;
-  /* large optical size = the elegant high-contrast cut of the face */
-  font-variation-settings: 'opsz' 72;
 }
 
 /* optical tracking for display sizes ≥28px */
@@ -969,7 +968,7 @@ body[data-sheet-open='true'] .hm-dock {
 .serif-accent {
   font-family: var(--font-display);
   font-style: italic;
-  font-weight: 600;
+  font-weight: 400;
   color: #e8b25f;
 }
 
