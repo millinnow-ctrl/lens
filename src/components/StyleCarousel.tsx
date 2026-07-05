@@ -35,8 +35,8 @@ export default function StyleCarousel({ previewSrc, selectedId, onSelect, showFa
             onClick={() => onSelect(style)}
             className={`group relative shrink-0 w-36 snap-start rounded-[18px] bg-surface border text-left transition-all duration-150 ${
               selected
-                ? 'border-violet ring-2 ring-violet/60 scale-[1.02] shadow-[0_4px_14px_-4px_rgb(23_19_31/0.25)]'
-                : 'border-black/[0.06] hover:border-black/20 shadow-[0_1px_6px_rgb(23_19_31/0.04)]'
+                ? 'border-violet/70 ring-1 ring-violet/30 scale-[1.05] -translate-y-1.5 z-10 shadow-[var(--shadow-e4)]'
+                : 'border-[rgb(60_42_24/0.10)] hover:border-[rgb(60_42_24/0.2)] shadow-[var(--shadow-e1)] hover:shadow-[var(--shadow-e2)] hover:-translate-y-0.5'
             }`}
             aria-pressed={selected}
           >
@@ -68,7 +68,7 @@ export default function StyleCarousel({ previewSrc, selectedId, onSelect, showFa
                     }
                   }}
                   aria-label={fav ? 'Remove from favorites' : 'Add to favorites'}
-                  className={`absolute top-1.5 left-1.5 w-6 h-6 rounded-full bg-vf/60 backdrop-blur-sm flex items-center justify-center transition-opacity duration-150 focus:opacity-100 ${
+                  className={`hit absolute top-1.5 left-1.5 w-6 h-6 rounded-full bg-vf/60 backdrop-blur-sm flex items-center justify-center transition-opacity duration-150 focus:opacity-100 ${
                     fav ? 'opacity-100 text-magenta' : 'opacity-0 group-hover:opacity-100 text-white'
                   }`}
                 >

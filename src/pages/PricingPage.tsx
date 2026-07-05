@@ -148,8 +148,8 @@ export default function PricingPage() {
               transition={{ duration: 0.15, ease: 'easeOut', delay: i * 0.05 }}
               className={
                 tier.highlight
-                  ? 'relative z-10 grad-fill rounded-[26px] p-[2px] shadow-[0_20px_48px_-20px_rgb(23_19_31/0.4)] lg:scale-[1.045] lg:-translate-y-2'
-                  : 'relative bg-surface rounded-[24px] border border-ink/5 shadow-[0_2px_12px_rgb(23_19_31/0.05)]'
+                  ? 'relative z-10 bg-surface rounded-[24px] border border-clay/30 shadow-[var(--shadow-e4)] lg:scale-[1.05] lg:-translate-y-3'
+                  : 'relative bg-surface rounded-[24px] border border-[rgb(60_42_24/0.1)] shadow-[var(--shadow-e2)]'
               }
             >
               <div className="relative flex flex-col h-full p-6 sm:p-7 bg-surface rounded-[24px]">
@@ -157,7 +157,8 @@ export default function PricingPage() {
                     wherever cards actually sit side by side */}
                 <div className={tier.highlight ? 'h-6 mb-5' : 'hidden md:block h-6 mb-5'}>
                   {tier.highlight && (
-                    <span className="inline-flex items-center text-[10px] font-semibold tracking-[0.1em] uppercase px-2.5 py-1 rounded-full bg-ink text-white">
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.1em] uppercase px-2.5 py-1 rounded-full bg-clay text-white shadow-[0_2px_6px_rgb(60_20_10/0.3)]">
+                      <span className="w-1 h-1 rounded-full bg-white/90" aria-hidden />
                       Most popular
                     </span>
                   )}
@@ -206,7 +207,22 @@ export default function PricingPage() {
         })}
       </div>
 
-      <div className="mt-10 sm:mt-12 flex flex-wrap items-center gap-x-5 gap-y-2">
+      {/* what every plan includes — fills the shelf + reinforces the "case" metaphor */}
+      <div className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { k: '18', l: 'cameras in the case' },
+          { k: 'On-device', l: 'nothing is uploaded' },
+          { k: 'Unlimited', l: 're-develops per shot' },
+          { k: 'No lock-in', l: 'cancel any month' },
+        ].map((s) => (
+          <div key={s.l} className="panel px-4 py-4">
+            <p className="font-mono text-[12px] tracking-[0.12em] uppercase text-clay tabular-nums">{s.k}</p>
+            <p className="text-[13px] text-ink-soft mt-1 leading-snug">{s.l}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2">
         <p className="text-[13px] text-fog">
           {appStore
             ? 'Billed through your Apple ID. Manage or cancel in Settings.'

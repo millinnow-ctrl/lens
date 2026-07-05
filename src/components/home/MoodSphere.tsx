@@ -234,8 +234,10 @@ export default function MoodSphere({
                 role="option"
                 aria-selected={isFront}
                 onClick={() => (isFront ? onOpen(s) : scrollToIndex(i))}
-                className={`relative snap-center shrink-0 w-[112px] rounded-[22px] p-[2px] cursor-pointer transition-shadow duration-300 ${
-                  isFront ? 'grad-fill aura' : 'bg-transparent'
+                className={`relative snap-center shrink-0 w-[112px] rounded-[22px] p-[3px] cursor-pointer transition-shadow duration-300 ${
+                  isFront
+                    ? 'bg-[#fbf6eb] shadow-[var(--shadow-e4)]'
+                    : 'bg-transparent'
                 }`}
                 style={{ willChange: 'transform' }}
               >
@@ -258,7 +260,7 @@ export default function MoodSphere({
                     style={thumbs[s.id] ? undefined : { filter: s.cardFilter }}
                   />
                   {/* label scrim */}
-                  <div className="absolute inset-x-0 bottom-0 h-[52%] bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 h-[58%] bg-gradient-to-t from-black/88 via-black/45 to-transparent" />
                   <div className="absolute inset-x-0 bottom-0 px-2 pb-2 text-center">
                     <p className="text-white font-semibold text-[12.5px] leading-tight drop-shadow-sm">
                       {s.name}

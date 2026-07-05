@@ -202,7 +202,7 @@ export default function LandingPage() {
               <Link
                 key={`${style.id}-${i}`}
                 to={`/studio?style=${style.id}`}
-                className="group w-52 sm:w-60 shrink-0 bg-surface rounded-[20px] border border-ink/5 p-2 shadow-[0_2px_10px_rgb(23_19_31/0.04)] hover:-translate-y-1 hover:shadow-[0_14px_32px_-8px_rgb(224_57_43/0.25)] transition-[box-shadow,transform] duration-200 ease-out"
+                className="group w-52 sm:w-60 shrink-0 bg-surface rounded-[20px] border border-[rgb(60_42_24/0.1)] p-2 shadow-[var(--shadow-e1)] hover:-translate-y-1 hover:shadow-[var(--shadow-e3)] transition-[box-shadow,transform] duration-200 ease-out"
               >
                 <div className="relative aspect-4/5 overflow-hidden rounded-[14px] bg-vf">
                   <img

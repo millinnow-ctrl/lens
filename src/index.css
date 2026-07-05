@@ -32,6 +32,21 @@
   --radius-xs: 10px;
 
   --shadow-modal: 0 1px 0 rgb(38 30 21 / 0.05), 0 24px 64px -16px rgb(38 30 21 / 0.28);
+
+  /* ---- elevation system: warm, layered, tactile (prints on a kraft bench).
+     Each tier = a tight contact shadow + a soft ambient cast + a top
+     material highlight, so a rounded rect reads as a physical object,
+     not a flat fill. Shadow color is a warm brown (60 42 24), never grey. */
+  --shadow-e1: 0 1px 2px rgb(60 42 24 / 0.14), 0 5px 12px -2px rgb(60 42 24 / 0.16),
+    inset 0 1px 0 rgb(255 255 255 / 0.6);
+  --shadow-e2: 0 2px 4px rgb(60 42 24 / 0.15), 0 12px 26px -5px rgb(60 42 24 / 0.22),
+    inset 0 1px 0 rgb(255 255 255 / 0.65);
+  --shadow-e3: 0 3px 6px rgb(60 42 24 / 0.16), 0 22px 46px -8px rgb(60 42 24 / 0.28),
+    inset 0 1px 0 rgb(255 255 255 / 0.6);
+  --shadow-e4: 0 5px 10px rgb(60 42 24 / 0.16), 0 38px 72px -14px rgb(60 42 24 / 0.34),
+    inset 0 1px 0 rgb(255 255 255 / 0.55);
+  --shadow-press: inset 0 2px 6px rgb(60 42 24 / 0.18), 0 1px 1px rgb(60 42 24 / 0.05);
+  --edge-hairline: 1px solid rgb(60 42 24 / 0.10);
 }
 
 html {
@@ -54,6 +69,42 @@ a,
 label,
 summary {
   touch-action: manipulation;
+}
+
+/* expand a small icon control's hit area to ~44px without changing its
+   visual size (a11y §2 touch-target-size) */
+.hit {
+  position: relative;
+}
+.hit::after {
+  content: '';
+  position: absolute;
+  inset: -10px;
+}
+
+/* warm shimmer placeholder for async thumbnails (a11y §3 progressive-loading) */
+@keyframes lm-shimmer {
+  0% {
+    background-position: -160% 0;
+  }
+  100% {
+    background-position: 160% 0;
+  }
+}
+.skeleton {
+  background: linear-gradient(
+    100deg,
+    rgb(60 42 24 / 0.05) 30%,
+    rgb(60 42 24 / 0.11) 50%,
+    rgb(60 42 24 / 0.05) 70%
+  );
+  background-size: 200% 100%;
+  animation: lm-shimmer 1.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
 }
 
 ::selection {
@@ -171,9 +222,9 @@ summary {
 
 .panel {
   background: var(--color-surface);
-  border: 1px solid rgb(23 19 31 / 0.06);
+  border: var(--edge-hairline);
   border-radius: 20px;
-  box-shadow: 0 2px 10px rgb(23 19 31 / 0.04);
+  box-shadow: var(--shadow-e2);
 }
 
 .rule {
@@ -754,24 +805,24 @@ input[type='range'].lm-slider::-moz-range-thumb {
 }
 
 .hm-card {
-  background: #ffffff;
+  background: var(--color-surface);
   border-radius: 24px;
-  border: 1px solid rgb(23 19 31 / 0.05);
-  box-shadow: 0 2px 12px rgb(23 19 31 / 0.05);
+  border: var(--edge-hairline);
+  box-shadow: var(--shadow-e2);
 }
 
 .hm-tile {
-  background: #ffffff;
+  background: var(--color-surface);
   border-radius: 18px;
-  border: 1px solid rgb(23 19 31 / 0.05);
-  box-shadow: 0 1px 6px rgb(23 19 31 / 0.04);
+  border: var(--edge-hairline);
+  box-shadow: var(--shadow-e1);
 }
 
 .hm-pill {
-  background: #ffffff;
+  background: var(--color-surface);
   border-radius: 999px;
-  border: 1px solid rgb(23 19 31 / 0.06);
-  box-shadow: 0 1px 4px rgb(23 19 31 / 0.05);
+  border: var(--edge-hairline);
+  box-shadow: var(--shadow-e1);
 }
 
 .hm-chip {
@@ -804,12 +855,13 @@ input[type='range'].lm-slider::-moz-range-thumb {
   font-weight: 600;
 }
 
-/* drop-zone card — quiet hairline, no decoration */
+/* drop-zone card — recessed well (inset), reads as a tray milled into the bench */
 .hm-drop {
   position: relative;
   border-radius: 28px;
-  border: 1px solid rgb(23 19 31 / 0.08);
-  background: rgb(255 255 255 / 0.55);
+  border: 1px dashed rgb(60 42 24 / 0.22);
+  background: rgb(60 42 24 / 0.03);
+  box-shadow: inset 0 2px 8px rgb(60 42 24 / 0.08);
 }
 
 .hm-cta {
@@ -818,16 +870,17 @@ input[type='range'].lm-slider::-moz-range-thumb {
     0 10px 28px rgb(224 57 43 / 0.30);
 }
 
-/* floating pill tab bar — like the reference */
+/* floating pill tab bar — lifted off the bench, like the reference */
 .hm-dock {
-  background: rgb(255 255 255 / 0.92);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgb(23 19 31 / 0.05);
-  border-radius: 32px;
+  background: rgb(251 246 235 / 0.97);
+  backdrop-filter: blur(20px) saturate(1.15);
+  -webkit-backdrop-filter: blur(20px) saturate(1.15);
+  border: 1px solid rgb(255 255 255 / 0.8);
+  border-radius: 30px;
   box-shadow:
-    0 2px 8px rgb(23 19 31 / 0.06),
-    0 12px 32px rgb(23 19 31 / 0.10);
+    0 2px 5px rgb(60 42 24 / 0.12),
+    0 18px 38px -8px rgb(60 42 24 / 0.30),
+    inset 0 1px 0 rgb(255 255 255 / 0.8);
 }
 
 @keyframes hm-sheet-in {
@@ -847,11 +900,37 @@ input[type='range'].lm-slider::-moz-range-thumb {
 /* press feedback for tappable cards */
 .hm-press {
   transition:
-    transform 0.18s ease,
-    box-shadow 0.15s ease;
+    transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1),
+    box-shadow 0.2s ease;
 }
 .hm-press:active {
   /* fast press, slower release */
-  transform: scale(0.98);
+  transform: scale(0.975);
   transition-duration: 0.06s;
+}
+
+/* tactile card: rests raised, lifts toward the light on hover, and
+   physically depresses into the bench on press (shadow collapses to inset) */
+.lift {
+  transition:
+    transform 0.22s cubic-bezier(0.2, 0.9, 0.3, 1),
+    box-shadow 0.22s cubic-bezier(0.2, 0.9, 0.3, 1);
+  will-change: transform;
+}
+@media (hover: hover) {
+  .lift:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-e3);
+  }
+}
+.lift:active {
+  transform: translateY(0) scale(0.985);
+  box-shadow: var(--shadow-press);
+  transition-duration: 0.07s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .lift:hover,
+  .lift:active {
+    transform: none;
+  }
 }

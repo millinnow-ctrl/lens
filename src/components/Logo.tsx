@@ -46,11 +46,6 @@ export function ApertureMark({
       ))}
       <circle cx="24" cy="24" r="6" fill="url(#lmLens)" />
       <circle cx="22" cy="22" r="1.7" fill="#fff6e6" opacity="0.9" />
-      {/* sparkle */}
-      <path
-        d="M38.5 6.5 L39.6 9.4 L42.5 10.5 L39.6 11.6 L38.5 14.5 L37.4 11.6 L34.5 10.5 L37.4 9.4 Z"
-        fill="#f7d59a"
-      />
     </svg>
   )
 }

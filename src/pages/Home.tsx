@@ -161,7 +161,18 @@ function HomeContent({
 
       {/* hero — the product itself, playing. gradient lives in the footage */}
       <motion.section variants={childVariants} className="mt-2 px-5">
-        <div className="relative rounded-[28px] overflow-hidden aspect-[4/3] bg-vf">
+        <div className="relative rounded-[28px] overflow-hidden bg-vf border border-white/[0.06] shadow-[var(--shadow-e3)]">
+          {/* viewfinder chrome strip — the same machined bezel as the studio */}
+          <div className="h-8 px-3.5 flex items-center justify-between gap-3 border-b border-white/[0.08]">
+            <span className="flex items-center gap-2 font-mono text-[10px] tracking-[0.16em] uppercase text-vf-chrome">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#e0392b]" aria-hidden />
+              LM Engine · Live
+            </span>
+            <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-vf-chrome tabular-nums">
+              35mm · ƒ1.4 · 400
+            </span>
+          </div>
+          <div className="relative aspect-[4/3] vf-corners overflow-hidden">
           {heroVideoEnabled() ? (
             <video
               src={heroLoop}
@@ -203,6 +214,7 @@ function HomeContent({
               <IconUpload size={16} />
               Start with a photo
             </button>
+          </div>
           </div>
         </div>
       </motion.section>
@@ -246,7 +258,7 @@ function HomeContent({
             <button
               onClick={dismissMilestone}
               aria-label="Dismiss milestone"
-              className="hm-press shrink-0 flex items-center justify-center w-7 h-7 rounded-full text-fog"
+              className="hit hm-press shrink-0 flex items-center justify-center w-7 h-7 rounded-full text-fog"
             >
               <IconClose size={13} />
             </button>
@@ -299,40 +311,50 @@ function HomeContent({
         </div>
       </motion.section>
 
-      {/* today's free look — the look's own artwork is the surface */}
+      {/* today's free look — a warm clay "darkroom slip" with the day's frame
+          pinned to it as a little instant print (tactile, physical, on-brand) */}
       <motion.section variants={childVariants} className="mt-7 px-5">
-        <div className="relative overflow-hidden rounded-[22px] bg-vf">
-          <img
-            src={STYLE_ART[daily.id] ?? sampleGolden}
-            alt=""
-            draggable={false}
-            className="absolute inset-0 w-full h-full object-cover"
-            style={{ objectPosition: 'center 30%' }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-black/10" />
-          <div className="relative flex items-center gap-3 p-4 min-h-[104px]">
+        <div className="relative overflow-hidden rounded-[22px] bg-gradient-to-br from-clay to-clay-deep shadow-e2 [box-shadow:var(--shadow-e2)]">
+          <div className="texture-film absolute inset-0 opacity-40 mix-blend-overlay pointer-events-none" aria-hidden />
+          {/* warm rim-light catching the top edge */}
+          <div className="absolute inset-x-0 top-0 h-px bg-white/25" aria-hidden />
+          <div className="relative flex items-center gap-4 p-4 pr-3.5 min-h-[112px]">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2.5">
-                <p className="text-[11px] font-bold tracking-[0.1em] uppercase text-white/85">Free today</p>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1 text-[10.5px] font-bold tracking-[0.12em] uppercase text-white/90">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white/90 animate-none" aria-hidden />
+                  Free today
+                </span>
                 {streak.count >= 1 && (
-                  <p className="text-[10.5px] font-semibold text-white/55 tabular-nums">Day {streak.count}</p>
+                  <span className="text-[10.5px] font-semibold text-white/60 tabular-nums">· Day {streak.count}</span>
                 )}
               </div>
-              <p className="text-white font-bold text-[18px] mt-0.5 leading-tight truncate">{daily.name}</p>
-              <p className="text-[11.5px] text-white/60 mt-0.5 tabular-nums truncate">
+              <p className="text-white font-bold text-[19px] mt-1 leading-tight truncate">{daily.name}</p>
+              <p className="text-[11.5px] text-white/70 mt-0.5 tabular-nums truncate">
                 Ends at midnight · {tried.length}/{CAMERA_STYLES.length} in the case
               </p>
+              <button
+                onClick={() =>
+                  navigate(`/studio?style=${daily.id}&p=${encodeParams(dailyRecipe())}${dailyDone ? '' : '&daily=1'}`)
+                }
+                className={`hm-press mt-3 inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-[13px] font-semibold ${
+                  dailyDone
+                    ? 'bg-white/15 text-white/85'
+                    : 'bg-surface text-clay-deep shadow-[0_2px_6px_rgb(60_20_10/0.28)]'
+                }`}
+              >
+                {dailyDone ? 'Shot today' : 'Shoot it'}
+              </button>
             </div>
-            <button
-              onClick={() =>
-                navigate(`/studio?style=${daily.id}&p=${encodeParams(dailyRecipe())}${dailyDone ? '' : '&daily=1'}`)
-              }
-              className={`hm-press relative shrink-0 h-10 px-5 rounded-full text-[13.5px] font-semibold ${
-                dailyDone ? 'bg-white/15 text-white/80' : 'bg-white text-ink'
-              }`}
-            >
-              {dailyDone ? 'Shot today' : 'Shoot it'}
-            </button>
+            {/* the day's frame as a pinned instant print, leaning on the slip */}
+            <div className="shrink-0 -rotate-3 rounded-[7px] bg-[#fbf6eb] p-1.5 pb-3.5 shadow-[0_10px_22px_-6px_rgb(60_20_10/0.5)] [box-shadow:0_10px_22px_-6px_rgb(60_20_10/0.5),inset_0_1px_0_rgb(255_255_255/0.8)]">
+              <img
+                src={STYLE_ART[daily.id] ?? sampleGolden}
+                alt=""
+                draggable={false}
+                className="w-[68px] aspect-4/5 object-cover rounded-[3px]"
+              />
+            </div>
           </div>
         </div>
       </motion.section>

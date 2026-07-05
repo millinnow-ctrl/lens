@@ -107,6 +107,15 @@ export default function StepControl({ scale, value, onChange }: Props) {
         onKeyDown={onKeyDown}
         className="relative h-8 cursor-pointer touch-none rounded-md outline-none focus-visible:ring-2 focus-visible:ring-violet/50"
       >
+        {/* recessed machined channel the stops are milled into */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[5px] rounded-full"
+          style={{
+            background: 'rgb(60 42 24 / 0.05)',
+            boxShadow: 'inset 0 1px 2px rgb(60 42 24 / 0.28), inset 0 -1px 0 rgb(255 255 255 / 0.55)',
+          }}
+        />
         {/* the detent bed: tall machined marks, inset into the panel. There is
             deliberately NO continuous fill bar — the marks read as stops you
             snap between, not a fader you drag anywhere. */}
@@ -122,16 +131,16 @@ export default function StepControl({ scale, value, onChange }: Props) {
               style={{ left: `calc(${frac * 100}% ${frac === 0 ? '+ 2px' : frac === 1 ? '- 2px' : ''})`, transform: 'translate(-50%, -50%)' }}
             >
               {isActive ? (
-                // active stop = a machined disc: fill + scale + ink ring for
-                // contrast against the white panel (not white-on-white)
-                <span className="block h-[16px] w-[16px] rounded-full bg-violet ring-1 ring-[rgb(23_19_31_/_0.55)] shadow-[0_1px_4px_rgb(76_29_149_/_0.5),inset_0_1px_0_rgb(255_255_255_/_0.55)]" />
+                // active stop = a machined puck: red fill, glossy top edge,
+                // shadowed underside, warm ring + drop so it sits proud of the groove
+                <span className="block h-[17px] w-[17px] rounded-full bg-violet ring-1 ring-[rgb(60_42_24_/_0.35)] shadow-[inset_0_1px_0_rgb(255_255_255_/_0.55),inset_0_-2px_3px_rgb(120_18_8_/_0.55),0_2px_5px_rgb(60_42_24_/_0.45)]" />
               ) : (
                 // etched detent — tall notch; passed marks read violet, upcoming ink
                 <span
                   className="block w-[2px] rounded-full"
                   style={{
                     height: passed ? '15px' : '11px',
-                    background: passed ? 'rgb(224 57 43 / 0.95)' : 'rgb(23 19 31 / 0.28)',
+                    background: passed ? 'rgb(224 57 43 / 0.95)' : 'rgb(60 42 24 / 0.3)',
                     boxShadow: 'inset 0 1px 0 rgb(255 255 255 / 0.5)',
                   }}
                 />

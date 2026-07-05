@@ -15,7 +15,7 @@ interface Props {
 /** big rounded photo card — the "Recent edits" tile from the reference */
 export default function RecentProjectCard({ to, image, label, sublabel, filter, chip }: Props) {
   return (
-    <Link to={to} className="hm-press relative block rounded-[20px] overflow-hidden aspect-[4/4.6] bg-vf">
+    <Link to={to} className="hm-press lift shadow-[var(--shadow-e2)] relative block rounded-[20px] overflow-hidden aspect-[4/4.6] bg-vf">
       <img
         src={image}
         alt=""
@@ -24,7 +24,7 @@ export default function RecentProjectCard({ to, image, label, sublabel, filter, 
         className="absolute inset-0 w-full h-full object-cover"
         style={filter ? { filter } : undefined}
       />
-      <div className="absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-black/70 via-black/25 to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 h-[54%] bg-gradient-to-t from-black/82 via-black/38 to-transparent" />
       {chip && (
         <span className="absolute top-2.5 right-2.5 rounded-full bg-black/45 backdrop-blur-sm text-white/90 text-[9.5px] font-semibold tracking-[0.04em] uppercase px-2 py-0.5">
           {chip}

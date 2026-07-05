@@ -86,7 +86,7 @@ export default function VideoPreview({ src, style, params, className = '', onPos
       <button
         onClick={togglePlay}
         aria-label={playing ? 'Pause' : 'Play'}
-        className="absolute bottom-3 left-3 w-9 h-9 rounded-full bg-vf/70 text-paper flex items-center justify-center hover:bg-vf/90 transition-colors"
+        className="hit absolute bottom-3 left-3 w-9 h-9 rounded-full bg-vf/70 text-paper flex items-center justify-center hover:bg-vf/90 transition-colors"
       >
         {playing ? <IconPause size={14} /> : <IconPlay size={14} />}
       </button>

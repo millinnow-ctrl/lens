@@ -29,7 +29,7 @@ export default function ToolCard({ to, title, sub, image, tag, ratio = 'aspect-[
     <button
       onClick={go}
       aria-pressed={active}
-      className={`hm-press relative block w-full text-left ${ratio} rounded-[18px] overflow-hidden bg-vf ${
+      className={`hm-press lift shadow-[var(--shadow-e2)] relative block w-full text-left ${ratio} rounded-[18px] overflow-hidden bg-vf ${
         active ? 'ring-2 ring-ink/70 ring-offset-2 ring-offset-paper' : ''
       }`}
     >
@@ -40,7 +40,7 @@ export default function ToolCard({ to, title, sub, image, tag, ratio = 'aspect-[
         draggable={false}
         className="absolute inset-0 w-full h-full object-cover"
       />
-      <div className="absolute inset-x-0 bottom-0 h-[62%] bg-gradient-to-t from-black/70 via-black/25 to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 h-[68%] bg-gradient-to-t from-black/85 via-black/42 to-transparent" />
       {tag && (
         <span className="absolute top-2 right-2 rounded-full bg-black/45 backdrop-blur-sm text-white/90 text-[9px] font-semibold tracking-[0.06em] uppercase px-2 py-0.5">
           {tag}
@@ -48,7 +48,7 @@ export default function ToolCard({ to, title, sub, image, tag, ratio = 'aspect-[
       )}
       <div className="absolute inset-x-0 bottom-0 p-2.5">
         <p className="text-white font-semibold text-[14px] leading-tight truncate">{title}</p>
-        {sub && <p className="text-white/70 text-[11px] leading-tight mt-0.5 truncate">{sub}</p>}
+        {sub && <p className="text-white/80 text-[11px] leading-tight mt-0.5 truncate">{sub}</p>}
       </div>
     </button>
   )

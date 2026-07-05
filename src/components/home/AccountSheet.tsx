@@ -86,7 +86,7 @@ export default function AccountSheet({ open, onClose, container }: Props) {
                 </div>
                 <div className="h-1 rounded-full bg-ink/[0.08] overflow-hidden mb-3">
                   <div
-                    className="h-full rounded-full grad-fill transition-all"
+                    className="h-full rounded-full bg-clay transition-all"
                     style={{ width: `${(creditsLeft / FREE_CREDITS) * 100}%` }}
                   />
                 </div>
@@ -96,7 +96,7 @@ export default function AccountSheet({ open, onClose, container }: Props) {
                   className="flex items-center justify-between text-[13px] font-semibold text-ink"
                 >
                   <span>
-                    Go <span className="grad-text">Creator</span> — $7/mo
+                    Go <span className="text-clay font-bold">Creator</span> — $7/mo
                   </span>
                   <IconChevronRight size={13} className="text-fog" />
                 </Link>

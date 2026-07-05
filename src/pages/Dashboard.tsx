@@ -110,7 +110,7 @@ export default function Dashboard() {
                         <button
                           onClick={() => removeHistory(h.id)}
                           aria-label="Delete"
-                          className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-vf/75 border border-white/25 text-paper opacity-0 group-hover:opacity-100 hover:border-signal hover:text-signal transition-opacity flex items-center justify-center"
+                          className="hit absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-vf/75 border border-white/25 text-paper opacity-0 group-hover:opacity-100 hover:border-signal hover:text-signal transition-opacity flex items-center justify-center"
                         >
                           <IconTrash size={12} />
                         </button>
@@ -267,7 +267,7 @@ export default function Dashboard() {
                 {favStyles.map((s) => (
                   <span
                     key={s.id}
-                    className="inline-flex items-center gap-2.5 rounded-full border border-ink/10 bg-surface px-3.5 py-2 shadow-[0_1px_4px_rgb(23_19_31/0.04)]"
+                    className="inline-flex items-center gap-2.5 rounded-full border border-[rgb(60_42_24/0.1)] bg-surface px-3.5 py-2 shadow-[var(--shadow-e1)]"
                   >
                     <span className="w-2 h-2 rounded-full shrink-0" style={{ background: s.gradient }} />
                     <span className="font-sans font-semibold text-[13px]">{s.name}</span>
