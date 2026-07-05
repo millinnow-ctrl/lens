@@ -78,6 +78,47 @@ const hash32 = (str: string) => {
   return h >>> 0
 }
 
+const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x)
+const smoothstep = (a: number, b: number, x: number) => {
+  const t = clamp01((x - a) / (b - a))
+  return t * t * (3 - 2 * t)
+}
+
+/** integer white-noise hash → [0,1). The grain PRNG — deterministic per
+ *  (x,y,seed) so the same develop is reproducible, and cheap enough to run
+ *  per-pixel on a full frame. */
+function nHash(x: number, y: number, seed: number): number {
+  let h = (Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263) + Math.imul(seed | 0, 2246822519)) >>> 0
+  h = Math.imul(h ^ (h >>> 13), 1274126177)
+  h ^= h >>> 16
+  return (h >>> 0) / 4294967296
+}
+
+/** three-tap average → a soft, bell-shaped (Gaussian-ish) grain value in
+ *  roughly [-0.5, 0.5]; real film grain is Gaussian, not the flat uniform
+ *  noise a naive overlay produces. */
+function grainSample(x: number, y: number, seed: number): number {
+  return (nHash(x, y, seed) + nHash(x, y, seed + 9173) + nHash(x, y, seed + 51287)) / 3 - 0.5
+}
+
+/**
+ * A filmic response LUT with a real shoulder: shadows compress into a soft
+ * toe, midtones gain gentle contrast, and highlights roll off *below* pure
+ * white (the "creamy highlight" that keeps digital clipping from giving the
+ * look away). Blended from linear by `amt`.
+ */
+function filmicLut(amt: number): Uint8ClampedArray {
+  const lut = new Uint8ClampedArray(256)
+  for (let i = 0; i < 256; i++) {
+    const x = i / 255
+    const sC = x * x * (3 - 2 * x) // classic S (toe + shoulder)
+    // pull the top down so white lands ~0.94 — emulsion never hits paper-white
+    const f = sC - 0.06 * smoothstep(0.62, 1, x)
+    lut[i] = Math.round(255 * lerp(x, f, amt))
+  }
+  return lut
+}
+
 /* ------------------------------------------------------------ pipeline */
 
 /**
@@ -131,7 +172,9 @@ export function renderStyled(
   const split = ch.splitTone
   const splitAmt = (split?.amount ?? 0) * s
   const fringePx = Math.round((ch.fringe ?? 0) * s * ref)
-  if (curveAmt > 0.02 || splitAmt > 0.02 || fringePx >= 1) {
+  const mtx = ch.colorMatrix // 3×3 channel crosstalk (real film mixes channels)
+  const hiDesat = 0.6 * s // film bleaches highlights toward paper-white
+  if (curveAmt > 0.02 || splitAmt > 0.02 || fringePx >= 1 || mtx || hiDesat > 0.02) {
     const img = ctx.getImageData(0, 0, w, h)
     const d = img.data
 
@@ -151,27 +194,43 @@ export function renderStyled(
       }
     }
 
-    // filmic S-curve LUT: smoothstep pulls blacks down and rolls highlights
-    const lut = new Uint8ClampedArray(256)
-    for (let i = 0; i < 256; i++) {
-      const x = i / 255
-      const sCurve = x * x * (3 - 2 * x)
-      lut[i] = Math.round(255 * lerp(x, sCurve, curveAmt))
-    }
+    const lut = filmicLut(curveAmt)
+    const doCurve = curveAmt > 0.02
     const sh = split ? hexRgb(split.shadows) : null
     const hi = split ? hexRgb(split.highlights) : null
     const doSplit = !!(sh && hi && splitAmt > 0.02)
     const k = splitAmt * 0.55
+    const mAmt = mtx ? s : 0
     for (let i = 0; i < d.length; i += 4) {
-      let r = lut[d[i]]
-      let g = lut[d[i + 1]]
-      let b = lut[d[i + 2]]
+      let r = doCurve ? lut[d[i]] : d[i]
+      let g = doCurve ? lut[d[i + 1]] : d[i + 1]
+      let b = doCurve ? lut[d[i + 2]] : d[i + 2]
+      // channel crosstalk — how film dyes contaminate neighbouring layers
+      if (mAmt) {
+        const nr = mtx![0] * r + mtx![1] * g + mtx![2] * b
+        const ng = mtx![3] * r + mtx![4] * g + mtx![5] * b
+        const nb = mtx![6] * r + mtx![7] * g + mtx![8] * b
+        r = lerp(r, nr, mAmt)
+        g = lerp(g, ng, mAmt)
+        b = lerp(b, nb, mAmt)
+      }
       if (doSplit) {
         const lum = (r * 0.299 + g * 0.587 + b * 0.114) / 255
         const wsh = 1 - lum
         r += ((sh![0] - 128) * wsh + (hi![0] - 128) * lum) * k
         g += ((sh![1] - 128) * wsh + (hi![1] - 128) * lum) * k
         b += ((sh![2] - 128) * wsh + (hi![2] - 128) * lum) * k
+      }
+      // highlight desaturation + faint cream cast — the emulsion gives up
+      // saturation as it approaches white instead of holding vivid color
+      if (hiDesat > 0.02) {
+        const L = r * 0.299 + g * 0.587 + b * 0.114
+        const t = smoothstep(0.72, 1, L / 255) * hiDesat
+        if (t > 0.001) {
+          r = lerp(r, L, t) + t * 7
+          g = lerp(g, L, t) + t * 4
+          b = lerp(b, L, t)
+        }
       }
       d[i] = r
       d[i + 1] = g
@@ -193,8 +252,10 @@ export function renderStyled(
       ctx.ellipse(fx, fy, fr, fr * 1.25, 0, 0, Math.PI * 2)
       ctx.clip()
     }
-    ctx.globalAlpha = (params.smoothing / 100) * (focal ? 0.55 : 0.4)
-    ctx.filter = `blur(${(2.5 * ref).toFixed(2)}px)`
+    // gentler than before, and grain lands on top of this pass (below), so
+    // smoothed skin keeps an emulsion texture instead of going plastic
+    ctx.globalAlpha = (params.smoothing / 100) * (focal ? 0.42 : 0.3)
+    ctx.filter = `blur(${(2.2 * ref).toFixed(2)}px)`
     ctx.drawImage(canvas, 0, 0)
     ctx.restore()
     ctx.filter = 'none'
@@ -207,8 +268,11 @@ export function renderStyled(
   if (halation > 0.01) {
     ctx.save()
     ctx.globalCompositeOperation = 'screen'
-    ctx.globalAlpha = halation * 0.75
-    ctx.filter = `brightness(0.55) contrast(3.2) saturate(1.2) blur(${(8 * ref).toFixed(2)}px)`
+    ctx.globalAlpha = halation * 0.8
+    // warm/red-biased bloom: the anti-halation layer failing scatters red
+    // light around speculars — that orange halo is the film tell, not a
+    // neutral glow. sepia + saturate push the crushed highlights warm.
+    ctx.filter = `brightness(0.5) contrast(3.4) saturate(1.5) sepia(0.5) blur(${(9 * ref).toFixed(2)}px)`
     ctx.drawImage(canvas, 0, 0)
     ctx.restore()
     ctx.filter = 'none'
@@ -324,22 +388,52 @@ export function renderStyled(
      slide film resolves fine. */
   const grain = params.grain / 100
   if (grain > 0.02) {
-    const gs = Math.max(0.5, (ch.grainSize ?? 1) * ref)
-    ctx.save()
-    ctx.globalCompositeOperation = 'overlay'
-    ctx.globalAlpha = grain * 0.55
-    ctx.scale(gs, gs)
-    ctx.fillStyle = ctx.createPattern(getNoiseTile(), 'repeat')!
     if (animateGrain) {
-      // shift the tile a random amount each frame so video grain dances
+      // video: cheap overlay tile, shifted each frame so grain dances
+      const gs = Math.max(0.5, (ch.grainSize ?? 1) * ref)
+      ctx.save()
+      ctx.globalCompositeOperation = 'overlay'
+      ctx.globalAlpha = grain * 0.5
+      ctx.scale(gs, gs)
+      ctx.fillStyle = ctx.createPattern(getNoiseTile(), 'repeat')!
       const ox = Math.floor(Math.random() * 192)
       const oy = Math.floor(Math.random() * 192)
       ctx.translate(-ox, -oy)
       ctx.fillRect(0, 0, w / gs + 192, h / gs + 192)
+      ctx.restore()
     } else {
-      ctx.fillRect(0, 0, w / gs, h / gs)
+      // stills: luminance-weighted Gaussian grain, embedded per-pixel. Real
+      // grain lives in the midtones — the emulsion saturates in deep shadow
+      // and blown highlight — and is clumped to the stock's grain size. This
+      // is the single biggest tell between "film" and "a noise layer".
+      const img = ctx.getImageData(0, 0, w, h)
+      const dd = img.data
+      const gs = Math.max(1, Math.round((ch.grainSize ?? 1) * ref))
+      const amp = grain * 34 * (ch.grainAmp ?? 1)
+      const chroma = ch.bw ? 0 : (ch.grainChroma ?? 0.4)
+      const seed = hash32(style.id) & 0xffff
+      const clumped = gs > 1
+      for (let y = 0; y < h; y++) {
+        const gy = clumped ? (y / gs) | 0 : y
+        for (let x = 0; x < w; x++) {
+          const idx = (y * w + x) * 4
+          const L = (dd[idx] * 0.299 + dd[idx + 1] * 0.587 + dd[idx + 2] * 0.114) / 255
+          const wgt = 0.25 + 0.75 * (4 * L * (1 - L))
+          const gx = clumped ? (x / gs) | 0 : x
+          const mono = grainSample(gx, gy, seed) * amp * wgt
+          if (chroma) {
+            dd[idx] += mono + grainSample(gx, gy, seed + 13) * amp * chroma * wgt
+            dd[idx + 1] += mono + grainSample(gx, gy, seed + 37) * amp * chroma * wgt
+            dd[idx + 2] += mono + grainSample(gx, gy, seed + 61) * amp * chroma * wgt
+          } else {
+            dd[idx] += mono
+            dd[idx + 1] += mono
+            dd[idx + 2] += mono
+          }
+        }
+      }
+      ctx.putImageData(img, 0, 0)
     }
-    ctx.restore()
   }
 
   /* 10 — camcorder scanlines + timestamp */

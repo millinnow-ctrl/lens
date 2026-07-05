@@ -35,6 +35,13 @@ export interface StyleCharacter {
   leak?: number
   /** grain clump size multiplier — wet plate 1.8, slide film 0.7 */
   grainSize?: number
+  /** 3×3 channel-crosstalk matrix (row-major, on 0–255) — the signature
+   *  colour science of a stock: how its dye layers contaminate each other */
+  colorMatrix?: number[]
+  /** grain amplitude multiplier (default 1) */
+  grainAmp?: number
+  /** grain chroma / per-channel decorrelation, 0 = monochrome (default 0.4) */
+  grainChroma?: number
 }
 
 export interface CameraStyle {
@@ -77,6 +84,8 @@ export const CAMERA_STYLES: CameraStyle[] = [
     defaults: P({ grain: 62, contrast: 57, warmth: 66, flash: 48, shadows: 34 }),
     character: {
       grainSize: 1.3,
+      colorMatrix: [1.06, -0.02, -0.02, -0.02, 1.0, 0.0, -0.03, 0.02, 1.0],
+      grainChroma: 0.5,
       curve: 0.2,
       leak: 0.3,
       sepia: 0.18,
@@ -157,6 +166,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
     defaults: P({ grain: 8, contrast: 64, warmth: 54, flash: 18, shadows: 52, smoothing: 38 }),
     character: {
       grainSize: 0.6,
+      colorMatrix: [1.05, 0.0, -0.03, -0.01, 1.0, 0.0, -0.02, -0.02, 1.03],
       curve: 0.25,
       saturate: 1.08,
       brightness: 1.03,
@@ -177,6 +187,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
     defaults: P({ grain: 30, contrast: 55, warmth: 46, flash: 0, shadows: 58 }),
     character: {
       curve: 0.25,
+      colorMatrix: [0.92, 0.06, 0.02, 0.03, 0.94, 0.03, 0.03, 0.05, 0.94],
       splitTone: { shadows: '#164e63', highlights: '#fcd34d', amount: 0.4 },
       saturate: 0.8,
       brightness: 0.99,
@@ -302,6 +313,8 @@ export const CAMERA_STYLES: CameraStyle[] = [
     defaults: P({ grain: 18, contrast: 62, warmth: 58, flash: 0, shadows: 46 }),
     character: {
       grainSize: 0.7,
+      colorMatrix: [1.14, -0.06, -0.05, -0.06, 1.07, -0.03, -0.04, -0.09, 1.08],
+      grainChroma: 0.25,
       curve: 0.4,
       splitTone: { shadows: '#7f1d1d', highlights: '#fde68a', amount: 0.45 },
       saturate: 1.22,
@@ -387,6 +400,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
     defaults: P({ grain: 26, contrast: 66, warmth: 38, flash: 0, shadows: 62 }),
     character: {
       curve: 0.35,
+      colorMatrix: [1.04, -0.02, 0.02, -0.03, 1.0, 0.02, 0.03, 0.02, 1.05],
       splitTone: { shadows: '#312e81', highlights: '#f0abfc', amount: 0.8 },
       fringe: 1.6,
       saturate: 1.3,

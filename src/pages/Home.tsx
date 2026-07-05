@@ -221,6 +221,9 @@ function HomeContent({
 
       {/* camera styles — the deck */}
       <motion.section variants={childVariants} className="mt-7">
+        <p className="px-5 font-mono text-[10px] tracking-[0.18em] uppercase text-fog mb-1">
+          The case · 18 cameras
+        </p>
         <div className="flex items-center justify-between px-5">
           <h2 className="text-[19px] font-bold tracking-[-0.02em]">Looks</h2>
           <button
@@ -268,6 +271,7 @@ function HomeContent({
 
       {/* recent edits */}
       <motion.section variants={childVariants} className="mt-7 px-5">
+        <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-fog mb-1">Recent develops</p>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-[19px] font-bold tracking-[-0.02em]">Your roll</h2>
           <Link to="/dashboard" className="flex items-center gap-0.5 text-[13.5px] font-semibold text-ink-soft">
@@ -361,6 +365,7 @@ function HomeContent({
 
       {/* tools — one wide, two small; shapes vary on purpose */}
       <motion.section variants={childVariants} className="mt-7 px-5">
+        <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-fog mb-1">The darkroom</p>
         <h2 className="text-[19px] font-bold tracking-[-0.02em] mb-3">Tools</h2>
         <ToolCard
           to="/studio"
@@ -378,6 +383,7 @@ function HomeContent({
 
       {/* before & after */}
       <motion.section variants={childVariants} className="mt-7 px-5">
+        <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-fog mb-1">LM engine · live</p>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-[19px] font-bold tracking-[-0.02em]">Before & after</h2>
           <Link
