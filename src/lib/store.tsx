@@ -60,6 +60,56 @@ const monthKey = () => {
   return `${d.getFullYear()}-${d.getMonth()}`
 }
 
+const isStr = (v: unknown): v is string => typeof v === 'string'
+const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v)
+const PLANS: Plan[] = ['free', 'creator', 'pro', 'studio']
+
+/** field-by-field validation: a poisoned or legacy-format value must never
+ *  brick the app on every reload — anything malformed falls back per-field */
+function sanitize(raw: unknown, fallback: Persisted): Persisted {
+  if (typeof raw !== 'object' || raw === null) return fallback
+  const p = raw as Record<string, unknown>
+  const strArray = (v: unknown) => (Array.isArray(v) ? v.filter(isStr) : [])
+  const streak = p.streak as Record<string, unknown> | null | undefined
+  return {
+    plan: PLANS.includes(p.plan as Plan) ? (p.plan as Plan) : fallback.plan,
+    creditsMonth: isStr(p.creditsMonth) ? p.creditsMonth : fallback.creditsMonth,
+    creditsUsed: isNum(p.creditsUsed) ? Math.max(0, p.creditsUsed) : fallback.creditsUsed,
+    history: Array.isArray(p.history)
+      ? (p.history as unknown[]).filter((h): h is HistoryEntry => {
+          const e = h as Partial<HistoryEntry> | null
+          return (
+            !!e &&
+            isStr(e.id) &&
+            // thumbs are engine-produced JPEG data URLs — never load anything else
+            isStr(e.thumb) &&
+            e.thumb.startsWith('data:image/') &&
+            isStr(e.styleId) &&
+            isStr(e.styleName) &&
+            isNum(e.date)
+          )
+        })
+      : [],
+    presets: Array.isArray(p.presets)
+      ? (p.presets as unknown[]).filter((s): s is SavedPreset => {
+          const e = s as Partial<SavedPreset> | null
+          return !!e && isStr(e.id) && isStr(e.name) && isStr(e.styleId) && !!getStyle(e.styleId) &&
+            typeof e.params === 'object' && e.params !== null
+        })
+      : [],
+    favorites: strArray(p.favorites),
+    user:
+      typeof p.user === 'object' && p.user !== null && isStr((p.user as User).name) && isStr((p.user as User).email)
+        ? { name: (p.user as User).name, email: (p.user as User).email }
+        : null,
+    tried: strArray(p.tried),
+    streak:
+      streak && isNum(streak.count) && isStr(streak.last)
+        ? { count: streak.count, last: streak.last }
+        : fallback.streak,
+  }
+}
+
 function loadPersisted(): Persisted {
   const fallback: Persisted = {
     plan: 'free',
@@ -75,7 +125,7 @@ function loadPersisted(): Persisted {
   try {
     const raw = localStorage.getItem(KEY)
     if (!raw) return fallback
-    const p = { ...fallback, ...(JSON.parse(raw) as Partial<Persisted>) }
+    const p = sanitize(JSON.parse(raw), fallback)
     if (p.creditsMonth !== monthKey()) {
       p.creditsMonth = monthKey()
       p.creditsUsed = 0

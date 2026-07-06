@@ -127,7 +127,7 @@ export async function deliverFile(blob: Blob, filename: string, text?: string): 
     setTimeout(() => URL.revokeObjectURL(url), 30_000)
     return { ok: true, via: 'download' }
   }
-  window.open(url, '_blank')
+  window.open(url, '_blank', 'noopener')
   setTimeout(() => URL.revokeObjectURL(url), 60_000)
   return { ok: true, via: 'open' }
 }

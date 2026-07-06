@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Route, Routes, useLocation } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { pageTransition } from './lib/motion'
 import Nav from './components/Nav'
@@ -83,7 +83,9 @@ export default function App() {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/terms" element={<TermsPage />} />
-              <Route path="*" element={<RootRoute />} />
+              {/* mistyped URLs correct themselves instead of silently
+                  impersonating the landing page */}
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </motion.div>
         </AnimatePresence>

@@ -29,9 +29,9 @@ export function PrivacyPage() {
       </Section>
       <Section title="What we store">
         <p>
-          Your looks history, saved presets, streak, and plan live in local storage on your
-          device only. Deleting the app — or using “Delete account &amp; data” in the account
-          sheet — removes all of it.
+          Your looks history (including small thumbnails of photos you develop), saved
+          presets, streak, and plan live in local storage on your device only. Deleting the
+          app — or using “Delete account &amp; data” in the account sheet — removes all of it.
         </p>
       </Section>
       <Section title="What we don't do">
