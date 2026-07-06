@@ -8,7 +8,7 @@ export interface RenderOptions {
   target?: HTMLCanvasElement
   /** jitter the grain pattern per call so video grain flickers like film */
   animateGrain?: boolean
-  /** AI face lock (normalized) — flash centers here, smoothing stays on skin */
+  /** face lock (normalized) — flash centers here, smoothing stays on skin */
   focal?: { x: number; y: number; r: number } | null
 }
 
@@ -299,7 +299,7 @@ export function renderStyled(
     ctx.restore()
   }
 
-  /* 6 — flash: hot center + darkened surroundings. The AI face lock
+  /* 6 — flash: hot center + darkened surroundings. The face lock
      puts the hotspot on the subject the way a real on-camera flash
      reads a face, instead of assuming center-frame. */
   const flash = (params.flash / 100) * s

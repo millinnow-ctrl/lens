@@ -20,7 +20,7 @@ interface Props {
   videoSrc?: string | null
   style: CameraStyle
   params: StyleParams
-  /** AI face lock from the studio — keeps exports identical to the preview */
+  /** face lock from the studio — keeps exports identical to the preview */
   focal?: Focal | null
   onTryAnother: () => void
 }

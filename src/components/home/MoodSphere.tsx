@@ -264,13 +264,13 @@ export default function MoodSphere({
                   {/* label scrim */}
                   <div className="absolute inset-x-0 bottom-0 h-[58%] bg-gradient-to-t from-black/88 via-black/45 to-transparent" />
                   <div className="absolute inset-x-0 bottom-0 px-2 pb-2 text-center">
-                    <p className="text-white font-semibold text-[12.5px] leading-tight drop-shadow-sm">
+                    <p className="text-white font-semibold text-[12.5px] leading-tight drop-shadow-sm truncate">
                       {s.name}
                       {s.tier === 'premium' && (
                         <span className="text-white/60 text-[10px] font-medium whitespace-nowrap"> · Pro</span>
                       )}
                     </p>
-                    <p className="text-white/70 text-[9.5px] leading-tight mt-0.5">{s.tagline}</p>
+                    <p className="text-white/70 text-[9.5px] font-medium leading-tight mt-0.5">{s.tagline}</p>
                   </div>
                   {/* frame number — the camera's slot in the case */}
                   <span className="tag-glass absolute top-1.5 left-1.5 rounded-full text-white/80 font-mono text-[8px] tracking-[0.08em] px-1.5 py-0.5 tabular-nums">
@@ -380,9 +380,9 @@ export default function MoodSphere({
               )
             })}
           </div>
-          <p className="font-mono text-[9.5px] tracking-[0.14em] uppercase text-fog tabular-nums">
+          <p className="font-mono font-semibold text-[9.5px] tracking-[0.14em] uppercase text-fog tabular-nums">
             Frame {String(frontIdx + 1).padStart(2, '0')}/{n} ·{' '}
-            {tried.filter((t) => styles.some((s) => s.id === t)).length} shot
+            {tried.filter((t) => styles.some((s) => s.id === t)).length} exposed
           </p>
         </div>
       )}

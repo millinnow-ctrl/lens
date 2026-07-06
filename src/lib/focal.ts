@@ -1,5 +1,5 @@
 /**
- * Focal — the app's "a little AI": on-device face detection (MediaPipe
+ * Focal — the on-device smart bit: face detection (MediaPipe
  * BlazeFace, ~230KB model) that tells the engine where the subject is.
  * The flash pass locks its hotspot to the face and smoothing stays on
  * skin instead of smearing the frame. Photos still never leave the

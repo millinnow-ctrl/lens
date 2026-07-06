@@ -1,6 +1,7 @@
 /**
- * LensMood mark — dark rounded app tile, white aperture blades,
- * violet→pink glow ring, a pink sparkle catching the lens.
+ * LensMood mark — dark rounded app tile, cream aperture blades cut by
+ * twisted seams, a flat clay ring and amber lens. Engraved, never glossy:
+ * the mark must read identically at 20px and 64px.
  */
 
 const TAU = Math.PI * 2
@@ -25,27 +26,14 @@ export function ApertureMark({
   const seams = Array.from({ length: 6 }, (_, i) => bladeSeam(i, 14.2, 5.6, 24, 24))
   return (
     <svg viewBox="0 0 48 48" className={className} aria-hidden>
-      <defs>
-        <linearGradient id="lmRing" x1="0" y1="1" x2="1" y2="0">
-          <stop offset="0" stopColor="#a02220" />
-          <stop offset="0.55" stopColor="#e0392b" />
-          <stop offset="1" stopColor="#f2673f" />
-        </linearGradient>
-        <radialGradient id="lmLens" cx="0.38" cy="0.34" r="0.9">
-          <stop offset="0" stopColor="#f4bd6a" />
-          <stop offset="0.45" stopColor="#c56a24" />
-          <stop offset="1" stopColor="#3a2410" />
-        </radialGradient>
-      </defs>
       {tile && <rect x="0.5" y="0.5" width="47" height="47" rx="13" fill="#241c12" />}
-      <circle cx="24" cy="24" r="17.6" fill="none" stroke="url(#lmRing)" strokeWidth="2.8" />
+      <circle cx="24" cy="24" r="17.6" fill="none" stroke="#b8402c" strokeWidth="2.4" />
       {/* solid blade annulus with twisted seams cut through it */}
       <circle cx="24" cy="24" r="9.9" fill="none" stroke={tile ? '#f3ecd9' : '#e6ddc8'} strokeWidth="8.6" />
       {seams.map((d) => (
         <path key={d} d={d} stroke="#241c12" strokeWidth="1.7" strokeLinecap="round" />
       ))}
-      <circle cx="24" cy="24" r="6" fill="url(#lmLens)" />
-      <circle cx="22" cy="22" r="1.7" fill="#fff6e6" opacity="0.9" />
+      <circle cx="24" cy="24" r="6" fill="#a86a2c" />
     </svg>
   )
 }

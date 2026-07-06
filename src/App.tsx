@@ -53,11 +53,16 @@ export default function App() {
         window.matchMedia?.('(display-mode: standalone)').matches ||
         !!import.meta.env.VITE_SINGLEFILE))
 
+  /* surfaces that live behind the dock on mobile: one chrome system per
+     viewport — marketing header on desktop, dock on phones. Stacking both
+     reads like a website wearing an app costume. */
+  const isAppSurface =
+    isAppHome || pathname === '/studio' || pathname === '/pricing' || pathname === '/dashboard'
+
   return (
     <div className="min-h-dvh flex flex-col">
       <ScrollManager />
-      {/* the app home carries its own mobile chrome */}
-      <div className={isAppHome ? 'hidden md:block' : ''}>
+      <div className={isAppSurface ? 'hidden md:block' : ''}>
         <Nav />
       </div>
       <div className="flex-1">

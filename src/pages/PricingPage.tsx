@@ -22,7 +22,7 @@ const TIERS: Tier[] = [
     id: 'free',
     name: 'Free',
     price: 0,
-    blurb: 'For trying the vibe on.',
+    blurb: 'For the first roll.',
     cta: 'Start free',
     features: [
       '5 developments / month',
@@ -131,7 +131,7 @@ export default function PricingPage() {
           Membership
         </p>
         <h1 className="type-display tracking-optical-lg text-4xl sm:text-6xl mb-5">
-          Rent the <span className="grad-text">camera bag.</span>
+          Rent the camera bag.
         </h1>
         <p className="text-[15px] leading-[1.65] text-ink-soft max-w-md">
           Every plan is month-to-month. What you export is yours to keep.
@@ -160,12 +160,12 @@ export default function PricingPage() {
                   {tier.highlight && (
                     <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.1em] uppercase px-2.5 py-1 rounded-full bg-clay text-white shadow-[0_2px_6px_rgb(60_20_10/0.3)]">
                       <span className="w-1 h-1 rounded-full bg-white/90" aria-hidden />
-                      Most popular
+                      The working roll
                     </span>
                   )}
                 </div>
                 <h2 className="font-sans font-semibold text-[17px] tracking-[-0.01em]">{tier.name}</h2>
-                <p className="font-mono text-[10px] tracking-[0.1em] text-fog tnum mt-1">
+                <p className="font-mono font-semibold text-[10px] tracking-[0.1em] text-fog tnum mt-1">
                   LM·MEMBER · TIER 0{i + 1}
                 </p>
                 <p className="text-[13px] leading-relaxed mt-2.5 mb-6 text-fog">{tier.blurb}</p>
@@ -188,7 +188,7 @@ export default function PricingPage() {
                             —
                           </span>
                         ) : (
-                          <IconCheck size={15} className="mt-px shrink-0 text-violet" />
+                          <IconCheck size={15} className="mt-px shrink-0 text-ink" />
                         )}
                         <span className="text-ink-soft">{f}</span>
                       </li>

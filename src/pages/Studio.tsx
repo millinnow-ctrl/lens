@@ -237,10 +237,10 @@ export default function Studio() {
           <div className="bg-vf rounded-[24px] overflow-hidden shadow-[0_2px_12px_rgb(23_19_31/0.10),inset_0_1px_0_rgb(255_255_255/0.07)]">
             {/* viewfinder chrome strip — etched machined bezel */}
             <div className="h-9 px-4 flex items-center justify-between gap-3 border-b border-white/[0.08]">
-              <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-vf-chrome truncate">
+              <span className="font-mono font-semibold text-[10px] tracking-[0.16em] uppercase text-vf-chrome truncate">
                 {style ? style.name : 'Original'}
               </span>
-              <span className="flex items-center gap-2 font-mono text-[10px] tracking-[0.16em] uppercase text-vf-chrome tabular-nums shrink-0">
+              <span className="flex items-center gap-2 font-mono font-semibold text-[10px] tracking-[0.16em] uppercase text-vf-chrome tabular-nums shrink-0">
                 {video && <span className="w-1.5 h-1.5 rounded-full bg-[#E1251B] inline-block" aria-hidden />}
                 {focal && !video && <span className="text-violet">AF·FACE</span>}
                 <span>{video ? 'REC · 30FPS' : (style?.exif ?? 'READY · NO MOOD')}</span>
@@ -339,7 +339,7 @@ export default function Studio() {
                       <motion.p
                         animate={{ opacity: [0.35, 0.75, 0.35] }}
                         transition={{ repeat: Infinity, duration: 1.15, ease: 'easeInOut' }}
-                        className="font-mono text-[10px] tracking-[0.2em] uppercase tabular-nums text-[#ff6b5e]/80"
+                        className="font-mono font-semibold text-[10px] tracking-[0.2em] uppercase tabular-nums text-[#ff6b5e]/80"
                       >
                         {style.exif}
                       </motion.p>
@@ -383,7 +383,7 @@ export default function Studio() {
                     </span>
                     <span className={`block h-1 rounded-full ${active ? 'grad-fill' : 'bg-transparent'}`} aria-hidden />
                     <span
-                      className={`font-mono text-[10px] tracking-[0.1em] tabular-nums text-center ${
+                      className={`font-mono font-semibold text-[10px] tracking-[0.1em] tabular-nums text-center ${
                         active ? 'text-ink' : 'text-fog'
                       }`}
                     >
@@ -456,7 +456,7 @@ export default function Studio() {
             <div className="flex items-baseline justify-between mb-1">
               <h2 className="type-display text-[21px]">Camera mood</h2>
               {!isPaid && (
-                <span className="font-mono text-[10px] tracking-[0.1em] uppercase text-fog tabular-nums">
+                <span className="font-mono font-semibold text-[10px] tracking-[0.1em] uppercase text-fog tabular-nums">
                   {creditsLeft} free {creditsLeft === 1 ? 'shot' : 'shots'} left
                 </span>
               )}

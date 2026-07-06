@@ -62,7 +62,7 @@ export default function RecentProjectCard({
       <div className="flex items-baseline justify-between gap-2 pt-1.5 px-0.5">
         <p className="type-display text-[14px] leading-tight text-ink truncate min-w-0 whitespace-nowrap">{label}</p>
         {sublabel && (
-          <p className="shrink-0 font-mono text-[8.5px] tracking-[0.08em] uppercase text-fog truncate">
+          <p className="shrink-0 font-mono font-semibold text-[9.5px] tracking-[0.08em] uppercase text-ink-soft truncate">
             {sublabel}
           </p>
         )}

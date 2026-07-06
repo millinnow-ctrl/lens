@@ -53,7 +53,7 @@ export default function AccountSheet({ open, onClose, container }: Props) {
             {/* house grammar: mono eyebrow, serif name, magazine rule */}
             <div className="flex items-start justify-between mb-5">
               <div className="min-w-0 flex-1">
-                <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-fog mb-1">
+                <p className="font-mono font-semibold text-[10px] tracking-[0.18em] uppercase text-fog mb-1">
                   The counter · {isPaid ? `${plan} plan` : 'Free plan'}
                 </p>
                 <div className="flex items-center">
@@ -96,9 +96,9 @@ export default function AccountSheet({ open, onClose, container }: Props) {
             {!isPaid && (
               <div className="rounded-2xl bg-[#f4f0e8] border border-[rgb(60_42_24/0.08)] p-4 mb-3">
                 <div className="flex items-baseline justify-between mb-2.5">
-                  <span className="text-[13px] font-semibold">This month’s roll</span>
-                  <span className="font-mono text-[10.5px] tracking-[0.08em] uppercase tabular-nums text-ink-soft">
-                    {creditsLeft} of {FREE_CREDITS} frames left
+                  <span className="text-[14px] font-semibold">This month’s roll</span>
+                  <span className="font-mono text-[10px] tracking-[0.06em] uppercase tabular-nums text-fog">
+                    {creditsLeft} of {FREE_CREDITS} left
                   </span>
                 </div>
                 {/* the roll as frames, not a progress bar: filled = still loaded */}

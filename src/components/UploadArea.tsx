@@ -129,11 +129,11 @@ export default function UploadArea() {
         <IconCamera size={40} className="relative mx-auto text-violet mb-6" />
 
         <h2 className="relative text-2xl sm:text-3xl font-bold tracking-[-0.02em] mb-2">
-          Drop photos or a clip in
+          Load your photos
         </h2>
         <p className="relative text-ink-soft text-sm sm:text-[15px] leading-relaxed mb-6 max-w-sm mx-auto">
-          Up to {MAX_ROLL} photos at once, or a short video (Pro). You can also paste a screenshot.
-          Nothing leaves your device — the darkroom is your browser.
+          Up to {MAX_ROLL} at once, or a short video (Pro). Nothing leaves your
+          device — the darkroom is your browser.
         </p>
         <div className="relative flex items-center justify-center gap-2.5 pointer-events-none">
           <span className="btn btn-primary">
@@ -199,7 +199,7 @@ export default function UploadArea() {
               <span className="block w-24 sm:w-28 aspect-4/5 rounded-[14px] overflow-hidden ring-1 ring-black/[0.06] group-hover:ring-violet transition-shadow">
                 <img src={sample.src} alt={sample.label} className="w-full h-full object-cover" draggable={false} />
               </span>
-              <span className="block mt-1.5 font-mono text-[10px] tracking-[0.1em] uppercase text-fog group-hover:text-ink transition-colors">
+              <span className="block mt-1.5 font-mono font-semibold text-[10px] tracking-[0.1em] uppercase text-fog group-hover:text-ink transition-colors">
                 {sample.label}
               </span>
             </button>

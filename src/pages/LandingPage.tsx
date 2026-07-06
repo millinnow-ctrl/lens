@@ -91,7 +91,7 @@ export default function LandingPage() {
               transition={{ delay: 0.05, duration: 0.35, ease: 'easeOut' }}
               className="type-display tracking-optical-lg text-[clamp(2.6rem,6vw,4.75rem)]"
             >
-              Any photo, shot on the <span className="grad-text">camera</span> it deserved.
+              Any photo, shot on the camera it deserved.
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 12 * rise }}

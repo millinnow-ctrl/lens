@@ -91,7 +91,7 @@ export default function Dashboard() {
                   Nothing developed yet. Your first roll is on the house.
                 </p>
                 <Link to="/studio" className="btn btn-primary">
-                  Shoot your first mood
+                  Load a photo
                 </Link>
               </div>
             ) : (
@@ -115,7 +115,7 @@ export default function Dashboard() {
                           <IconTrash size={12} />
                         </button>
                       </div>
-                      <div className="mt-1.5 flex items-baseline justify-between gap-2 font-mono text-[10px] tracking-[0.08em] uppercase text-vf-chrome tabular-nums">
+                      <div className="mt-1.5 flex items-baseline justify-between gap-2 font-mono font-semibold text-[10px] tracking-[0.08em] uppercase text-vf-chrome tabular-nums">
                         <span className="truncate">
                           {String(i + 1).padStart(2, '0')} · {h.styleName}
                         </span>
@@ -131,7 +131,7 @@ export default function Dashboard() {
                       <div key={`ghost-${i}`} aria-hidden>
                         {/* an unexposed film frame — solid cell, not a dashed drop-zone */}
                         <div className="rounded-[12px] aspect-4/5 bg-[#100c17] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.04),inset_0_1px_10px_rgb(0_0_0/0.5)]" />
-                        <p className="mt-1.5 font-mono text-[10px] tracking-[0.08em] uppercase text-white/20 tabular-nums">
+                        <p className="mt-1.5 font-mono font-semibold text-[10px] tracking-[0.08em] uppercase text-white/20 tabular-nums">
                           {String(history.length + i + 1).padStart(2, '0')} · —
                         </p>
                       </div>
@@ -146,7 +146,7 @@ export default function Dashboard() {
             <h2 className="font-sans font-semibold text-[16px] tracking-[-0.01em] mb-5">Saved presets</h2>
             {presets.length === 0 ? (
               <div>
-                <div className="border border-dashed border-hairline rounded-[14px] px-4 py-3 mb-3 font-mono text-[11px] tracking-[0.1em] uppercase text-fog">
+                <div className="border border-dashed border-hairline rounded-[14px] px-4 py-3 mb-3 font-mono font-semibold text-[11px] tracking-[0.1em] uppercase text-fog">
                   Preset·00 — empty slot
                 </div>
                 <p className="text-fog text-sm">

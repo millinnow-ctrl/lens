@@ -147,21 +147,22 @@ export const IconHomeFill = (p: P) => (
   </svg>
 )
 
-/** three offset circles — the Styles tab */
+/** contact sheet — four frames on the light table, the Styles tab */
 export const IconStyles = (p: P) => (
   <svg {...base(p)}>
-    <circle cx="12" cy="8.15" r="4.55" />
-    <circle cx="8.35" cy="14.35" r="4.55" />
-    <circle cx="15.65" cy="14.35" r="4.55" />
+    <rect x="3.9" y="3.9" width="7" height="7" rx="2.2" />
+    <rect x="13.1" y="3.9" width="7" height="7" rx="2.2" />
+    <rect x="3.9" y="13.1" width="7" height="7" rx="2.2" />
+    <rect x="13.1" y="13.1" width="7" height="7" rx="2.2" />
   </svg>
 )
 
 export const IconStylesFill = (p: P) => (
   <svg {...baseFill(p)}>
-    <path
-      fillRule="evenodd"
-      d="M6.95 8.15a5.05 5.05 0 1 1 10.1 0 5.05 5.05 0 0 1-10.1 0ZM3.3 14.35a5.05 5.05 0 1 1 10.1 0 5.05 5.05 0 0 1-10.1 0Zm7.3 0a5.05 5.05 0 1 1 10.1 0 5.05 5.05 0 0 1-10.1 0Z"
-    />
+    <rect x="3.4" y="3.4" width="8" height="8" rx="2.5" />
+    <rect x="12.6" y="3.4" width="8" height="8" rx="2.5" />
+    <rect x="3.4" y="12.6" width="8" height="8" rx="2.5" />
+    <rect x="12.6" y="12.6" width="8" height="8" rx="2.5" />
   </svg>
 )
 

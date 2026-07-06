@@ -92,7 +92,7 @@ function DemoModal({ open, onClose }: { open: boolean; onClose: () => void }) {
       <div className="absolute inset-0 bg-vf/70" onClick={onClose} aria-hidden />
       <div className="relative w-full max-w-sm rounded-[24px] overflow-hidden bg-vf border border-white/10 shadow-[var(--shadow-e4)]">
         <div className="h-9 px-4 flex items-center justify-between border-b border-white/[0.08]">
-          <span className="flex items-center gap-2 font-mono text-[10px] tracking-[0.16em] uppercase text-vf-chrome">
+          <span className="flex items-center gap-2 font-mono font-semibold text-[10px] tracking-[0.16em] uppercase text-vf-chrome">
             <span className="lm-live w-1.5 h-1.5 rounded-full bg-[#e0392b]" aria-hidden />
             The develop · demo
           </span>
@@ -193,7 +193,7 @@ function HomeContent({
         <div className="relative rounded-[28px] overflow-hidden bg-vf border border-white/[0.06] shadow-[var(--shadow-e3)]">
           {/* viewfinder chrome strip — one frame, one material, one radius */}
           <div className="h-9 px-4 flex items-center justify-between gap-3 border-b border-white/[0.08]">
-            <span className="flex items-center gap-2 font-mono text-[10px] tracking-[0.14em] uppercase text-vf-chrome">
+            <span className="flex items-center gap-2 font-mono font-semibold text-[10px] tracking-[0.14em] uppercase text-vf-chrome">
               <span className="lm-live w-1.5 h-1.5 rounded-full bg-[#e0392b]" aria-hidden />
               LM Engine · Live
             </span>
@@ -250,62 +250,58 @@ function HomeContent({
       {/* what's in the kit — the four instruments, one shelf */}
       <motion.section variants={childVariants} className="mt-4 px-5">
         <div className="panel rounded-[22px] grid grid-cols-4 divide-x divide-[rgb(60_42_24/0.08)] py-3.5">
-          {/* glyphs come from the darkroom bench, not a template kit: iris,
-              negative strip, 35mm canister, control dial */}
+          {/* glyphs come from the darkroom bench, not a template kit:
+              viewfinder, negative strip, developer flask, control knob.
+              One engraved tint — a bench plate, not a rainbow feature grid. */}
           {[
             {
               label: 'Looks',
-              sub: '18 camera styles',
-              tint: '#cf8d33',
+              sub: '18 cameras',
               icon: (
                 <svg viewBox="0 0 24 24" width={21} height={21} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <circle cx="12" cy="12" r="8.4" />
-                  <path d="M13.94 8.64l4.8 8.33M10.06 8.64h9.62M8.13 12l4.8-8.33M10.06 15.36L5.26 7.03M13.94 15.36H4.32M15.87 12l-4.8 8.33" />
+                  <path d="M3.6 8.3V6.9a3.3 3.3 0 0 1 3.3-3.3h1.4M15.7 3.6h1.4a3.3 3.3 0 0 1 3.3 3.3v1.4M20.4 15.7v1.4a3.3 3.3 0 0 1-3.3 3.3h-1.4M8.3 20.4H6.9a3.3 3.3 0 0 1-3.3-3.3v-1.4" />
+                  <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" />
                 </svg>
               ),
             },
             {
               label: 'Film',
-              sub: 'Authentic rendering',
-              tint: '#a83a26',
+              sub: 'Grain & halation',
               icon: (
                 <svg viewBox="0 0 24 24" width={21} height={21} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <rect x="3" y="5.2" width="18" height="13.6" rx="2.4" />
-                  <path d="M6.5 8h.01M10.17 8h.01M13.83 8h.01M17.5 8h.01" strokeWidth={2.3} />
-                  <path d="M6.5 16h.01M10.17 16h.01M13.83 16h.01M17.5 16h.01" strokeWidth={2.3} />
+                  <rect x="3.3" y="4.1" width="17.4" height="15.8" rx="3" />
+                  <path d="M8 4.3v15.4M16 4.3v15.4" />
+                  <path d="M3.3 8.4h4.7M3.3 12h4.7M3.3 15.6h4.7M16 8.4h4.7M16 12h4.7M16 15.6h4.7" />
                 </svg>
               ),
             },
             {
               label: 'Recipes',
-              sub: 'Pro starting points',
-              tint: '#5c6b3c',
+              sub: 'Starting points',
               icon: (
                 <svg viewBox="0 0 24 24" width={21} height={21} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <path d="M10.3 3.2v3M10.3 3.2h3.4" />
-                  <path d="M5.9 6.2h12.2" />
-                  <rect x="7" y="6.2" width="10" height="14.2" rx="2.1" />
-                  <path d="M9.6 10.6h4.8M9.6 13.6h4.8" />
+                  <path d="M9.3 3.4h5.4" />
+                  <path d="M10.3 3.6v3.7L6.1 16.9c-.7 1.6.5 3.4 2.2 3.4h7.4c1.7 0 2.9-1.8 2.2-3.4L13.7 7.3V3.6" />
+                  <path d="M7.7 14.4h8.6" />
                 </svg>
               ),
             },
             {
               label: 'Fine-tune',
-              sub: 'Every detail, dialed',
-              tint: '#e0392b',
+              sub: 'Every stop dialed',
               icon: (
                 <svg viewBox="0 0 24 24" width={21} height={21} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <circle cx="12" cy="13.4" r="6.7" />
-                  <path d="M12 13.4l3.1-3.1" />
-                  <path d="M12 2.7v2.1M5.13 5.53l1.49 1.49M18.87 5.53l-1.49 1.49" />
+                  <circle cx="12" cy="12.2" r="6.6" />
+                  <path d="M12 12.2l3.3-3.3" />
+                  <path d="M4.9 19.3l1.35-1.35M19.1 19.3l-1.35-1.35" />
                 </svg>
               ),
             },
           ].map((f) => (
             <div key={f.label} className="flex flex-col items-center text-center gap-1.5 px-1.5">
-              <span style={{ color: f.tint }}>{f.icon}</span>
+              <span className="text-[#55402b]">{f.icon}</span>
               <p className="text-[12px] font-semibold text-ink leading-tight">{f.label}</p>
-              <p className="text-[10px] text-fog leading-tight">{f.sub}</p>
+              <p className="text-[10px] font-medium text-fog leading-tight whitespace-nowrap">{f.sub}</p>
             </div>
           ))}
         </div>
@@ -313,7 +309,7 @@ function HomeContent({
 
       {/* camera styles — the deck */}
       <motion.section variants={childVariants} className="mt-8">
-        <p className="px-5 font-mono text-[10px] tracking-[0.18em] uppercase text-fog mb-1">
+        <p className="px-5 font-mono font-semibold text-[10px] tracking-[0.18em] uppercase text-fog mb-1">
           The case · 18 cameras
         </p>
         <div className="flex items-center justify-between px-5">
@@ -323,7 +319,7 @@ function HomeContent({
             onClick={() => setSpinSeed((s) => s + 1)}
             className="hm-pill hm-press h-8 px-3.5 text-[13px] font-semibold text-ink-soft"
           >
-            Surprise me
+            Spin the case
           </button>
         </div>
         <CategoryChips active={category} onSelect={setCategory} />
@@ -364,7 +360,7 @@ function HomeContent({
 
       {/* recent edits */}
       <motion.section variants={childVariants} className="mt-8 px-5">
-        <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-fog mb-1">Recent develops</p>
+        <p className="font-mono font-semibold text-[10px] tracking-[0.18em] uppercase text-fog mb-1">Recent develops</p>
         <div className="flex items-center justify-between mb-3">
           <h2 className="type-display text-[21px]">Your roll</h2>
           <span className="flex-1 mx-3 h-px bg-ink/10 self-center" aria-hidden />
@@ -392,7 +388,7 @@ function HomeContent({
                 to="/studio?style=iphone-flash"
                 image={sampleFriends}
                 label="iPhone Flash"
-                sublabel="Try this look"
+                sublabel="Try it"
                 filter={getStyle('iphone-flash')?.cardFilter}
                 chip="Sample"
               />
@@ -401,7 +397,7 @@ function HomeContent({
                 to="/studio?style=a24-still"
                 image={sampleDog}
                 label="A24 Still"
-                sublabel="Try this look"
+                sublabel="Try it"
                 filter={getStyle('a24-still')?.cardFilter}
                 chip="Sample"
               />
@@ -460,7 +456,7 @@ function HomeContent({
 
       {/* tools — one wide, two small; shapes vary on purpose */}
       <motion.section variants={childVariants} className="mt-8 px-5">
-        <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-fog mb-1">The darkroom</p>
+        <p className="font-mono font-semibold text-[10px] tracking-[0.18em] uppercase text-fog mb-1">The darkroom</p>
         <div className="flex items-center mb-3">
           <h2 className="type-display text-[21px]">Tools</h2>
           <span className="flex-1 ml-3 h-px bg-ink/10 self-center" aria-hidden />
@@ -485,7 +481,7 @@ function HomeContent({
 
       {/* before & after */}
       <motion.section variants={childVariants} className="mt-8 px-5">
-        <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-fog mb-1">LM engine · live</p>
+        <p className="font-mono font-semibold text-[10px] tracking-[0.18em] uppercase text-fog mb-1">LM engine · live</p>
         <div className="flex items-center justify-between mb-3">
           <h2 className="type-display text-[21px]">Before & after</h2>
           <span className="flex-1 mx-3 h-px bg-ink/10 self-center" aria-hidden />
@@ -520,8 +516,11 @@ function HomeContent({
           visible build stamp so you always know which cut you're holding) */}
       <motion.section variants={childVariants} className="mt-10 px-5 flex flex-col items-center gap-1.5">
         <ApertureMark className="w-7 h-7 opacity-80" />
-        <p className="font-mono text-[9.5px] tracking-[0.2em] uppercase text-fog tabular-nums">
-          LensMood · Cut R18 “Heavyweight” · Made in the darkroom
+        <p className="font-mono font-semibold text-[9.5px] tracking-[0.2em] uppercase text-fog tabular-nums text-center">
+          LensMood · Cut R18 “Heavyweight”
+        </p>
+        <p className="font-mono font-semibold text-[9.5px] tracking-[0.2em] uppercase text-fog/80 text-center">
+          Made in the darkroom
         </p>
       </motion.section>
     </motion.div>
