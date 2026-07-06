@@ -5,10 +5,11 @@ import type { SVGProps } from 'react'
  * LensMood icon set — hand-tuned on a 24pt grid, SF Symbols discipline.
  *
  * Rules of the set:
- *  - stroke 1.8, round caps + joins, no miters anywhere
+ *  - stroke 2.05 (matched to the heavyweight SF text), round caps + joins,
+ *    no miters anywhere
  *  - every glyph fills ~17–19 units of the grid; pure circles are drawn
  *    ~4% smaller so they read the same optical size as squares
- *  - chevrons / small marks run slightly heavier (2–2.1) so they don't wisp
+ *  - chevrons / small marks run slightly heavier (2.25–2.35) so they don't wisp
  *  - Fill variants (tab-bar active states) use fill="currentColor", no stroke,
  *    matched to the optical footprint of their outline twins
  *
@@ -25,7 +26,7 @@ const base = (props: P) => {
     height: size,
     fill: 'none',
     stroke: 'currentColor',
-    strokeWidth: 1.8,
+    strokeWidth: 2.05,
     strokeLinecap: 'round' as const,
     strokeLinejoin: 'round' as const,
     className,
@@ -62,7 +63,7 @@ export const IconCamera = (p: P) => (
     {/* lens — big, centered on the body */}
     <circle cx="12" cy="13.3" r="3.85" />
     {/* viewfinder detail dot, top right */}
-    <path d="M17.55 10.15h.01" strokeWidth={2.1} />
+    <path d="M17.55 10.15h.01" strokeWidth={2.35} />
   </svg>
 )
 
@@ -92,7 +93,7 @@ export const IconImageFill = (p: P) => {
           d="M20.8 15.9l-4.63-4.63a1.85 1.85 0 0 0-2.62 0L5.2 19.6"
           fill="none"
           stroke="#000"
-          strokeWidth="1.9"
+          strokeWidth="2.1"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
@@ -232,7 +233,7 @@ export const IconShare = (p: P) => (
 
 export const IconPlay = (p: P) => (
   // fill + self-stroke fattens the triangle and rounds its corners
-  <svg {...base(p)} fill="currentColor" strokeWidth={1.8}>
+  <svg {...base(p)} fill="currentColor" strokeWidth={2.05}>
     <path d="M8.7 6.9v10.2L17.7 12Z" />
   </svg>
 )
@@ -271,31 +272,31 @@ export const IconTag = (p: P) => (
 /* ------------------------------------------------------------------ */
 
 export const IconClose = (p: P) => (
-  <svg {...base(p)} strokeWidth={2}>
+  <svg {...base(p)} strokeWidth={2.25}>
     <path d="M6.2 6.2l11.6 11.6M17.8 6.2L6.2 17.8" />
   </svg>
 )
 
 export const IconCheck = (p: P) => (
-  <svg {...base(p)} strokeWidth={2}>
+  <svg {...base(p)} strokeWidth={2.25}>
     <path d="M4.9 12.9l4.6 4.6L19.1 7.1" />
   </svg>
 )
 
 export const IconArrowRight = (p: P) => (
-  <svg {...base(p)} strokeWidth={2}>
+  <svg {...base(p)} strokeWidth={2.25}>
     <path d="M4.6 12h14.8M13.5 6.1l5.9 5.9-5.9 5.9" />
   </svg>
 )
 
 export const IconChevronDown = (p: P) => (
-  <svg {...base(p)} strokeWidth={2.1}>
+  <svg {...base(p)} strokeWidth={2.35}>
     <path d="M6.6 9.3l5.4 5.5 5.4-5.5" />
   </svg>
 )
 
 export const IconChevronRight = (p: P) => (
-  <svg {...base(p)} strokeWidth={2.1}>
+  <svg {...base(p)} strokeWidth={2.35}>
     <path d="M9.3 6.6l5.5 5.4-5.5 5.4" />
   </svg>
 )
@@ -329,13 +330,6 @@ export const IconSearch = (p: P) => (
   <svg {...base(p)}>
     <circle cx="10.9" cy="10.9" r="6.7" />
     <path d="M15.75 15.75l4.6 4.6" />
-  </svg>
-)
-
-export const IconSparkle = (p: P) => (
-  <svg {...base(p)}>
-    <path d="M10.4 3.4Q11.5 8.4 16.5 9.5 11.5 10.6 10.4 15.6 9.3 10.6 4.3 9.5 9.3 8.4 10.4 3.4Z" />
-    <path d="M17.8 13.4Q18.4 16.4 21.4 17 18.4 17.6 17.8 20.6 17.2 17.6 14.2 17 17.2 16.4 17.8 13.4Z" />
   </svg>
 )
 

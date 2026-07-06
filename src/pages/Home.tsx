@@ -250,15 +250,17 @@ function HomeContent({
       {/* what's in the kit — the four instruments, one shelf */}
       <motion.section variants={childVariants} className="mt-4 px-5">
         <div className="panel rounded-[22px] grid grid-cols-4 divide-x divide-[rgb(60_42_24/0.08)] py-3.5">
+          {/* glyphs come from the darkroom bench, not a template kit: iris,
+              negative strip, 35mm canister, control dial */}
           {[
             {
-              label: 'AI Looks',
+              label: 'Looks',
               sub: '18 camera styles',
               tint: '#cf8d33',
               icon: (
-                <svg viewBox="0 0 24 24" width={21} height={21} fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <path d="M12 3l1.7 4.3L18 9l-4.3 1.7L12 15l-1.7-4.3L6 9l4.3-1.7z" />
-                  <path d="M18.5 15.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z" />
+                <svg viewBox="0 0 24 24" width={21} height={21} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <circle cx="12" cy="12" r="8.4" />
+                  <path d="M13.94 8.64l4.8 8.33M10.06 8.64h9.62M8.13 12l4.8-8.33M10.06 15.36L5.26 7.03M13.94 15.36H4.32M15.87 12l-4.8 8.33" />
                 </svg>
               ),
             },
@@ -267,10 +269,10 @@ function HomeContent({
               sub: 'Authentic rendering',
               tint: '#a83a26',
               icon: (
-                <svg viewBox="0 0 24 24" width={21} height={21} fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <rect x="3" y="6" width="18" height="12" rx="2.5" />
-                  <circle cx="12" cy="12" r="3.2" />
-                  <path d="M7.5 6l1.2-2h6.6l1.2 2" />
+                <svg viewBox="0 0 24 24" width={21} height={21} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <rect x="3" y="5.2" width="18" height="13.6" rx="2.4" />
+                  <path d="M6.5 8h.01M10.17 8h.01M13.83 8h.01M17.5 8h.01" strokeWidth={2.3} />
+                  <path d="M6.5 16h.01M10.17 16h.01M13.83 16h.01M17.5 16h.01" strokeWidth={2.3} />
                 </svg>
               ),
             },
@@ -279,9 +281,11 @@ function HomeContent({
               sub: 'Pro starting points',
               tint: '#5c6b3c',
               icon: (
-                <svg viewBox="0 0 24 24" width={21} height={21} fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <path d="M12 3l9 5-9 5-9-5z" />
-                  <path d="M3 13l9 5 9-5" />
+                <svg viewBox="0 0 24 24" width={21} height={21} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M10.3 3.2v3M10.3 3.2h3.4" />
+                  <path d="M5.9 6.2h12.2" />
+                  <rect x="7" y="6.2" width="10" height="14.2" rx="2.1" />
+                  <path d="M9.6 10.6h4.8M9.6 13.6h4.8" />
                 </svg>
               ),
             },
@@ -290,10 +294,10 @@ function HomeContent({
               sub: 'Every detail, dialed',
               tint: '#e0392b',
               icon: (
-                <svg viewBox="0 0 24 24" width={21} height={21} fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <path d="M4 8h10M18 8h2M4 16h2M10 16h10" />
-                  <circle cx="16" cy="8" r="2" />
-                  <circle cx="8" cy="16" r="2" />
+                <svg viewBox="0 0 24 24" width={21} height={21} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <circle cx="12" cy="13.4" r="6.7" />
+                  <path d="M12 13.4l3.1-3.1" />
+                  <path d="M12 2.7v2.1M5.13 5.53l1.49 1.49M18.87 5.53l-1.49 1.49" />
                 </svg>
               ),
             },
@@ -517,7 +521,7 @@ function HomeContent({
       <motion.section variants={childVariants} className="mt-10 px-5 flex flex-col items-center gap-1.5">
         <ApertureMark className="w-7 h-7 opacity-80" />
         <p className="font-mono text-[9.5px] tracking-[0.2em] uppercase text-fog tabular-nums">
-          LensMood · Cut R17 “San Francisco” · Made in the darkroom
+          LensMood · Cut R18 “Heavyweight” · Made in the darkroom
         </p>
       </motion.section>
     </motion.div>

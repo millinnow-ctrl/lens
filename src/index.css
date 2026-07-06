@@ -2,16 +2,26 @@
 @import '@fontsource-variable/instrument-sans';
 @import '@fontsource/ibm-plex-mono/400.css';
 @import '@fontsource/ibm-plex-mono/500.css';
+@import '@fontsource/ibm-plex-mono/600.css';
 
 @theme {
-  /* Display voice = SF Pro. Apple's license means it can't be bundled, so the
-     headline stack asks the OS for it (-apple-system → real SF Pro Display on
+  /* One voice: SF Pro, everywhere. Apple's license means it can't be bundled,
+     so every stack asks the OS for it (-apple-system → real SF Pro on
      iPhone/Mac) and falls back to the bundled Instrument Sans elsewhere.
-     Instrument Sans stays the body/UI voice; Plex Mono the camera-spec voice. */
-  --font-sans: 'Instrument Sans Variable', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-brand: 'Instrument Sans Variable', ui-sans-serif, system-ui, sans-serif;
+     Plex Mono stays the camera-spec voice. */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Instrument Sans Variable', system-ui, sans-serif;
+  --font-brand: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Instrument Sans Variable', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
   --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Instrument Sans Variable', system-ui, sans-serif;
+
+  /* The whole weight scale rides one notch heavier — SF at true 400 reads
+     wispy at UI sizes; these land on SF's optical sweet spots (both SF and
+     the bundled Instrument fallback are variable, so mid-weights render
+     exactly, no faux-bolding). Every font-* utility in the app shifts up. */
+  --font-weight-normal: 480;
+  --font-weight-medium: 560;
+  --font-weight-semibold: 640;
+  --font-weight-bold: 700;
 
   /* LensMood palette — "golden-hour darkroom": warm oatmeal-cream paper,
      rich terracotta clay for feature blocks, one addicting tangerine accent.
@@ -60,6 +70,8 @@ body {
   background-color: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-sans);
+  /* base text sits between SF regular and medium — solid, never wispy */
+  font-weight: 480;
   font-size: 15px;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior-y: none;
@@ -247,7 +259,7 @@ summary {
 .label-mono {
   font-family: var(--font-mono);
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--color-ink-soft);
@@ -256,6 +268,7 @@ summary {
 .value-mono {
   font-family: var(--font-mono);
   font-size: 12px;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
   color: var(--color-ink-soft);
 }
@@ -286,7 +299,7 @@ summary {
   border-radius: 999px;
   font-family: var(--font-sans);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 640;
   letter-spacing: 0;
   cursor: pointer;
   user-select: none;
@@ -372,7 +385,7 @@ summary {
   gap: 4px;
   font-family: var(--font-sans);
   font-size: 10.5px;
-  font-weight: 600;
+  font-weight: 650;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   padding: 3px 8px;
@@ -1034,7 +1047,7 @@ body[data-sheet-open='true'] .hm-dock {
     inset 0 1px 0 rgb(255 255 255 / 0.75),
     0 1px 6px rgb(60 42 24 / 0.08);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 560;
   color: var(--color-ink-soft);
   white-space: nowrap;
   cursor: pointer;
@@ -1051,7 +1064,7 @@ body[data-sheet-open='true'] .hm-dock {
   background: var(--color-ink);
   border-color: var(--color-ink);
   color: #ffffff;
-  font-weight: 600;
+  font-weight: 650;
 }
 
 /* drop-zone card — recessed well (inset), reads as a tray milled into the bench */

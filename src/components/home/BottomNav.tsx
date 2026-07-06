@@ -70,7 +70,7 @@ export default function BottomNav({ variant = 'fixed', onAccount, onCreate, clas
                   transition={springPress}
                   className="-mt-7 w-[52px] h-[52px] rounded-full bg-ink text-[#fbf6eb] flex items-center justify-center border border-white/10 shadow-[var(--shadow-e3)]"
                 >
-                  <svg viewBox="0 0 24 24" width={24} height={24} fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" aria-hidden>
+                  <svg viewBox="0 0 24 24" width={24} height={24} fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" aria-hidden>
                     <path d="M12 5v14M5 12h14" />
                   </svg>
                 </motion.span>
