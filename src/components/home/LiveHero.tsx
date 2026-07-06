@@ -83,6 +83,16 @@ export default function LiveHero({ onUpload }: Props) {
           <AnimatePresence>
             <motion.video
               key={i}
+              // release the decoder the moment a clip leaves the reel —
+              // WKWebView keeps them alive until GC otherwise
+              ref={(el: HTMLVideoElement | null) => {
+                if (!el) return
+                return () => {
+                  el.pause()
+                  el.removeAttribute('src')
+                  el.load()
+                }
+              }}
               src={clip.src}
               poster={heroPoster}
               autoPlay

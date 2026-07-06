@@ -17,6 +17,33 @@ const SAMPLES = [
   { src: sampleNight, label: 'Night out' },
 ]
 
+/** longest edge kept at ingest — plenty for a 1600px export, and it keeps a
+ *  six-photo roll from pinning ~200MB of base64 in a WKWebView */
+const INGEST_MAX = 2560
+
+/** read a photo in, downscaling giant camera files to a sane working size.
+ *  Anything the browser can't decode falls back to the raw data URL. */
+async function ingestPhoto(file: File): Promise<string> {
+  const raw = await fileToDataURL(file)
+  try {
+    const img = new Image()
+    img.src = raw
+    await img.decode()
+    const scale = INGEST_MAX / Math.max(img.naturalWidth, img.naturalHeight)
+    if (!Number.isFinite(scale) || scale >= 1) return raw
+    const c = document.createElement('canvas')
+    c.width = Math.round(img.naturalWidth * scale)
+    c.height = Math.round(img.naturalHeight * scale)
+    const ctx = c.getContext('2d')
+    if (!ctx) return raw
+    ctx.imageSmoothingQuality = 'high'
+    ctx.drawImage(img, 0, 0, c.width, c.height)
+    return c.toDataURL('image/jpeg', 0.92)
+  } catch {
+    return raw
+  }
+}
+
 export default function UploadArea() {
   const { setImage, setRoll, setVideo, hasVideoPlan } = useApp()
   const [dragOver, setDragOver] = useState(false)
@@ -70,7 +97,7 @@ export default function UploadArea() {
         return
       }
       haptic('light')
-      const urls = await Promise.all(images.slice(0, MAX_ROLL).map((f) => fileToDataURL(f)))
+      const urls = await Promise.all(images.slice(0, MAX_ROLL).map((f) => ingestPhoto(f)))
       if (urls.length === 1) {
         setImage(urls[0], images[0].name)
       } else {

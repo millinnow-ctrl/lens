@@ -173,12 +173,20 @@ export default function Studio() {
     if (s) beginGeneration(s, pendingPreset.params)
   }, [pendingPreset, source, video, styleId, beginGeneration, setPendingPreset])
 
-  /* re-render instantly when sliders move after the first development (photos) */
+  /* re-render instantly when sliders move after the first development (photos).
+     One persistent scratch canvas is reused across re-renders — halves the
+     transient allocation spike per slider move (matters in a WKWebView). */
+  const scratchCanvas = useRef<HTMLCanvasElement | null>(null)
   useEffect(() => {
     if (phase !== 'done' || !source || !style || !params) return
     cancelAnimationFrame(renderRaf.current)
     renderRaf.current = requestAnimationFrame(() => {
-      const canvas = renderStyled(source, style, params, { maxSize: 1280, focal })
+      if (!scratchCanvas.current) scratchCanvas.current = document.createElement('canvas')
+      const canvas = renderStyled(source, style, params, {
+        maxSize: 1280,
+        focal,
+        target: scratchCanvas.current,
+      })
       setResultUrl(canvas.toDataURL('image/jpeg', 0.9))
     })
     return () => cancelAnimationFrame(renderRaf.current)
