@@ -517,7 +517,7 @@ function HomeContent({
       <motion.section variants={childVariants} className="mt-10 px-5 flex flex-col items-center gap-1.5">
         <ApertureMark className="w-7 h-7 opacity-80" />
         <p className="font-mono text-[9.5px] tracking-[0.2em] uppercase text-fog tabular-nums">
-          LensMood · Cut R16 “Instrument” · Made in the darkroom
+          LensMood · Cut R17 “San Francisco” · Made in the darkroom
         </p>
       </motion.section>
     </motion.div>
