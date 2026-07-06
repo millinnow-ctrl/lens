@@ -302,7 +302,8 @@ export default function LandingPage() {
 
       {/* ================= featured mood ================= */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
-        <motion.div {...fadeUp} className="panel p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center gap-6 sm:gap-8">
+        {/* max-w keeps the card content-sized on wide screens — no dead void */}
+        <motion.div {...fadeUp} className="panel max-w-3xl mx-auto p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center gap-6 sm:gap-8">
           <div className="w-28 sm:w-32 shrink-0 rounded-2xl overflow-hidden">
             <img
               src={marqueeThumbs['a24-still'] ?? sampleNight}
@@ -352,7 +353,7 @@ export default function LandingPage() {
           {/* spec sheet */}
           <motion.dl {...fadeUp} className="lg:col-span-5 grid grid-cols-2 gap-3 sm:gap-4">
             {[
-              { v: '09', k: 'Camera moods' },
+              { v: String(CAMERA_STYLES.length).padStart(2, '0'), k: 'Camera moods' },
               { v: '30s', k: 'Video clips' },
               { v: '00', k: 'Uploads — on-device' },
               { v: '∞', k: 'Retakes' },
