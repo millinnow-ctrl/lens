@@ -10,6 +10,10 @@ interface Props {
   afterLabel?: string
   /** 'instrument' = mono slates + square handle (studio); 'soft' = pill chrome (consumer home) */
   variant?: 'instrument' | 'soft'
+  /** size the frame to the photo's own aspect ratio (never crop), capped at
+   *  this max height — for comparing the user's real photo in the studio */
+  fitToImage?: boolean
+  maxH?: string
 }
 
 export default function BeforeAfterSlider({
@@ -20,9 +24,13 @@ export default function BeforeAfterSlider({
   beforeLabel = 'Original',
   afterLabel = 'LensMood',
   variant = 'instrument',
+  fitToImage = false,
+  maxH = '62dvh',
 }: Props) {
   const [pos, setPos] = useState(50)
   const [engaged, setEngaged] = useState(false)
+  /** the before image's natural aspect — drives the frame when fitToImage */
+  const [ratio, setRatio] = useState<number | null>(null)
   const ref = useRef<HTMLDivElement>(null)
   const dragging = useRef(false)
 
@@ -61,10 +69,24 @@ export default function BeforeAfterSlider({
     dragging.current = false
   }
 
+  /* fit-to-image: the frame takes the photo's own aspect ratio (so nothing
+     is ever cropped out of the comparison) and is capped to maxH — the width
+     cap keeps aspect-ratio honest when the height clamp would win */
+  const frameStyle =
+    fitToImage && ratio
+      ? {
+          aspectRatio: String(ratio),
+          maxHeight: maxH,
+          maxWidth: `calc(${maxH} * ${ratio})`,
+          margin: '0 auto',
+        }
+      : undefined
+
   return (
     <div
       ref={ref}
       className={`relative overflow-hidden select-none touch-none cursor-ew-resize ${className}`}
+      style={frameStyle}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
@@ -72,12 +94,28 @@ export default function BeforeAfterSlider({
       aria-label="Before and after comparison"
       aria-valuenow={Math.round(pos)}
     >
-      <img src={before} alt="Before" className="absolute inset-0 w-full h-full object-cover" draggable={false} />
+      <img
+        src={before}
+        alt="Before"
+        className="absolute inset-0 w-full h-full object-cover"
+        draggable={false}
+        onLoad={(e) => {
+          const img = e.currentTarget
+          if (img.naturalWidth && img.naturalHeight) setRatio(img.naturalWidth / img.naturalHeight)
+        }}
+      />
       <div
         className="absolute inset-0"
         style={{ clipPath: `inset(0 0 0 ${pos}%)` }}
       >
-        <img src={after} alt="After" className="absolute inset-0 w-full h-full object-cover" draggable={false} />
+        <img
+          src={after}
+          alt="After"
+          /* in fit mode the frame matches the original's ratio; the developed
+             print can differ (polaroid borders), so contain — never crop it */
+          className={`absolute inset-0 w-full h-full ${fitToImage ? 'object-contain bg-vf' : 'object-cover'}`}
+          draggable={false}
+        />
       </div>
 
       {variant === 'instrument' ? (

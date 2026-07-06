@@ -271,7 +271,8 @@ export default function Studio() {
               <BeforeAfterSlider
                 before={photo}
                 after={resultUrl}
-                className="w-full aspect-4/5 sm:aspect-auto sm:h-[62dvh]"
+                fitToImage
+                className="w-full aspect-4/5"
               />
             ) : (
               <div className="relative w-full flex items-center justify-center">
