@@ -59,6 +59,15 @@ export default function Studio() {
   /* presentation-only: play the wet-print reveal once when a develop lands,
      not on every slider re-render. Does not touch develop timing/logic. */
   const [revealing, setRevealing] = useState(false)
+  /* brief "re-metering" badge shown when a recipe/reset is applied — the
+     engine really does re-run the scene pass, and this makes the work felt */
+  const [reprocessing, setReprocessing] = useState(false)
+  const reprocessTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const onReprocess = useCallback(() => {
+    setReprocessing(true)
+    if (reprocessTimer.current) clearTimeout(reprocessTimer.current)
+    reprocessTimer.current = setTimeout(() => setReprocessing(false), 520)
+  }, [])
 
   const style = getStyle(styleId)
   const generationTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -204,6 +213,7 @@ export default function Studio() {
   useEffect(
     () => () => {
       if (generationTimer.current) clearTimeout(generationTimer.current)
+      if (reprocessTimer.current) clearTimeout(reprocessTimer.current)
     },
     [],
   )
@@ -288,6 +298,24 @@ export default function Studio() {
 
             {/* shutter flash */}
             {shutter && <div className="absolute inset-0 bg-white z-30 lm-shutter-flash pointer-events-none" />}
+
+            {/* re-metering badge — light, corner-anchored, only on recipe changes */}
+            <AnimatePresence>
+              {reprocessing && phase === 'done' && (
+                <motion.div
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 4 }}
+                  transition={{ duration: 0.18, ease: 'easeOut' }}
+                  className="absolute top-3 left-3 z-30 flex items-center gap-2 rounded-full bg-[#08060c]/80 backdrop-blur-md px-3 h-8 pointer-events-none"
+                >
+                  <span className="lm-spin w-3 h-3 rounded-full border-2 border-white/25 border-t-white/90" aria-hidden />
+                  <span className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.16em] text-white/90">
+                    Re-metering
+                  </span>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* developing overlay */}
             <AnimatePresence>
@@ -486,7 +514,12 @@ export default function Studio() {
                   <p className="text-[12px] text-fog mb-3">Adjustments apply to the clip live.</p>
                 )}
                 <div className={video ? '' : 'mt-3'}>
-                  <AdjustmentPanel style={style} params={params} onChange={setParams} />
+                  <AdjustmentPanel
+                    style={style}
+                    params={params}
+                    onChange={setParams}
+                    onReprocess={onReprocess}
+                  />
                 </div>
               </motion.section>
             )}

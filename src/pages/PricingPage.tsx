@@ -75,13 +75,23 @@ const TIERS: Tier[] = [
   },
 ]
 
+/** annual billing charges 10 months — two are on the house */
+const ANNUAL_MONTHS = 10
+type Cycle = 'monthly' | 'annual'
+
 export default function PricingPage() {
   const { plan, setPlan, user, setAuthOpen } = useApp()
   const navigate = useNavigate()
+  const [cycle, setCycle] = useState<Cycle>('monthly')
   const [checkout, setCheckout] = useState<Tier | null>(null)
   const [done, setDone] = useState(false)
   const [restoreMsg, setRestoreMsg] = useState<string | null>(null)
   const appStore = requiresAppStoreBilling()
+
+  const annual = cycle === 'annual'
+  /** the headline number: per-month always, but the annual rate is lower */
+  const monthlyRate = (t: Tier) => (annual ? (t.price * ANNUAL_MONTHS) / 12 : t.price)
+  const yearlyTotal = (t: Tier) => t.price * ANNUAL_MONTHS
 
   // "Current plan" only makes sense once you actually have an account
   const isCurrent = (tier: Tier) => plan === tier.id && (tier.id !== 'free' || !!user)
@@ -133,9 +143,38 @@ export default function PricingPage() {
         <h1 className="type-display tracking-optical-lg text-4xl sm:text-6xl mb-5">
           Rent the camera bag.
         </h1>
-        <p className="text-[15px] leading-[1.65] text-ink-soft max-w-md">
-          Every plan is month-to-month. What you export is yours to keep.
+        <p className="text-[15px] leading-[1.65] text-ink-soft max-w-md mb-7">
+          Monthly or annual — cancel anytime. What you export is yours to keep.
         </p>
+
+        {/* billing-cycle toggle — a machined two-way switch */}
+        <div className="inline-flex items-center gap-1 p-1 rounded-full bg-[rgb(60_42_24/0.07)] border border-[rgb(60_42_24/0.08)]">
+          {(['monthly', 'annual'] as Cycle[]).map((c) => {
+            const on = cycle === c
+            return (
+              <button
+                key={c}
+                onClick={() => setCycle(c)}
+                aria-pressed={on}
+                className="relative h-9 px-4 rounded-full text-[13px] font-semibold capitalize"
+              >
+                {on && (
+                  <motion.span
+                    layoutId="cycle-puck"
+                    transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                    className="absolute inset-0 rounded-full bg-surface shadow-[var(--shadow-e1)]"
+                  />
+                )}
+                <span className={`relative z-10 ${on ? 'text-ink' : 'text-fog'}`}>{c}</span>
+                {c === 'annual' && (
+                  <span className="relative z-10 ml-1.5 text-[10px] font-bold uppercase tracking-[0.04em] text-clay">
+                    2 mo free
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch">
@@ -169,14 +208,24 @@ export default function PricingPage() {
                   LM·MEMBER · TIER 0{i + 1}
                 </p>
                 <p className="text-[13px] leading-relaxed mt-2.5 mb-6 text-fog">{tier.blurb}</p>
-                <p className="mb-7 flex items-baseline gap-1">
-                  <AnimatedNumber
-                    value={tier.price}
-                    format={(n) => `$${Math.round(n)}`}
-                    className="text-[40px] leading-none font-bold tracking-[-0.02em]"
-                  />
-                  <span className="text-[13px] text-fog">/month</span>
-                </p>
+                <div className="mb-7">
+                  <p className="flex items-baseline gap-1">
+                    <AnimatedNumber
+                      value={monthlyRate(tier)}
+                      format={(n) => (n % 1 === 0 ? `$${Math.round(n)}` : `$${n.toFixed(2)}`)}
+                      className="text-[40px] leading-none font-bold tracking-[-0.02em]"
+                    />
+                    <span className="text-[13px] text-fog">/month</span>
+                  </p>
+                  {/* the honest fine print: what the card is actually charged */}
+                  <p className="mt-1.5 h-4 text-[11px] font-medium text-fog">
+                    {tier.price === 0
+                      ? 'Always free'
+                      : annual
+                        ? `$${yearlyTotal(tier)} billed yearly`
+                        : 'Billed monthly'}
+                  </p>
+                </div>
                 <ul className="mb-8 flex-1 space-y-3">
                   {tier.features.map((f) => {
                     const caveat =
@@ -229,7 +278,7 @@ export default function PricingPage() {
         <p className="text-[13px] text-fog">
           {appStore
             ? 'Billed through your Apple ID. Manage or cancel in Settings.'
-            : 'Prices in USD. Month-to-month, cancel anytime.'}
+            : `Prices in USD. ${annual ? 'Billed yearly' : 'Month-to-month'}, cancel anytime.`}
         </p>
         {appStore && (
           <button onClick={restore} className="text-[13px] font-semibold text-violet">
@@ -248,10 +297,21 @@ export default function PricingPage() {
                 Checkout
               </p>
               <h3 className="type-display text-2xl mb-2">
-                {checkout?.name} — <span className="tabular-nums">${checkout?.price}</span>/mo
+                {checkout?.name} —{' '}
+                {checkout && annual ? (
+                  <>
+                    <span className="tabular-nums">${yearlyTotal(checkout)}</span>/yr
+                  </>
+                ) : (
+                  <>
+                    <span className="tabular-nums">${checkout?.price}</span>/mo
+                  </>
+                )}
               </h3>
               <p className="text-[13px] text-fog mb-6">
-                Demo checkout. One click, no card, nothing charged.
+                {annual
+                  ? 'Annual plan — two months free. Demo checkout, nothing charged.'
+                  : 'Demo checkout. One click, no card, nothing charged.'}
               </p>
               <button onClick={confirm} className="btn btn-primary w-full mb-2.5">
                 Confirm upgrade

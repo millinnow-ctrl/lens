@@ -24,6 +24,8 @@ const DEFAULT_LENS: Required<LensResponse> = {
   awb: 0.6,
   awbClamp: 0.3,
   lightHalation: 0.7,
+  toneMap: 0.5,
+  dof: 0.4,
 }
 
 type Source = HTMLImageElement | HTMLCanvasElement | ImageBitmap | HTMLVideoElement
@@ -117,20 +119,37 @@ function grainSample(x: number, y: number, seed: number): number {
 
 /**
  * The stock's full tonal response, composed into one 256-entry LUT:
- * gentle auto-levels → metered exposure (with a soft pre-shoulder so a
- * push never hard-clips) → the filmic S-curve whose highlights roll off
- * *below* pure white (the "creamy highlight" that keeps digital clipping
- * from giving the look away).
+ * gentle auto-levels → adaptive dynamic-range recovery (the "smart HDR"
+ * pass: high-contrast scenes get their crushed shadows opened and blown
+ * highlights guarded, scaled by how wide the scene's range actually is) →
+ * metered exposure (with a soft pre-shoulder so a push never hard-clips) →
+ * the filmic S-curve whose highlights roll off *below* pure white.
  */
-function responseLut(curveAmt: number, ev: number, scene: SceneProfile): Uint8ClampedArray {
+function responseLut(
+  curveAmt: number,
+  ev: number,
+  scene: SceneProfile,
+  toneMap: number,
+): Uint8ClampedArray {
   const lut = new Uint8ClampedArray(256)
   const gain = Math.pow(2, ev)
   // expand-only levels: murky low-contrast uploads get their footing back
   const lo = 0.35 * scene.p01
   const range = Math.max(0.4, 1 - 0.35 * (scene.p01 + 1 - scene.p99))
+  // adaptive DR: only wide-range scenes trigger recovery, so a flat studio
+  // shot is left alone while a backlit window shot gets its shadows back
+  const dr = scene.p99 - scene.p01
+  const drive = toneMap * smoothstep(0.55, 0.95, dr)
+  const shadowLift = drive * 0.5 * clamp01((0.45 - scene.p01) / 0.45) // deep blacks only
+  const highlightGuard = drive * 0.45 * smoothstep(0.9, 1, scene.p99) // near-clip only
   for (let i = 0; i < 256; i++) {
     let x = i / 255
     x = clamp01((x - lo) / range)
+    // recover the toe (raise darks, taper to nothing by the midpoint) and
+    // guard the shoulder (ease blown highlights down before they clip)
+    if (shadowLift > 0.001) x += shadowLift * (1 - smoothstep(0, 0.55, x)) * (1 - x)
+    if (highlightGuard > 0.001) x -= highlightGuard * smoothstep(0.65, 1, x) * x
+    x = clamp01(x)
     // metered exposure with a soft shoulder above 0.82 — the electronic
     // meter turns the ring, the emulsion still owns the highlight rolloff
     let y = x * gain
@@ -188,6 +207,9 @@ export function renderStyled(
   const Gb = wbGain(scene.illum[2])
   const doWb = Math.abs(Gr - 1) > 0.015 || Math.abs(Gg - 1) > 0.015 || Math.abs(Gb - 1) > 0.015
   const doLevels = scene.p01 > 0.02 || scene.p99 < 0.94
+  // smart-HDR recovery engages only on genuinely wide-range scenes
+  const toneMap = lens.toneMap * s
+  const doTone = toneMap > 0.02 && scene.p99 - scene.p01 > 0.55
 
   const canvas = target ?? document.createElement('canvas')
   if (canvas.width !== w) canvas.width = w
@@ -224,7 +246,7 @@ export function renderStyled(
   const fringePx = Math.round((ch.fringe ?? 0) * s * ref)
   const mtx = ch.colorMatrix // 3×3 channel crosstalk (real film mixes channels)
   const hiDesat = 0.6 * s // film bleaches highlights toward paper-white
-  const doMeter = Math.abs(ev) > 0.02 || doLevels
+  const doMeter = Math.abs(ev) > 0.02 || doLevels || doTone
   if (curveAmt > 0.02 || splitAmt > 0.02 || fringePx >= 1 || mtx || hiDesat > 0.02 || doMeter || doWb) {
     const img = ctx.getImageData(0, 0, w, h)
     const d = img.data
@@ -245,7 +267,12 @@ export function renderStyled(
       }
     }
 
-    const lut = responseLut(curveAmt, doMeter ? ev : 0, doLevels ? scene : NEUTRAL_SCENE)
+    const lut = responseLut(
+      curveAmt,
+      doMeter ? ev : 0,
+      doLevels || doTone ? scene : NEUTRAL_SCENE,
+      doTone ? toneMap : 0,
+    )
     const doCurve = curveAmt > 0.02 || doMeter
     const sh = split ? hexRgb(split.shadows) : null
     const hi = split ? hexRgb(split.highlights) : null
@@ -295,6 +322,40 @@ export function renderStyled(
       d[i + 2] = b
     }
     ctx.putImageData(img, 0, 0)
+  }
+
+  /* 1.75 — subject separation: when the on-device model found a face, the
+     lens renders a shallow depth of field — the subject stays sharp and the
+     background falls softly out of focus, the way a fast prime does. A blurred
+     copy is masked back in everywhere *except* a feathered ellipse on the
+     subject, so nothing near the face is touched. Gated on focal, so a photo
+     with no subject (a landscape) is never blurred. */
+  const dof = lens.dof * s
+  if (focal && dof > 0.03) {
+    const fx = focal.x * w
+    const fy = focal.y * h
+    const fr = Math.max(focal.r * Math.max(w, h), 24)
+    const bg = document.createElement('canvas')
+    bg.width = w
+    bg.height = h
+    const bx = bg.getContext('2d')!
+    // the defocus itself — radius scales with the separation amount
+    bx.filter = `blur(${(3.4 * dof * ref + 1).toFixed(2)}px)`
+    bx.drawImage(canvas, 0, 0)
+    bx.filter = 'none'
+    // carve the sharp subject back out of the blurred layer: opaque at the
+    // frame edge, fading to fully transparent across the subject's zone
+    bx.globalCompositeOperation = 'destination-out'
+    const hole = bx.createRadialGradient(fx, fy, fr * 0.7, fx, fy, fr * 2.1)
+    hole.addColorStop(0, 'rgba(0,0,0,1)')
+    hole.addColorStop(1, 'rgba(0,0,0,0)')
+    bx.fillStyle = hole
+    bx.fillRect(0, 0, w, h)
+    // lay the (now subject-punched) blur back over the sharp frame
+    ctx.save()
+    ctx.globalAlpha = Math.min(1, 0.55 + dof * 0.45)
+    ctx.drawImage(bg, 0, 0)
+    ctx.restore()
   }
 
   /* 2 — skin smoothing: soft-blurred self-blend. With a face lock the

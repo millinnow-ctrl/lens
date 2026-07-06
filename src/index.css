@@ -173,6 +173,21 @@ summary {
   }
 }
 
+/* spinner — a develop-in-progress ring; steady rotation, honest work */
+@keyframes lm-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.lm-spin {
+  animation: lm-spin 0.7s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .lm-spin {
+    animation-duration: 1.4s;
+  }
+}
+
 /* the "LIVE" indicator actually breathes — a recording light, not a dot */
 @keyframes lm-live-pulse {
   0%,

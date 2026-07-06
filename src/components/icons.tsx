@@ -334,6 +334,21 @@ export const IconSearch = (p: P) => (
   </svg>
 )
 
+/** counter-clockwise reset arrow — "wind back to the stock's defaults" */
+export const IconReset = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M4.6 9.2A8 8 0 1 1 4 12" />
+    <path d="M4.2 4.4v4.9h4.9" />
+  </svg>
+)
+
+/** spinner ring — one open arc; parent adds the spin animation */
+export const IconSpinner = (p: P) => (
+  <svg {...base(p)} strokeWidth={2.2}>
+    <path d="M12 3.5a8.5 8.5 0 1 1-8.28 6.6" strokeLinecap="round" />
+  </svg>
+)
+
 /* ------------------------------------------------------------------ */
 /* Brand marks (fixed colors, not part of the stroke system)           */
 /* ------------------------------------------------------------------ */
