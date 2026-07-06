@@ -6,6 +6,7 @@ import Header from '../components/home/Header'
 import CategoryChips, { CATEGORY_STYLES, type CategoryId } from '../components/home/CategoryChips'
 import RecentProjectCard from '../components/home/RecentProjectCard'
 import MoodSphere from '../components/home/MoodSphere'
+import LiveHero from '../components/home/LiveHero'
 import ToolCard from '../components/home/ToolCard'
 import BottomNav from '../components/home/BottomNav'
 import UploadModal from '../components/home/UploadModal'
@@ -22,8 +23,6 @@ import { CAMERA_STYLES, encodeParams, getStyle, type CameraStyle } from '../lib/
 import { useApp } from '../lib/store'
 import { STYLE_ART } from '../lib/styleArt'
 import sampleGolden from '../assets/sample-golden.jpg'
-import heroPoster from '../assets/hero-poster.jpg'
-import heroAmbient from '../assets/hero-ambient.mp4'
 import sampleFriends from '../assets/sample-friends.jpg'
 import sampleDog from '../assets/sample-dog.jpg'
 import samplePrints from '../assets/sample-prints.jpg'
@@ -82,10 +81,6 @@ function useIsDesktop() {
    collapse to opacity-only under prefers-reduced-motion. */
 const staggerVariants = sectionStagger()
 const childVariants = sectionChild()
-
-/* the header lives, quietly — skip the loop only for reduced-motion users */
-const heroVideoEnabled = () =>
-  !(typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
 
 function HomeContent({
   onAccount,
@@ -161,68 +156,10 @@ function HomeContent({
     >
       <Header onAccount={onAccount} />
 
-      {/* hero — the product itself. Light spec strip up top, the frame below,
-          the headline set large with the warm italic word. */}
+      {/* hero — the product, alive: a reel of real developed looks cycling
+          under the headline so the first thing you see is the magic happening */}
       <motion.section variants={childVariants} className="mt-3 px-5">
-        <div className="relative rounded-[28px] overflow-hidden bg-vf border border-white/[0.06] shadow-[var(--shadow-e3)]">
-          {/* viewfinder chrome strip — one frame, one material, one radius */}
-          <div className="h-9 px-4 flex items-center justify-between gap-3 border-b border-white/[0.08]">
-            <span className="flex items-center gap-2 font-mono font-semibold text-[10px] tracking-[0.14em] uppercase text-vf-chrome">
-              <span className="lm-live w-1.5 h-1.5 rounded-full bg-signal" aria-hidden />
-              LM Engine · Live
-            </span>
-            <span className="font-mono text-[10px] tracking-[0.1em] uppercase text-vf-chrome tabular-nums">
-              35mm <span className="text-white/15 mx-0.5">|</span> ƒ1.4{' '}
-              <span className="text-white/15 mx-0.5">|</span> ISO 400
-            </span>
-          </div>
-          <div className="relative aspect-[4/3.6] vf-corners overflow-hidden">
-            {heroVideoEnabled() ? (
-              <video
-                src={heroAmbient}
-                poster={heroPoster}
-                autoPlay
-                muted
-                loop
-                playsInline
-                aria-hidden
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-            ) : (
-              <img
-                src={heroPoster}
-                alt=""
-                className="absolute inset-0 w-full h-full object-cover"
-                draggable={false}
-              />
-            )}
-            {/* scrim carries the words */}
-            <div className="absolute inset-x-0 bottom-0 h-[74%] bg-gradient-to-t from-black/85 via-black/45 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 p-4">
-              <h1
-                className="type-display text-[30px] leading-[1.08] text-white"
-                style={{ textShadow: '0 1px 14px rgb(0 0 0 / 0.5)' }}
-              >
-                Every photo has a <span className="serif-accent">mood.</span>
-              </h1>
-              <p
-                className="text-[13px] text-white/85 mt-1.5 leading-snug"
-                style={{ textShadow: '0 1px 8px rgb(0 0 0 / 0.55)' }}
-              >
-                The $7,000 camera look, from your camera roll.
-              </p>
-              <div className="mt-4">
-                <button
-                  onClick={onUpload}
-                  className="btn gap-2 border-0 btn-brass font-semibold px-5 text-[14px] whitespace-nowrap"
-                >
-                  <IconUpload size={15} />
-                  Start with a photo
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <LiveHero onUpload={onUpload} />
       </motion.section>
 
       {/* the case, in motion — a slow ticker of all 18 cameras filing past.
@@ -457,7 +394,7 @@ function HomeContent({
       <motion.section variants={childVariants} className="mt-10 px-5 flex flex-col items-center gap-1.5">
         <ApertureMark className="w-7 h-7 opacity-80" />
         <p className="font-mono font-semibold text-[9.5px] tracking-[0.2em] uppercase text-fog tabular-nums text-center">
-          LensMood · Cut R20 “Depth”
+          LensMood · Cut R21 “Alive”
         </p>
         <p className="font-mono font-semibold text-[9.5px] tracking-[0.2em] uppercase text-fog/80 text-center">
           Made in the darkroom
