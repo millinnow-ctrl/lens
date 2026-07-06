@@ -192,10 +192,14 @@ export function renderStyled(
   const keyEff =
     scene.faceLum != null ? lerp(scene.key, scene.faceLum, lens.faceWeight) : scene.key
   const meterTarget = (scene.faceLum != null ? 0.45 : 0.4) * Math.pow(2, lens.meterBias)
-  const ev =
-    Math.max(-1.25, Math.min(1.25, Math.log2(meterTarget / Math.max(0.02, keyEff)))) *
-    lens.meterStrength *
-    s
+  // strength scales the desired correction first, then an asymmetric clamp:
+  // pushes get more headroom than pulls because the soft pre-shoulder and the
+  // filmic curve both protect pushed highlights, while dark party/night
+  // uploads (the core use case) need real recovery to reach the stock's key
+  const ev = Math.max(
+    -1.25,
+    Math.min(2.0, Math.log2(meterTarget / Math.max(0.02, keyEff)) * lens.meterStrength * s),
+  )
   // auto white balance: neutralize the estimated cast before the stock's
   // own palette speaks — clamped, and dialed back for stocks whose charm
   // is exactly their bad AWB
@@ -207,9 +211,12 @@ export function renderStyled(
   const Gb = wbGain(scene.illum[2])
   const doWb = Math.abs(Gr - 1) > 0.015 || Math.abs(Gg - 1) > 0.015 || Math.abs(Gb - 1) > 0.015
   const doLevels = scene.p01 > 0.02 || scene.p99 < 0.94
-  // smart-HDR recovery engages only on genuinely wide-range scenes
+  // smart-HDR recovery engages only on genuinely wide-range scenes — and
+  // never on the neutral fallback profile, whose placeholder percentiles
+  // (p01=0, p99=1) would otherwise read as maximum dynamic range and wash
+  // the blacks of exactly the renders that asked for no adaptation
   const toneMap = lens.toneMap * s
-  const doTone = toneMap > 0.02 && scene.p99 - scene.p01 > 0.55
+  const doTone = toneMap > 0.02 && scene.analyzed && scene.p99 - scene.p01 > 0.55
 
   const canvas = target ?? document.createElement('canvas')
   if (canvas.width !== w) canvas.width = w
@@ -227,7 +234,7 @@ export function renderStyled(
     ch.hue ? `hue-rotate(${(ch.hue * s).toFixed(1)}deg)` : '',
     `saturate(${lerp(1, ch.saturate ?? 1, s).toFixed(3)})`,
     `brightness(${lerp(1, ch.brightness ?? 1, s).toFixed(3)})`,
-    `contrast(${lerp(1, contrastAmt, Math.max(s, 0.35)).toFixed(3)})`,
+    `contrast(${lerp(1, contrastAmt, s).toFixed(3)})`,
     ch.blur ? `blur(${(ch.blur * s * ref).toFixed(2)}px)` : '',
   ]
     .filter(Boolean)
@@ -344,13 +351,20 @@ export function renderStyled(
     bx.drawImage(canvas, 0, 0)
     bx.filter = 'none'
     // carve the sharp subject back out of the blurred layer: opaque at the
-    // frame edge, fading to fully transparent across the subject's zone
+    // frame edge, fading to transparent across the subject. The protected
+    // zone is a tall capsule — face plus the body hanging below it — because
+    // a sharp face floating on a defocused torso is the fake-portrait tell.
     bx.globalCompositeOperation = 'destination-out'
-    const hole = bx.createRadialGradient(fx, fy, fr * 0.7, fx, fy, fr * 2.1)
+    bx.save()
+    bx.translate(fx, fy + fr * 1.1)
+    bx.scale(1, 2.2)
+    const hole = bx.createRadialGradient(0, 0, fr * 0.65, 0, 0, fr * 2.1)
     hole.addColorStop(0, 'rgba(0,0,0,1)')
     hole.addColorStop(1, 'rgba(0,0,0,0)')
     bx.fillStyle = hole
-    bx.fillRect(0, 0, w, h)
+    // generous cover: transformed coords never exceed ±(w+h) on either axis
+    bx.fillRect(-(w + h), -(w + h), (w + h) * 2, (w + h) * 2)
+    bx.restore()
     // lay the (now subject-punched) blur back over the sharp frame
     ctx.save()
     ctx.globalAlpha = Math.min(1, 0.55 + dof * 0.45)
@@ -372,8 +386,9 @@ export function renderStyled(
       ctx.clip()
     }
     // gentler than before, and grain lands on top of this pass (below), so
-    // smoothed skin keeps an emulsion texture instead of going plastic
-    ctx.globalAlpha = (params.smoothing / 100) * (focal ? 0.42 : 0.3)
+    // smoothed skin keeps an emulsion texture instead of going plastic.
+    // rides the intensity slider like everything else: intensity 0 = original
+    ctx.globalAlpha = (params.smoothing / 100) * (focal ? 0.42 : 0.3) * Math.min(1, s * 1.25)
     ctx.filter = `blur(${(2.2 * ref).toFixed(2)}px)`
     ctx.drawImage(canvas, 0, 0)
     ctx.restore()
@@ -391,7 +406,9 @@ export function renderStyled(
     const onLights = lights.length ? lens.lightHalation : 0
     ctx.save()
     ctx.globalCompositeOperation = 'screen'
-    ctx.globalAlpha = halation * 0.8 * (1 - 0.5 * onLights)
+    // trade a little of the uniform bloom for the per-source glows — but only
+    // a little: the glows are localized, the base pass carries the scene
+    ctx.globalAlpha = halation * 0.8 * (1 - 0.25 * onLights)
     // warm/red-biased bloom: the anti-halation layer failing scatters red
     // light around speculars — that orange halo is the film tell, not a
     // neutral glow. sepia + saturate push the crushed highlights warm.
@@ -404,15 +421,21 @@ export function renderStyled(
       ctx.globalCompositeOperation = 'screen'
       for (const lt of lights) {
         const lr = Math.max(w, h) * (4 * lt.r + 0.05) * (1 + halation * 0.6)
-        const a = halation * onLights * lt.intensity * 0.45
-        if (a < 0.01) continue
-        // hue rides the source: tungsten halos orange, cold LEDs stay pale
-        const gCh = Math.round(96 + 60 * (1 - Math.max(0, lt.warmth)))
-        const bCh = Math.round(48 + 110 * Math.max(0, -lt.warmth))
+        const a = Math.min(0.5, halation * onLights * lt.intensity * 0.9)
+        if (a < 0.02) continue
+        // the halo takes the light's own color (sampled from its glow ring):
+        // neon halos pink or cyan, tungsten halos amber — never a stock
+        // orange. The ring mean is washed toward white, so push its chroma
+        // back out before brightening.
+        const tMean = (lt.tint[0] + lt.tint[1] + lt.tint[2]) / 3
+        const chroma = (c: number) => Math.min(255, Math.max(0, (tMean + (c - tMean) * 2.6) * 255 * 1.35))
+        const r = Math.round(chroma(lt.tint[0]))
+        const g = Math.round(chroma(lt.tint[1]))
+        const bch = Math.round(chroma(lt.tint[2]))
         const glow = ctx.createRadialGradient(lt.x * w, lt.y * h, 0, lt.x * w, lt.y * h, lr)
-        glow.addColorStop(0, `rgba(255,${gCh},${bCh},${a.toFixed(3)})`)
-        glow.addColorStop(0.5, `rgba(255,${gCh},${bCh},${(a * 0.35).toFixed(3)})`)
-        glow.addColorStop(1, `rgba(255,${gCh},${bCh},0)`)
+        glow.addColorStop(0, `rgba(${r},${g},${bch},${a.toFixed(3)})`)
+        glow.addColorStop(0.5, `rgba(${r},${g},${bch},${(a * 0.35).toFixed(3)})`)
+        glow.addColorStop(1, `rgba(${r},${g},${bch},0)`)
         ctx.fillStyle = glow
         ctx.fillRect(0, 0, w, h)
       }
@@ -535,7 +558,7 @@ export function renderStyled(
       const gs = Math.max(0.5, (ch.grainSize ?? 1) * ref)
       ctx.save()
       ctx.globalCompositeOperation = 'overlay'
-      ctx.globalAlpha = grain * 0.5
+      ctx.globalAlpha = grain * 0.5 * Math.min(1, s * 1.25)
       ctx.scale(gs, gs)
       ctx.fillStyle = ctx.createPattern(getNoiseTile(), 'repeat')!
       const ox = Math.floor(Math.random() * 192)
@@ -551,7 +574,7 @@ export function renderStyled(
       const img = ctx.getImageData(0, 0, w, h)
       const dd = img.data
       const gs = Math.max(1, Math.round((ch.grainSize ?? 1) * ref))
-      const amp = grain * 34 * (ch.grainAmp ?? 1)
+      const amp = grain * 34 * (ch.grainAmp ?? 1) * Math.min(1, s * 1.25)
       const chroma = ch.bw ? 0 : (ch.grainChroma ?? 0.4)
       const seed = hash32(style.id) & 0xffff
       const clumped = gs > 1

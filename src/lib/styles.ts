@@ -136,7 +136,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
     tier: 'free',
     defaults: P({ grain: 16, contrast: 62, warmth: 46, flash: 82, shadows: 62 }),
     character: {
-      lens: { meterStrength: 0.85, faceWeight: 0.8, awb: 0.8, dof: 0.32, toneMap: 0.7 },
+      lens: { meterStrength: 0.85, faceWeight: 0.8, awb: 0.8, awbClamp: 0.45, dof: 0.32, toneMap: 0.7 },
       curve: 0.15,
       saturate: 1.03,
       brightness: 1.06,
@@ -239,7 +239,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
     tier: 'premium',
     defaults: P({ grain: 40, contrast: 76, warmth: 50, flash: 6, shadows: 72 }),
     character: {
-      lens: { meterBias: -0.45, meterStrength: 0.75, faceWeight: 0.7, dof: 0.5 },
+      lens: { meterBias: -0.45, meterStrength: 0.75, faceWeight: 0.7, dof: 0.5, toneMap: 0 },
       grainSize: 1.15,
       curve: 0.55,
       bw: true,
@@ -370,7 +370,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
     tier: 'premium',
     defaults: P({ grain: 70, contrast: 58, warmth: 40, flash: 0, shadows: 36 }),
     character: {
-      lens: { meterStrength: 0.9, awb: 0.9, dof: 0, toneMap: 0.2 },
+      lens: { meterStrength: 0.9, awb: 0.9, awbClamp: 0.45, dof: 0, toneMap: 0.2 },
       grainSize: 1.5,
       curve: 0.35,
       saturate: 0.35,
@@ -435,7 +435,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
     badge: 'trending',
     defaults: P({ grain: 26, contrast: 66, warmth: 38, flash: 0, shadows: 62 }),
     character: {
-      lens: { meterBias: -0.3, awb: 0.15, lightHalation: 1.0, dof: 0.55 },
+      lens: { meterBias: -0.3, awb: 0.15, lightHalation: 1.0, dof: 0.55, toneMap: 0.15 },
       curve: 0.35,
       colorMatrix: [1.04, -0.02, 0.02, -0.03, 1.0, 0.02, 0.03, 0.02, 1.05],
       splitTone: { shadows: '#312e81', highlights: '#f0abfc', amount: 0.8 },
@@ -479,6 +479,8 @@ export const CAMERA_STYLES: CameraStyle[] = [
     tier: 'premium',
     defaults: P({ grain: 64, contrast: 60, warmth: 60, flash: 0, shadows: 84 }),
     character: {
+      // a box camera has no electronics: weak fixed meter, no AWB, no HDR
+      lens: { meterStrength: 0.35, awb: 0.15, toneMap: 0, lightHalation: 0.3 },
       grainSize: 1.8,
       curve: 0.5,
       sepia: 0.85,

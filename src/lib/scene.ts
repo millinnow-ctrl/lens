@@ -19,13 +19,17 @@ export interface LightSource {
   y: number
   /** blob radius as a fraction of the longest edge */
   r: number
-  /** 0..1 — how far above the specular threshold the blob burns */
+  /** 0..1 — how hot the blob's peak burns above the specular threshold */
   intensity: number
-  /** mean (R−B)/255 inside the blob, −1..1 — tungsten glows +, LEDs sit − */
-  warmth: number
+  /** the light's true color, sampled on the glow annulus around the clipped
+   *  core (the core itself is blown white) — [r,g,b] 0..1 */
+  tint: [number, number, number]
 }
 
 export interface SceneProfile {
+  /** false for the neutral fallback — adaptive passes that would otherwise
+   *  misread the placeholder percentiles must check this */
+  analyzed: boolean
   /** log-average luminance, 0..1 — the meter's reading of the scene key */
   key: number
   p01: number
@@ -41,6 +45,7 @@ export interface SceneProfile {
 
 /** neutral profile — what `scene: null` and failed analysis fall back to */
 export const NEUTRAL_SCENE: SceneProfile = {
+  analyzed: false,
   key: 0.4,
   p01: 0,
   p50: 0.4,
@@ -178,12 +183,12 @@ function analyze(source: Source, focal: Focal | null): SceneProfile {
   // >20% of the frame above threshold = ambient brightness (sky, wall), not sources
   if (bright > 0 && bright < n * 0.2) {
     const label = new Int32Array(n).fill(-1)
-    const blobs: { mass: number; sx: number; sy: number; count: number; warm: number }[] = []
+    const blobs: { mass: number; sx: number; sy: number; count: number; peak: number }[] = []
     const stack: number[] = []
     for (let i = 0; i < n; i++) {
       if (lum[i] < T || label[i] !== -1) continue
       const id = blobs.length
-      const blob = { mass: 0, sx: 0, sy: 0, count: 0, warm: 0 }
+      const blob = { mass: 0, sx: 0, sy: 0, count: 0, peak: 0 }
       blobs.push(blob)
       stack.length = 0
       stack.push(i)
@@ -193,27 +198,65 @@ function analyze(source: Source, focal: Focal | null): SceneProfile {
         const jx = j % w
         const jy = (j / w) | 0
         blob.mass += lum[j] - T
+        if (lum[j] > blob.peak) blob.peak = lum[j]
         blob.sx += jx
         blob.sy += jy
         blob.count++
-        blob.warm += (px[j * 4] - px[j * 4 + 2]) / 255
         if (jx > 0 && label[j - 1] === -1 && lum[j - 1] >= T) (label[j - 1] = id), stack.push(j - 1)
         if (jx < w - 1 && label[j + 1] === -1 && lum[j + 1] >= T) (label[j + 1] = id), stack.push(j + 1)
         if (jy > 0 && label[j - w] === -1 && lum[j - w] >= T) (label[j - w] = id), stack.push(j - w)
         if (jy < h - 1 && label[j + w] === -1 && lum[j + w] >= T) (label[j + w] = id), stack.push(j + w)
       }
     }
-    lights = blobs
+    const kept = blobs
       .filter((b) => b.count >= 2)
       .sort((a, b) => b.mass - a.mass)
       .slice(0, 5)
       .map((b) => ({
-        x: b.sx / b.count / w,
-        y: b.sy / b.count / h,
-        r: Math.sqrt(b.count / Math.PI) / Math.max(w, h),
-        intensity: Math.min(1, b.mass / b.count / Math.max(0.02, 1 - T)),
-        warmth: Math.max(-1, Math.min(1, b.warm / b.count)),
+        x: b.sx / b.count,
+        y: b.sy / b.count,
+        rPx: Math.sqrt(b.count / Math.PI),
+        peak: b.peak,
+        // tint accumulators — filled by the annulus pass below
+        tr: 0,
+        tg: 0,
+        tb: 0,
+        tn: 0,
       }))
+    /* the light's color lives in the glow ring AROUND the clipped core (the
+       core itself reads pure white) — one cheap pass over the near-bright
+       band, attributed to the closest blob within reach */
+    if (kept.length) {
+      const lo = T * 0.6
+      for (let i = 0; i < n; i++) {
+        const L = lum[i]
+        if (L < lo || L >= T) continue
+        const x = i % w
+        const y = (i / w) | 0
+        for (const k of kept) {
+          const dx = x - k.x
+          const dy = y - k.y
+          const reach = (k.rPx + 2) * 2.5
+          if (dx * dx + dy * dy <= reach * reach) {
+            k.tr += px[i * 4]
+            k.tg += px[i * 4 + 1]
+            k.tb += px[i * 4 + 2]
+            k.tn++
+            break
+          }
+        }
+      }
+    }
+    lights = kept.map((k) => ({
+      x: k.x / w,
+      y: k.y / h,
+      r: k.rPx / Math.max(w, h),
+      intensity: Math.min(1, (k.peak - T) / Math.max(0.02, 1 - T)),
+      tint:
+        k.tn > 3
+          ? ([k.tr / k.tn / 255, k.tg / k.tn / 255, k.tb / k.tn / 255] as [number, number, number])
+          : ([1, 0.72, 0.45] as [number, number, number]), // warm default
+    }))
   }
 
   /* ---- pass 3: face luminance under the focal ellipse ---- */
@@ -241,5 +284,5 @@ function analyze(source: Source, focal: Focal | null): SceneProfile {
     if (cnt > 4) faceLum = sum / cnt
   }
 
-  return { key, p01, p50, p99, illum, lights, faceLum }
+  return { analyzed: true, key, p01, p50, p99, illum, lights, faceLum }
 }
