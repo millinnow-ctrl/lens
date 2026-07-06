@@ -318,7 +318,7 @@ export default function Studio() {
                           transform={`rotate(${i * 60} 24 24)`}
                         />
                       ))}
-                      <circle cx="24" cy="24" r="4.5" fill="#e0392b" />
+                      <circle cx="24" cy="24" r="4.5" fill="#5f7247" />
                     </svg>
                   </div>
                   <div className="relative flex flex-col items-center gap-2">
@@ -339,7 +339,7 @@ export default function Studio() {
                       <motion.p
                         animate={{ opacity: [0.35, 0.75, 0.35] }}
                         transition={{ repeat: Infinity, duration: 1.15, ease: 'easeInOut' }}
-                        className="font-mono font-semibold text-[10px] tracking-[0.2em] uppercase tabular-nums text-[#ff6b5e]/80"
+                        className="font-mono font-semibold text-[10px] tracking-[0.2em] uppercase tabular-nums text-[#b5c98f]/80"
                       >
                         {style.exif}
                       </motion.p>

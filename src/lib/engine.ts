@@ -1,4 +1,5 @@
-import type { CameraStyle, StyleParams } from './styles'
+import type { CameraStyle, LensResponse, StyleParams } from './styles'
+import { analyzeScene, NEUTRAL_SCENE, type SceneProfile } from './scene'
 
 export interface RenderOptions {
   /** longest edge of the output; source is downscaled to fit */
@@ -10,6 +11,19 @@ export interface RenderOptions {
   animateGrain?: boolean
   /** face lock (normalized) — flash centers here, smoothing stays on skin */
   focal?: { x: number; y: number; r: number } | null
+  /** precomputed scene profile; omit to analyze (cached), null to disable
+   *  the adaptive lens entirely */
+  scene?: SceneProfile | null
+}
+
+/** how the glass responds to a scene when the stock doesn't say otherwise */
+const DEFAULT_LENS: Required<LensResponse> = {
+  meterBias: 0,
+  meterStrength: 0.55,
+  faceWeight: 0.65,
+  awb: 0.6,
+  awbClamp: 0.3,
+  lightHalation: 0.7,
 }
 
 type Source = HTMLImageElement | HTMLCanvasElement | ImageBitmap | HTMLVideoElement
@@ -102,19 +116,30 @@ function grainSample(x: number, y: number, seed: number): number {
 }
 
 /**
- * A filmic response LUT with a real shoulder: shadows compress into a soft
- * toe, midtones gain gentle contrast, and highlights roll off *below* pure
- * white (the "creamy highlight" that keeps digital clipping from giving the
- * look away). Blended from linear by `amt`.
+ * The stock's full tonal response, composed into one 256-entry LUT:
+ * gentle auto-levels → metered exposure (with a soft pre-shoulder so a
+ * push never hard-clips) → the filmic S-curve whose highlights roll off
+ * *below* pure white (the "creamy highlight" that keeps digital clipping
+ * from giving the look away).
  */
-function filmicLut(amt: number): Uint8ClampedArray {
+function responseLut(curveAmt: number, ev: number, scene: SceneProfile): Uint8ClampedArray {
   const lut = new Uint8ClampedArray(256)
+  const gain = Math.pow(2, ev)
+  // expand-only levels: murky low-contrast uploads get their footing back
+  const lo = 0.35 * scene.p01
+  const range = Math.max(0.4, 1 - 0.35 * (scene.p01 + 1 - scene.p99))
   for (let i = 0; i < 256; i++) {
-    const x = i / 255
-    const sC = x * x * (3 - 2 * x) // classic S (toe + shoulder)
+    let x = i / 255
+    x = clamp01((x - lo) / range)
+    // metered exposure with a soft shoulder above 0.82 — the electronic
+    // meter turns the ring, the emulsion still owns the highlight rolloff
+    let y = x * gain
+    if (y > 0.82) y = 0.82 + 0.18 * (1 - Math.exp(-(y - 0.82) / 0.18))
+    y = clamp01(y)
+    const sC = y * y * (3 - 2 * y) // classic S (toe + shoulder)
     // pull the top down so white lands ~0.94 — emulsion never hits paper-white
-    const f = sC - 0.06 * smoothstep(0.62, 1, x)
-    lut[i] = Math.round(255 * lerp(x, f, amt))
+    const f = sC - 0.06 * smoothstep(0.62, 1, y)
+    lut[i] = Math.round(255 * lerp(y, f, curveAmt))
   }
   return lut
 }
@@ -138,6 +163,31 @@ export function renderStyled(
   const ch = style.character
   const s = params.intensity / 100 // global look strength
   const ref = Math.max(w, h) / 1000 // scale-independent px unit
+
+  /* 0 — the light meter reads the scene (cached: ~free on re-renders).
+     `scene: null` disables adaptation; undefined means analyze. */
+  const scene =
+    opts.scene !== undefined ? (opts.scene ?? NEUTRAL_SCENE) : analyzeScene(source, focal)
+  const lens = { ...DEFAULT_LENS, ...ch.lens }
+  // face-priority metering: with a subject, expose for skin like a camera does
+  const keyEff =
+    scene.faceLum != null ? lerp(scene.key, scene.faceLum, lens.faceWeight) : scene.key
+  const meterTarget = (scene.faceLum != null ? 0.45 : 0.4) * Math.pow(2, lens.meterBias)
+  const ev =
+    Math.max(-1.25, Math.min(1.25, Math.log2(meterTarget / Math.max(0.02, keyEff)))) *
+    lens.meterStrength *
+    s
+  // auto white balance: neutralize the estimated cast before the stock's
+  // own palette speaks — clamped, and dialed back for stocks whose charm
+  // is exactly their bad AWB
+  const wbK = lens.awb * s
+  const wbGain = (c: number) =>
+    lerp(1, Math.max(1 - lens.awbClamp, Math.min(1 + lens.awbClamp, c)), wbK)
+  const Gr = wbGain(scene.illum[0])
+  const Gg = wbGain(scene.illum[1])
+  const Gb = wbGain(scene.illum[2])
+  const doWb = Math.abs(Gr - 1) > 0.015 || Math.abs(Gg - 1) > 0.015 || Math.abs(Gb - 1) > 0.015
+  const doLevels = scene.p01 > 0.02 || scene.p99 < 0.94
 
   const canvas = target ?? document.createElement('canvas')
   if (canvas.width !== w) canvas.width = w
@@ -174,7 +224,8 @@ export function renderStyled(
   const fringePx = Math.round((ch.fringe ?? 0) * s * ref)
   const mtx = ch.colorMatrix // 3×3 channel crosstalk (real film mixes channels)
   const hiDesat = 0.6 * s // film bleaches highlights toward paper-white
-  if (curveAmt > 0.02 || splitAmt > 0.02 || fringePx >= 1 || mtx || hiDesat > 0.02) {
+  const doMeter = Math.abs(ev) > 0.02 || doLevels
+  if (curveAmt > 0.02 || splitAmt > 0.02 || fringePx >= 1 || mtx || hiDesat > 0.02 || doMeter || doWb) {
     const img = ctx.getImageData(0, 0, w, h)
     const d = img.data
 
@@ -194,14 +245,21 @@ export function renderStyled(
       }
     }
 
-    const lut = filmicLut(curveAmt)
-    const doCurve = curveAmt > 0.02
+    const lut = responseLut(curveAmt, doMeter ? ev : 0, doLevels ? scene : NEUTRAL_SCENE)
+    const doCurve = curveAmt > 0.02 || doMeter
     const sh = split ? hexRgb(split.shadows) : null
     const hi = split ? hexRgb(split.highlights) : null
     const doSplit = !!(sh && hi && splitAmt > 0.02)
     const k = splitAmt * 0.55
     const mAmt = mtx ? s : 0
     for (let i = 0; i < d.length; i += 4) {
+      // white balance first: the stock's palette operates on scene-neutral
+      // light, so tungsten and daylight shots each land in *its* cast
+      if (doWb) {
+        d[i] = Math.min(255, d[i] * Gr)
+        d[i + 1] = Math.min(255, d[i + 1] * Gg)
+        d[i + 2] = Math.min(255, d[i + 2] * Gb)
+      }
       let r = doCurve ? lut[d[i]] : d[i]
       let g = doCurve ? lut[d[i + 1]] : d[i + 1]
       let b = doCurve ? lut[d[i + 2]] : d[i + 2]
@@ -263,12 +321,16 @@ export function renderStyled(
 
   /* 3 — halation: highlight-weighted bloom. Crushing the copy hard
      before the blur means only genuinely bright areas glow — light
-     sources and speculars, not the whole midtone field. */
+     sources and speculars, not the whole midtone field. When the meter
+     found actual light sources, the halo concentrates on them the way
+     the anti-halation layer really fails: at the lamps, not everywhere. */
   const halation = (ch.halation ?? 0) * s
   if (halation > 0.01) {
+    const lights = scene.lights
+    const onLights = lights.length ? lens.lightHalation : 0
     ctx.save()
     ctx.globalCompositeOperation = 'screen'
-    ctx.globalAlpha = halation * 0.8
+    ctx.globalAlpha = halation * 0.8 * (1 - 0.5 * onLights)
     // warm/red-biased bloom: the anti-halation layer failing scatters red
     // light around speculars — that orange halo is the film tell, not a
     // neutral glow. sepia + saturate push the crushed highlights warm.
@@ -276,6 +338,25 @@ export function renderStyled(
     ctx.drawImage(canvas, 0, 0)
     ctx.restore()
     ctx.filter = 'none'
+    if (onLights > 0) {
+      ctx.save()
+      ctx.globalCompositeOperation = 'screen'
+      for (const lt of lights) {
+        const lr = Math.max(w, h) * (4 * lt.r + 0.05) * (1 + halation * 0.6)
+        const a = halation * onLights * lt.intensity * 0.45
+        if (a < 0.01) continue
+        // hue rides the source: tungsten halos orange, cold LEDs stay pale
+        const gCh = Math.round(96 + 60 * (1 - Math.max(0, lt.warmth)))
+        const bCh = Math.round(48 + 110 * Math.max(0, -lt.warmth))
+        const glow = ctx.createRadialGradient(lt.x * w, lt.y * h, 0, lt.x * w, lt.y * h, lr)
+        glow.addColorStop(0, `rgba(255,${gCh},${bCh},${a.toFixed(3)})`)
+        glow.addColorStop(0.5, `rgba(255,${gCh},${bCh},${(a * 0.35).toFixed(3)})`)
+        glow.addColorStop(1, `rgba(255,${gCh},${bCh},0)`)
+        ctx.fillStyle = glow
+        ctx.fillRect(0, 0, w, h)
+      }
+      ctx.restore()
+    }
   }
 
   /* 4 — warmth: overlay color wash (warm orange / cool blue) */

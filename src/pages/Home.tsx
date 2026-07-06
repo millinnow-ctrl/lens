@@ -23,7 +23,7 @@ import { useApp } from '../lib/store'
 import { STYLE_ART } from '../lib/styleArt'
 import sampleGolden from '../assets/sample-golden.jpg'
 import heroPoster from '../assets/hero-poster.jpg'
-import demoReel from '../assets/demo-reel.mp4'
+import heroAmbient from '../assets/hero-ambient.mp4'
 import sampleFriends from '../assets/sample-friends.jpg'
 import sampleDog from '../assets/sample-dog.jpg'
 import samplePrints from '../assets/sample-prints.jpg'
@@ -83,46 +83,20 @@ function useIsDesktop() {
 const staggerVariants = sectionStagger()
 const childVariants = sectionChild()
 
-/** the demo reel — a print developing in the tray, playable from the hero */
-function DemoModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  useSheetOpen(open)
-  if (!open) return null
-  return createPortal(
-    <div className="fixed inset-0 z-[95] flex items-center justify-center p-6" role="dialog" aria-label="Demo">
-      <div className="absolute inset-0 bg-vf/70" onClick={onClose} aria-hidden />
-      <div className="relative w-full max-w-sm rounded-[24px] overflow-hidden bg-vf border border-white/10 shadow-[var(--shadow-e4)]">
-        <div className="h-9 px-4 flex items-center justify-between border-b border-white/[0.08]">
-          <span className="flex items-center gap-2 font-mono font-semibold text-[10px] tracking-[0.16em] uppercase text-vf-chrome">
-            <span className="lm-live w-1.5 h-1.5 rounded-full bg-[#e0392b]" aria-hidden />
-            The develop · demo
-          </span>
-          <button
-            onClick={onClose}
-            aria-label="Close demo"
-            className="hit w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-white/80"
-          >
-            <IconClose size={12} />
-          </button>
-        </div>
-        <video src={demoReel} autoPlay loop muted playsInline controls className="w-full block" />
-      </div>
-    </div>,
-    document.body,
-  )
-}
+/* the header lives, quietly — skip the loop only for reduced-motion users */
+const heroVideoEnabled = () =>
+  !(typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
 
 function HomeContent({
   onAccount,
   onUpload,
   category,
   setCategory,
-  onDemo,
 }: {
   onAccount: () => void
   onUpload: () => void
   category: CategoryId
   setCategory: (c: CategoryId) => void
-  onDemo: () => void
 }) {
   const { history, tried, streak } = useApp()
   const navigate = useNavigate()
@@ -194,7 +168,7 @@ function HomeContent({
           {/* viewfinder chrome strip — one frame, one material, one radius */}
           <div className="h-9 px-4 flex items-center justify-between gap-3 border-b border-white/[0.08]">
             <span className="flex items-center gap-2 font-mono font-semibold text-[10px] tracking-[0.14em] uppercase text-vf-chrome">
-              <span className="lm-live w-1.5 h-1.5 rounded-full bg-[#e0392b]" aria-hidden />
+              <span className="lm-live w-1.5 h-1.5 rounded-full bg-signal" aria-hidden />
               LM Engine · Live
             </span>
             <span className="font-mono text-[10px] tracking-[0.1em] uppercase text-vf-chrome tabular-nums">
@@ -203,12 +177,25 @@ function HomeContent({
             </span>
           </div>
           <div className="relative aspect-[4/3.6] vf-corners overflow-hidden">
-            <img
-              src={heroPoster}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover"
-              draggable={false}
-            />
+            {heroVideoEnabled() ? (
+              <video
+                src={heroAmbient}
+                poster={heroPoster}
+                autoPlay
+                muted
+                loop
+                playsInline
+                aria-hidden
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            ) : (
+              <img
+                src={heroPoster}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover"
+                draggable={false}
+              />
+            )}
             {/* scrim carries the words */}
             <div className="absolute inset-x-0 bottom-0 h-[74%] bg-gradient-to-t from-black/85 via-black/45 to-transparent" />
             <div className="absolute inset-x-0 bottom-0 p-4">
@@ -224,22 +211,13 @@ function HomeContent({
               >
                 The $7,000 camera look, from your camera roll.
               </p>
-              <div className="flex items-center gap-2 mt-4">
+              <div className="mt-4">
                 <button
                   onClick={onUpload}
-                  className="btn gap-1.5 border-0 btn-brass font-semibold px-3.5 text-[13px] whitespace-nowrap"
+                  className="btn gap-2 border-0 btn-brass font-semibold px-5 text-[14px] whitespace-nowrap"
                 >
-                  <IconUpload size={14} />
+                  <IconUpload size={15} />
                   Start with a photo
-                </button>
-                <button
-                  onClick={onDemo}
-                  className="btn gap-1.5 border-0 glass-dark text-white px-3.5 text-[13px] whitespace-nowrap"
-                >
-                  <svg viewBox="0 0 12 12" width={10} height={10} fill="currentColor" aria-hidden>
-                    <path d="M2.5 1.5v9l8-4.5z" />
-                  </svg>
-                  Watch demo
                 </button>
               </div>
             </div>
@@ -247,61 +225,23 @@ function HomeContent({
         </div>
       </motion.section>
 
-      {/* what's in the kit — the four instruments, one shelf */}
-      <motion.section variants={childVariants} className="mt-4 px-5">
-        <div className="panel rounded-[22px] grid grid-cols-4 divide-x divide-[rgb(60_42_24/0.08)] py-3.5">
-          {/* glyphs come from the darkroom bench, not a template kit:
-              viewfinder, negative strip, developer flask, control knob.
-              One engraved tint — a bench plate, not a rainbow feature grid. */}
-          {[
-            {
-              label: 'Looks',
-              sub: '18 cameras',
-              icon: (
-                <svg viewBox="0 0 24 24" width={21} height={21} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <path d="M3.6 8.3V6.9a3.3 3.3 0 0 1 3.3-3.3h1.4M15.7 3.6h1.4a3.3 3.3 0 0 1 3.3 3.3v1.4M20.4 15.7v1.4a3.3 3.3 0 0 1-3.3 3.3h-1.4M8.3 20.4H6.9a3.3 3.3 0 0 1-3.3-3.3v-1.4" />
-                  <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" />
-                </svg>
-              ),
-            },
-            {
-              label: 'Film',
-              sub: 'Grain & halation',
-              icon: (
-                <svg viewBox="0 0 24 24" width={21} height={21} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <rect x="3.3" y="4.1" width="17.4" height="15.8" rx="3" />
-                  <path d="M8 4.3v15.4M16 4.3v15.4" />
-                  <path d="M3.3 8.4h4.7M3.3 12h4.7M3.3 15.6h4.7M16 8.4h4.7M16 12h4.7M16 15.6h4.7" />
-                </svg>
-              ),
-            },
-            {
-              label: 'Recipes',
-              sub: 'Starting points',
-              icon: (
-                <svg viewBox="0 0 24 24" width={21} height={21} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <path d="M9.3 3.4h5.4" />
-                  <path d="M10.3 3.6v3.7L6.1 16.9c-.7 1.6.5 3.4 2.2 3.4h7.4c1.7 0 2.9-1.8 2.2-3.4L13.7 7.3V3.6" />
-                  <path d="M7.7 14.4h8.6" />
-                </svg>
-              ),
-            },
-            {
-              label: 'Fine-tune',
-              sub: 'Every stop dialed',
-              icon: (
-                <svg viewBox="0 0 24 24" width={21} height={21} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <circle cx="12" cy="12.2" r="6.6" />
-                  <path d="M12 12.2l3.3-3.3" />
-                  <path d="M4.9 19.3l1.35-1.35M19.1 19.3l-1.35-1.35" />
-                </svg>
-              ),
-            },
-          ].map((f) => (
-            <div key={f.label} className="flex flex-col items-center text-center gap-1.5 px-1.5">
-              <span className="text-[#55402b]">{f.icon}</span>
-              <p className="text-[12px] font-semibold text-ink leading-tight">{f.label}</p>
-              <p className="text-[10px] font-medium text-fog leading-tight whitespace-nowrap">{f.sub}</p>
+      {/* the case, in motion — a slow ticker of all 18 cameras filing past.
+          Tap a name to open that look; press-and-hold pauses the roll. */}
+      <motion.section variants={childVariants} className="mt-5 border-y border-hairline">
+        <div className="lm-ticker py-2.5" aria-label="All 18 cameras">
+          {[0, 1].map((track) => (
+            <div key={track} className="lm-ticker-track" aria-hidden={track === 1}>
+              {CAMERA_STYLES.map((s) => (
+                <button
+                  key={`${track}-${s.id}`}
+                  tabIndex={track === 1 ? -1 : 0}
+                  onClick={() => openMood(s)}
+                  className="flex items-center shrink-0 font-mono font-semibold text-[10px] tracking-[0.14em] uppercase text-ink-soft whitespace-nowrap"
+                >
+                  <span className="px-3">{s.name}</span>
+                  <span className="w-1 h-1 rounded-full bg-signal/60" aria-hidden />
+                </button>
+              ))}
             </div>
           ))}
         </div>
@@ -517,7 +457,7 @@ function HomeContent({
       <motion.section variants={childVariants} className="mt-10 px-5 flex flex-col items-center gap-1.5">
         <ApertureMark className="w-7 h-7 opacity-80" />
         <p className="font-mono font-semibold text-[9.5px] tracking-[0.2em] uppercase text-fog tabular-nums text-center">
-          LensMood · Cut R18 “Heavyweight”
+          LensMood · Cut R19 “Matcha”
         </p>
         <p className="font-mono font-semibold text-[9.5px] tracking-[0.2em] uppercase text-fog/80 text-center">
           Made in the darkroom
@@ -532,7 +472,6 @@ export default function Home() {
   const [category, setCategory] = useState<CategoryId>('all')
   const [uploadOpen, setUploadOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
-  const [demoOpen, setDemoOpen] = useState(false)
 
   /* first run: one screen, one job — get their photo into the engine.
      Never shown again after any choice; never shown to returning users. */
@@ -597,12 +536,10 @@ export default function Home() {
     <HomeContent
       onAccount={() => setAccountOpen(true)}
       onUpload={() => setUploadOpen(true)}
-      onDemo={() => setDemoOpen(true)}
       category={category}
       setCategory={setCategory}
     />
   )
-  const demoModal = <DemoModal open={demoOpen} onClose={() => setDemoOpen(false)} />
 
   if (isDesktop) {
     return (
@@ -641,7 +578,6 @@ export default function Home() {
             {content}
           </PhoneFrame>
         </div>
-        {demoModal}
       </main>
     )
   }
@@ -650,7 +586,6 @@ export default function Home() {
     <main className="hm-canvas min-h-dvh">
       {content}
       {welcomeOverlay}
-      {demoModal}
       <UploadModal open={uploadOpen} onClose={() => setUploadOpen(false)} />
       <AccountSheet open={accountOpen} onClose={() => setAccountOpen(false)} />
     </main>

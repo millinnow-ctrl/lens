@@ -201,7 +201,7 @@ export default function MoodSphere({
             <linearGradient id="orbit" x1="0" y1="0" x2="1" y2="0">
               <stop offset="0" stopColor="#60a5fa" stopOpacity="0" />
               <stop offset="0.2" stopColor="#f2593f" stopOpacity="0.28" />
-              <stop offset="0.5" stopColor="#e0392b" stopOpacity="0.38" />
+              <stop offset="0.5" stopColor="#5f7247" stopOpacity="0.38" />
               <stop offset="0.8" stopColor="#b02a26" stopOpacity="0.28" />
               <stop offset="1" stopColor="#b02a26" stopOpacity="0" />
             </linearGradient>
@@ -277,7 +277,7 @@ export default function MoodSphere({
                     LM·{String(i + 1).padStart(2, '0')}
                   </span>
                   {dailyId === s.id && (
-                    <span className="absolute top-1.5 right-1.5 rounded-full bg-[#e0392b] text-white text-[8.5px] font-bold tracking-[0.05em] uppercase px-1.5 py-0.5 shadow-[0_1px_4px_rgb(120_18_8/0.4)]">
+                    <span className="absolute top-1.5 right-1.5 rounded-full bg-signal text-white text-[8.5px] font-bold tracking-[0.05em] uppercase px-1.5 py-0.5 shadow-[0_1px_4px_rgb(46_58_32/0.4)]">
                       Today
                     </span>
                   )}
@@ -291,7 +291,7 @@ export default function MoodSphere({
                         width="9"
                         height="9"
                         fill="none"
-                        stroke="#e0392b"
+                        stroke="#5f7247"
                         strokeWidth="1.8"
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -371,7 +371,7 @@ export default function MoodSphere({
                     width: 3,
                     height: isFront ? 14 : 8,
                     background: shot
-                      ? 'rgb(224 57 43 / 0.9)'
+                      ? 'rgb(95 114 71 / 0.9)'
                       : isFront
                         ? 'rgb(38 30 21 / 0.85)'
                         : 'rgb(60 42 24 / 0.22)',

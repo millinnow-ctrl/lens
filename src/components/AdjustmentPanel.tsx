@@ -40,7 +40,7 @@ export default function AdjustmentPanel({ style, params, onChange }: Props) {
                     : 'text-ink-soft border-[rgb(60_42_24/0.22)] hover:border-[rgb(60_42_24/0.4)] bg-transparent'
                 }`}
               >
-                {on && <span className="w-1.5 h-1.5 rounded-full bg-[#e0392b]" aria-hidden />}
+                {on && <span className="w-1.5 h-1.5 rounded-full bg-signal" aria-hidden />}
                 {p.name}
               </button>
             )

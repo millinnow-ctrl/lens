@@ -1,8 +1,29 @@
 /**
- * LensMood mark — dark rounded app tile, cream aperture blades cut by
- * twisted seams, a flat clay ring and amber lens. Engraved, never glossy:
- * the mark must read identically at 20px and 64px.
+ * LensMood mark — a real photograph: a machined brass lens mount with a
+ * matcha-glass element, shot from above on cream linen. The brand mark IS
+ * a camera part, not an icon of one. `ApertureMarkVector` keeps the old
+ * engraved SVG around as a fallback for contexts that need vector.
  */
+
+import mark from '../assets/mark.png'
+
+export function ApertureMark({
+  className = 'w-7 h-7',
+}: {
+  className?: string
+  /** kept for call-site compatibility; the photographic mark has no tile */
+  tile?: boolean
+}) {
+  return (
+    <img
+      src={mark}
+      alt=""
+      aria-hidden
+      draggable={false}
+      className={`${className} select-none object-contain`}
+    />
+  )
+}
 
 const TAU = Math.PI * 2
 /** blade separation: a twisted seam from the lens opening out to the rim —
@@ -15,7 +36,7 @@ const bladeSeam = (i: number, rOut: number, rIn: number, cx: number, cy: number)
   ).toFixed(2)} ${(cy + rOut * Math.sin(aOut)).toFixed(2)}`
 }
 
-export function ApertureMark({
+export function ApertureMarkVector({
   className = 'w-7 h-7',
   tile = true,
 }: {
@@ -27,13 +48,13 @@ export function ApertureMark({
   return (
     <svg viewBox="0 0 48 48" className={className} aria-hidden>
       {tile && <rect x="0.5" y="0.5" width="47" height="47" rx="13" fill="#241c12" />}
-      <circle cx="24" cy="24" r="17.6" fill="none" stroke="#b8402c" strokeWidth="2.4" />
+      <circle cx="24" cy="24" r="17.6" fill="none" stroke="#5f7247" strokeWidth="2.4" />
       {/* solid blade annulus with twisted seams cut through it */}
       <circle cx="24" cy="24" r="9.9" fill="none" stroke={tile ? '#f3ecd9' : '#e6ddc8'} strokeWidth="8.6" />
       {seams.map((d) => (
         <path key={d} d={d} stroke="#241c12" strokeWidth="1.7" strokeLinecap="round" />
       ))}
-      <circle cx="24" cy="24" r="6" fill="#a86a2c" />
+      <circle cx="24" cy="24" r="6" fill="#57683f" />
     </svg>
   )
 }

@@ -64,13 +64,13 @@ export default function AccountSheet({ open, onClose, container }: Props) {
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <span className="w-10 h-10 rounded-full bg-ink flex items-center justify-center">
-                  {user ? (
+                {user ? (
+                  <span className="w-10 h-10 rounded-full bg-ink flex items-center justify-center">
                     <span className="text-white font-bold text-[15px]">{user.name.charAt(0).toUpperCase()}</span>
-                  ) : (
-                    <ApertureMark className="w-5 h-5" />
-                  )}
-                </span>
+                  </span>
+                ) : (
+                  <ApertureMark className="w-10 h-10" />
+                )}
                 <button
                   onClick={onClose}
                   aria-label="Close"
