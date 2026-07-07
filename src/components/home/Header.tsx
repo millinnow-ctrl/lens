@@ -12,8 +12,8 @@ export default function Header({ onAccount }: Props) {
   return (
     <header className="flex items-center justify-between gap-2 px-5 pt-4 pb-2">
       <button onClick={onAccount} className="hm-press inline-flex items-center gap-2.5" aria-label="LensMood account">
-        <ApertureMark className="w-12 h-12" />
-        <span className="brand-word text-[25px] leading-none text-ink">
+        <ApertureMark className="w-14 h-14" />
+        <span className="brand-word text-[28px] leading-none text-ink">
           Lens
           <span className="grad-text">Mood</span>
         </span>
