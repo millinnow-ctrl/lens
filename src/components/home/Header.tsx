@@ -10,7 +10,7 @@ export default function Header({ onAccount }: Props) {
   const { isPaid, plan } = useApp()
 
   return (
-    <header className="flex items-center justify-between gap-2 px-5 pt-3 pb-1">
+    <header className="flex items-center justify-between gap-2 px-5 pt-1 pb-1">
       <button onClick={onAccount} className="hm-press inline-flex items-center gap-2.5" aria-label="LensMood account">
         <ApertureMark className="w-16 h-16" tile={false} />
         <span className="brand-word text-[31px] leading-none text-ink">

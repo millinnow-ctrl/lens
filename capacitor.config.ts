@@ -5,7 +5,10 @@ const config: CapacitorConfig = {
   appName: 'LensMood',
   webDir: 'dist',
   ios: {
-    contentInset: 'automatic',
+    // edge-to-edge: the web layer handles the safe area itself via
+    // env(safe-area-inset-top) — 'automatic' would inset the whole webview
+    // below the status bar and double the gap above the header
+    contentInset: 'never',
     backgroundColor: "#f6f5f1",
   },
   plugins: {
@@ -18,6 +21,7 @@ const config: CapacitorConfig = {
     StatusBar: {
       style: 'LIGHT',
       backgroundColor: "#f6f5f1",
+      overlaysWebView: true,
     },
   },
 }

@@ -65,7 +65,10 @@ export default function App() {
       <div className={isAppSurface ? 'hidden md:block' : ''}>
         <Nav />
       </div>
-      <div className="flex-1">
+      {/* app surfaces draw edge-to-edge on iOS (paper flows under the status
+          bar); this wrapper supplies the one true safe-area offset — the
+          native shell no longer double-insets on top of it */}
+      <div className={`flex-1 ${isAppSurface ? 'pt-[env(safe-area-inset-top)] md:pt-0' : ''}`}>
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={pathname}
