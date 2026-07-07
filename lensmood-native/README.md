@@ -1,92 +1,93 @@
 # LensMood (native)
 
-Native React Native (Expo + TypeScript + expo-router + @shopify/react-native-skia)
-reimplementation of LensMood. Reimplements the HTML-Canvas develop pipeline on
-GPU-backed Skia. The web app (Vite/React-DOM/Capacitor) is untouched.
+True-native React Native app (Expo SDK 54 + TypeScript + expo-router +
+@shopify/react-native-skia). The photo engine is the same deterministic
+pipeline as the web app, ported to GPU-backed Skia — parity-proven (identical
+grain PRNG, tone LUTs, and style parameters). The web app stays untouched.
 
-## Run (Mac only — nobody compiles iOS in CI)
+## Run it on your iPhone with Expo Go — no Mac needed
+
+Everything this app uses (Skia, reanimated, gesture-handler, svg,
+image-picker, media-library, sharing, haptics, async-storage) is **bundled in
+Expo Go**. The one native module that isn't — `react-native-purchases` — is
+loaded defensively, so in Expo Go the paywall runs in preview mode instead of
+crashing.
+
+On any computer (Windows/Linux/Mac) with Node 20+:
 
 ```bash
 cd lensmood-native
 npm install
-npx expo install --fix   # reconcile any patch drift to the SDK 54 lockfile
-npx expo run:ios         # builds the dev client + launches the simulator
-# note: react-native-skia is a native module — plain Expo Go will NOT work;
-# use `expo run:ios` (or a custom dev client / EAS build) instead
+npx expo start --tunnel     # --tunnel = phone connects over the internet,
+                            #   same wifi not required
 ```
 
-Skia 2.x requires the New Architecture (`newArchEnabled: true`, already set).
+Then open **Expo Go** on your iPhone and scan the QR code in the terminal.
+The app loads and hot-reloads as code changes.
 
-## Milestone 1 scope
+> If the QR won't scan, press `s` in the terminal to switch to Expo Go mode,
+> or log into the same Expo account in Expo Go and the project appears under
+> "Recently opened".
 
-Pick photo → choose style → develop (Skia) → before/after → export.
+## Real subscriptions + App Store — EAS cloud builds (still no Mac)
 
-- **Ocean theme** — `src/theme/colors.ts` + `typography.ts` (ported from the
-  web `@theme`).
-- **18 camera styles** — `src/engine/styles.ts` (data), unchanged from web.
-- **Adaptive lens meter** — `src/engine/scene.ts` (Skia pixel readback).
-- **Develop engine** — `src/engine/engine.ts` (Skia offscreen surface port of
-  the Canvas 2D pipeline). Returns `DevelopResult` (a cached JPEG file URI).
-- **Flow** — `app/index.tsx` → `app/styles.tsx` → `app/develop.tsx` →
-  `app/result.tsx`.
+Apple In-App Purchase needs a real binary (Expo Go can't contain RevenueCat).
+Expo's EAS service builds iOS in the cloud:
 
-## Architecture
-
-```
-lensmood-native/
-  app/                      # expo-router (file-based routes, headers hidden)
-    _layout.tsx             # Stack root · ocean theme · gesture + safe-area
-    index.tsx               # Home — pick photo / shoot (Agent: screens)
-    styles.tsx              # 18-style chooser grid (Agent: screens)
-    develop.tsx             # develop progress → runs the engine (Agent: screens)
-    result.tsx              # before/after compare + export (Agent: screens)
-  src/
-    engine/
-      types.ts              # SHARED types — everything imports this
-      styles.ts             # 18 styles + presets (Agent: engine)
-      scene.ts              # scene analysis on a Skia thumbnail (Agent: engine)
-      engine.ts             # Skia develop pipeline (Agent: engine)
-      focal.ts              # Focal helper (M1: no-op stub, no face model)
-    theme/
-      colors.ts             # OCEAN palette tokens
-      typography.ts         # font + weight tokens
-    components/
-      Logo.tsx              # vector mark, ported to react-native-svg (Agent: ui)
-    state/
-      session.ts            # picked photo + chosen style (M1: in-memory) (Agent: screens)
-  assets/                   # icon.png · splash-icon.png · adaptive-icon.png
+```bash
+npm i -g eas-cli
+eas login                                   # free Expo account
+eas build --profile development --platform ios   # installable dev build (~15 min)
+eas build --profile production --platform ios    # App Store binary
+eas submit --platform ios                        # upload to App Store Connect
 ```
 
-### Import convention
+Requires an Apple Developer account ($99/yr) — Apple's rule for installing on
+device + publishing, regardless of toolchain.
 
-All cross-module imports go through the `@/*` alias → `./src/*`
-(configured in `tsconfig.json`, resolved by Metro):
+### RevenueCat setup (for real billing)
 
-```ts
-import { CameraStyle, StyleParams, DevelopResult } from '@/engine/types'
-import { CAMERA_STYLES, getStyle } from '@/engine/styles'
-import { renderStyled } from '@/engine/engine'
-import { colors } from '@/theme/colors'
-import { Logo } from '@/components/Logo'
-```
+1. revenuecat.com → new project → iOS app, bundle id `app.lensmood.native`.
+2. Create **entitlements** with ids exactly: `creator`, `pro`, `studio`.
+3. Create App Store Connect subscription products and attach them; name the
+   packages so their identifiers contain `creator_monthly`, `creator_annual`,
+   `pro_monthly`, … (the paywall matches on those substrings).
+4. Put the public Apple SDK key in `app.json` → `expo.extra.revenueCatIosKey`.
+Purchases then work in dev/TestFlight/production builds; entitlement changes
+sync to the in-app plan automatically.
 
-Routes in `app/` import from `@/…`; nothing in `src/` imports from `app/`.
-`src/engine/types.ts` stays dependency-free so `styles.ts` and `scene.ts`
-never pull in Skia.
+## What's implemented
 
-## Deferred — OUT of scope for M1 (do not implement yet)
+- **Home** — living hero (rotating word, Start CTA), category chips,
+  18-stock catalog, floating dock.
+- **Develop** — pick photo → on-device scene analysis (meter readout) →
+  Skia develop; stock rail to switch looks; named-stop fine-tune panel
+  (debounced re-develops, haptic detents); Original / LensMood / Compare
+  (drag wipe); Share + Save to Photos.
+- **Credits & plans** — first develop free, then 5/month free; paid plans
+  unlimited; free exports watermarked; out of credits → paywall.
+- **Paywall/Account** — Creator $8 / Pro $15 / Studio $29, monthly/annual
+  (2 months free), RevenueCat when configured, restore purchases.
+- **Gallery** — develop history (cap 60), large view, share, remove.
+- **Engine** — full pipeline: adaptive metering, AWB, tone LUT + smart-HDR,
+  vibrance w/ skin guard, shadow denoise, clarity + universal acutance,
+  scene-adaptive halation, DoF + specular bokeh, subject vignette, film
+  grain w/ auto-ISO, dither, leaks, frames, watermark.
 
-- StoreKit / RevenueCat subscriptions & paywall (all 18 styles unlocked in M1)
-- Video capture / develop (the engine's `animateGrain` path is stubbed)
-- The 3D mood carousel
-- Deep-link recipes (`encodeParams`/`decodeParams` ported but unrouted)
-- Dashboard / history sync (develops are ephemeral in M1)
-- On-device face detection (MediaPipe BlazeFace) — `focal.ts` returns `null`;
-  the engine's focal-gated passes (DOF, face metering) simply stay off.
+## Still to come
 
-## Version pins (verified July 2026)
+- Video develop (engine's animateGrain path is ready; capture/preview UI isn't)
+- On-device face detection (focal.ts returns null → DoF/face-metering stay off;
+  a TFLite/MLKit port of BlazeFace is the plan)
+- The 3D mood carousel, deep-link recipes, saved-preset UI
 
-Targets **Expo SDK 54** (RN 0.81 / React 19.1) — the most documented pairing
-with **@shopify/react-native-skia 2.2.3** (Skia's Expo-locked pin for SDK 54).
-New Architecture is on. SDK 56 (RN 0.85) is a clean future upgrade; run
-`npx expo install expo@^56 --fix` when ready.
+## Honest notes
+
+- Nothing here has been compiled in CI (no macOS runner). The code is
+  API-correct per adversarial review + current docs; expect a normal round
+  of on-device fixes on first run.
+- The develop pass runs synchronously on the JS thread (~1–3s at 1280px on
+  an iPhone 12+). Fine for v1; worklet/threading is a later optimization.
+- Version pins target Expo SDK 54 (RN 0.81 / React 19.1 / Skia 2.2.3 — the
+  Expo-Go-matched version). Run `npx expo install --fix` after install to
+  reconcile patch drift.

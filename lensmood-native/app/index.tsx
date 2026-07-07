@@ -1,11 +1,19 @@
 /**
- * Home — the ocean entry screen. A LensMood wordmark header over a scrollable
- * two-column grid of all 18 camera stocks. Tapping a card carries its id to
- * the develop screen (/develop?style=<id>).
+ * Home — the ocean entry screen. Living hero (rotating word + start CTA),
+ * category chips over the 18-stock catalog, floating bottom dock.
  */
 
-import { useCallback } from 'react'
-import { View, Text, FlatList, StyleSheet, Platform, ListRenderItemInfo } from 'react-native'
+import { useCallback, useMemo, useState } from 'react'
+import {
+  View,
+  Text,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Platform,
+  useWindowDimensions,
+  type ListRenderItemInfo,
+} from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { CAMERA_STYLES } from '@/engine/styles'
@@ -13,9 +21,41 @@ import type { CameraStyle } from '@/engine/types'
 import { colors } from '@/theme/colors'
 import Logo from '@/components/Logo'
 import StyleCard from '@/components/StyleCard'
+import HeroCard from '@/components/HeroCard'
+import BottomDock from '@/components/BottomDock'
+
+const MONO = Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' })
+
+/** which looks belong to which shelf — ported from the web CategoryChips */
+const CATEGORIES = [
+  { id: 'all', label: 'All' },
+  { id: 'film', label: 'Film' },
+  { id: 'flash', label: 'Flash' },
+  { id: 'video', label: 'Video' },
+  { id: 'editorial', label: 'Editorial' },
+  { id: 'bw', label: 'B&W' },
+] as const
+type CategoryId = (typeof CATEGORIES)[number]['id']
+
+const CATEGORY_STYLES: Record<CategoryId, string[]> = {
+  all: [],
+  film: ['disposable', 'leica-street', 'a24-still', 'film-noir', 'polaroid', 'super-8', 'lomo', 'kodachrome', 'tintype'],
+  flash: ['iphone-flash', 'y2k-digicam', 'disposable', 'photobooth', 'tokyo-neon', 'point-shoot'],
+  video: ['camcorder-90s', 'y2k-digicam', 'security-cam', 'super-8'],
+  editorial: ['gq-editorial', 'leica-street', 'a24-still', 'pastel-cinema'],
+  bw: ['film-noir', 'tintype', 'photobooth', 'security-cam'],
+}
 
 export default function Home() {
   const insets = useSafeAreaInsets()
+  const { width: screenW } = useWindowDimensions()
+  const [category, setCategory] = useState<CategoryId>('all')
+
+  const shelf = useMemo(() => {
+    if (category === 'all') return CAMERA_STYLES
+    const ids = CATEGORY_STYLES[category]
+    return CAMERA_STYLES.filter((st) => ids.includes(st.id))
+  }, [category])
 
   const openStyle = useCallback((style: CameraStyle) => {
     router.push({ pathname: '/develop', params: { style: style.id } })
@@ -23,54 +63,112 @@ export default function Home() {
 
   const renderItem = useCallback(
     ({ item, index }: ListRenderItemInfo<CameraStyle>) => (
-      <View style={[styles.cell, index % 2 === 0 ? styles.cellLeft : styles.cellRight]}>
+      <View style={[s.cell, index % 2 === 0 ? s.cellLeft : s.cellRight]}>
         <StyleCard style={item} onPress={openStyle} />
       </View>
     ),
     [openStyle],
   )
 
+  const Header = (
+    <View>
+      {/* brand lockup */}
+      <View style={s.header}>
+        <Logo />
+        <Pressable
+          onPress={() => router.push('/paywall')}
+          style={({ pressed }) => [s.proPill, pressed && { opacity: 0.85 }]}
+          accessibilityRole="button"
+          accessibilityLabel="See plans"
+        >
+          <Text style={s.proText}>Pro</Text>
+        </Pressable>
+      </View>
+
+      <HeroCard width={screenW - 28} onStart={() => router.push('/develop')} />
+
+      {/* the case */}
+      <View style={s.caseHead}>
+        <Text style={s.eyebrow}>THE CASE · {CAMERA_STYLES.length} CAMERAS</Text>
+        <Text style={s.h2}>Explore looks</Text>
+      </View>
+      <FlatList
+        horizontal
+        data={CATEGORIES as unknown as { id: CategoryId; label: string }[]}
+        keyExtractor={(c) => c.id}
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={s.chips}
+        renderItem={({ item }) => {
+          const on = category === item.id
+          return (
+            <Pressable onPress={() => setCategory(item.id)} style={[s.chip, on && s.chipOn]}>
+              <Text style={[s.chipText, on && s.chipTextOn]}>{item.label}</Text>
+            </Pressable>
+          )
+        }}
+      />
+    </View>
+  )
+
   return (
-    <FlatList
-      style={styles.list}
-      data={CAMERA_STYLES}
-      keyExtractor={(s) => s.id}
-      numColumns={2}
-      renderItem={renderItem}
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={[
-        styles.content,
-        { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 28 },
-      ]}
-      ListHeaderComponent={
-        <View style={styles.header}>
-          <Logo markSize={36} wordSize={24} />
-          <Text style={styles.kicker}>Develop any photo through a real camera's eye.</Text>
-          <Text style={styles.section}>Choose a stock</Text>
-        </View>
-      }
-    />
+    <View style={s.root}>
+      <FlatList
+        data={shelf}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        numColumns={2}
+        ListHeaderComponent={Header}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[
+          s.content,
+          { paddingTop: insets.top + 6, paddingBottom: insets.bottom + 116 },
+        ]}
+      />
+      <BottomDock bottomInset={insets.bottom} />
+    </View>
   )
 }
 
-const styles = StyleSheet.create({
-  list: { flex: 1, backgroundColor: colors.paper },
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.paper },
   content: { paddingHorizontal: 14 },
-  header: { paddingBottom: 12, paddingTop: 6, gap: 10 },
-  kicker: {
-    color: colors.inkSoft,
-    fontSize: 14,
-    lineHeight: 20,
-    ...Platform.select({ ios: { fontFamily: 'System' }, default: {} }),
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: 8,
   },
-  section: {
-    marginTop: 6,
-    color: colors.ink,
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
+  proPill: {
+    backgroundColor: colors.surface,
+    borderRadius: 999,
+    paddingHorizontal: 18,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(23,36,45,0.10)',
   },
+  proText: { color: colors.ink, fontSize: 15, fontWeight: '700' },
+
+  caseHead: { marginTop: 22, gap: 4, paddingHorizontal: 2 },
+  eyebrow: { color: colors.fog, fontSize: 10, letterSpacing: 1.8, fontFamily: MONO, fontWeight: '600' },
+  h2: { color: colors.ink, fontSize: 26, fontWeight: '800', letterSpacing: -0.4 },
+
+  chips: { gap: 8, paddingVertical: 12, paddingHorizontal: 2 },
+  chip: {
+    paddingHorizontal: 16,
+    height: 36,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(23,36,45,0.10)',
+  },
+  chipOn: { backgroundColor: colors.accent, borderColor: colors.accent },
+  chipText: { color: colors.inkSoft, fontSize: 13.5, fontWeight: '600' },
+  chipTextOn: { color: '#fff' },
+
   cell: { flex: 1, marginBottom: 14 },
   cellLeft: { marginRight: 7 },
   cellRight: { marginLeft: 7 },

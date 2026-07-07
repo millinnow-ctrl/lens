@@ -376,7 +376,7 @@ export function renderStyled(
   const meterTarget = (scene.faceLum != null ? 0.45 : 0.4) * Math.pow(2, lens.meterBias)
   const ev = Math.max(
     -1.25,
-    Math.min(2.0, Math.log2(meterTarget / Math.max(0.02, keyEff)) * lens.meterStrength * s),
+    Math.min(1.7, Math.log2(meterTarget / Math.max(0.02, keyEff)) * lens.meterStrength * s),
   )
   const wbK = lens.awb * s
   const wbGain = (c: number) =>
@@ -564,17 +564,24 @@ export function renderStyled(
     }
   }
 
-  /* 1.6 — clarity: unsharp mask against a wide blur, midtone-weighted.
-     Stills only (too heavy for the per-frame video path). */
+  /* 1.6 — finish sharpness. Two unsharp scales, both midtone-weighted
+     (stills only — too heavy for the per-frame video path):
+     · acutance — a fine ~2px pass applied to EVERY stock, so a develop
+       always reads crisper than the upload, never softer.
+     · clarity — the per-stock wide local contrast ("detail that bites"). */
   const clarity = lens.clarity * s
-  if (clarity > 0.02 && !animateGrain) {
-    const bd = readRGBA(cur)
-    if (bd) {
+  const acutance = 0.22 * s
+  if ((clarity > 0.02 || acutance > 0.02) && !animateGrain) {
+    const passes: Array<[number, number]> = []
+    if (acutance > 0.02) passes.push([2.2 * ref, acutance])
+    if (clarity > 0.02) passes.push([14 * ref, clarity])
+    for (const [radius, amt] of passes) {
+      const bd = readRGBA(cur)
+      if (!bd) continue
       // blurred copy of `cur`
       sync()
       const blurPaint = Skia.Paint()
-      const cs = 14 * ref
-      blurPaint.setImageFilter(Skia.ImageFilter.MakeBlur(cs, cs, TileMode.Clamp, null))
+      blurPaint.setImageFilter(Skia.ImageFilter.MakeBlur(radius, radius, TileMode.Clamp, null))
       // draw onto a scratch: reuse the surface (it holds cur), overdraw blurred
       canvas.drawImage(cur, 0, 0, blurPaint)
       const blurImg = snapshot(surface)
@@ -584,7 +591,7 @@ export function renderStyled(
       if (blurD) {
         for (let i = 0; i < bd.length; i += 4) {
           const L = (bd[i] * 0.299 + bd[i + 1] * 0.587 + bd[i + 2] * 0.114) / 255
-          const wgt = clarity * (4 * L * (1 - L))
+          const wgt = amt * (4 * L * (1 - L))
           if (wgt > 0.003) {
             bd[i] = cl(bd[i] + (bd[i] - blurD[i]) * wgt)
             bd[i + 1] = cl(bd[i + 1] + (bd[i + 1] - blurD[i + 1]) * wgt)
@@ -666,7 +673,9 @@ export function renderStyled(
     }
     const smSigma = 2.2 * ref
     const smPaint = Skia.Paint()
-    smPaint.setAlphaf((params.smoothing / 100) * (focal ? 0.42 : 0.3) * Math.min(1, s * 1.25))
+    // without a subject lock, "beauty blur" over the whole frame is just
+    // fuzz — cap it near-invisible; with a face it stays a real retouch
+    smPaint.setAlphaf((params.smoothing / 100) * (focal ? 0.42 : 0.12) * Math.min(1, s * 1.25))
     smPaint.setImageFilter(Skia.ImageFilter.MakeBlur(smSigma, smSigma, TileMode.Clamp, null))
     canvas.drawImage(cur, 0, 0, smPaint)
     canvas.restore()
@@ -678,13 +687,18 @@ export function renderStyled(
   if (halation > 0.01) {
     const lights = scene.lights
     const onLights = lights.length ? lens.lightHalation : 0
+    // scene-adaptive bloom: night keeps 100%, bright daylight drops to ~35%
+    // so big sky regions never wash the frame lighter+softer. Per-light
+    // halos are untouched.
+    const bloomScale = scene.analyzed ? 0.35 + 0.65 * smoothstep(0.55, 0.18, scene.key) : 1
     sync()
     // warm/red-biased bloom: crush + saturate + sepia + wide blur, screened back
     const bloomPaint = Skia.Paint()
     bloomPaint.setBlendMode(BlendMode.Screen)
-    bloomPaint.setAlphaf(halation * 0.8 * (1 - 0.25 * onLights))
+    bloomPaint.setAlphaf(halation * 0.8 * (1 - 0.25 * onLights) * bloomScale)
+    // crush tight: only true highlights may glow, never the midtone field
     bloomPaint.setColorFilter(
-      composeCF([brightnessMat(0.5), contrastMat(3.4), saturateMat(1.5), sepiaMat(0.5)]),
+      composeCF([brightnessMat(0.46), contrastMat(3.8), saturateMat(1.5), sepiaMat(0.5)]),
     )
     const bloomSigma = 9 * ref
     bloomPaint.setImageFilter(Skia.ImageFilter.MakeBlur(bloomSigma, bloomSigma, TileMode.Clamp, null))

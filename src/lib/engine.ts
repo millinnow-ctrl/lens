@@ -211,7 +211,7 @@ export function renderStyled(
   // uploads (the core use case) need real recovery to reach the stock's key
   const ev = Math.max(
     -1.25,
-    Math.min(2.0, Math.log2(meterTarget / Math.max(0.02, keyEff)) * lens.meterStrength * s),
+    Math.min(1.7, Math.log2(meterTarget / Math.max(0.02, keyEff)) * lens.meterStrength * s),
   )
   // auto white balance: neutralize the estimated cast before the stock's
   // own palette speaks — clamped, and dialed back for stocks whose charm
@@ -400,32 +400,40 @@ export function renderStyled(
     ctx.putImageData(img, 0, 0)
   }
 
-  /* 1.6 — clarity: local contrast, the "detail that bites" of digital
-     compacts and editorial glass. Unsharp-mask against a wide blur,
-     midtone-weighted so blacks and highlights never crunch. Stills only —
-     too heavy for the per-frame video path. */
+  /* 1.6 — finish sharpness. Two unsharp scales, both midtone-weighted so
+     blacks and highlights never crunch (stills only — too heavy per-frame):
+     · acutance — a fine ~2px pass applied to EVERY stock, so a develop
+       always reads crisper than the upload, never softer. The "quality
+       upgrade" a real lens gives.
+     · clarity — the per-stock wide local contrast ("detail that bites"). */
   const clarity = lens.clarity * s
-  if (clarity > 0.02 && !animateGrain) {
-    const blurC = document.createElement('canvas')
-    blurC.width = w
-    blurC.height = h
-    const bctx = blurC.getContext('2d')!
-    bctx.filter = `blur(${(14 * ref).toFixed(2)}px)`
-    bctx.drawImage(canvas, 0, 0)
-    bctx.filter = 'none'
-    const base = ctx.getImageData(0, 0, w, h)
-    const blurD = bctx.getImageData(0, 0, w, h).data
-    const bd = base.data
-    for (let i = 0; i < bd.length; i += 4) {
-      const L = (bd[i] * 0.299 + bd[i + 1] * 0.587 + bd[i + 2] * 0.114) / 255
-      const wgt = clarity * (4 * L * (1 - L)) // midtones only
-      if (wgt > 0.003) {
-        bd[i] += (bd[i] - blurD[i]) * wgt
-        bd[i + 1] += (bd[i + 1] - blurD[i + 1]) * wgt
-        bd[i + 2] += (bd[i + 2] - blurD[i + 2]) * wgt
+  const acutance = 0.22 * s
+  if ((clarity > 0.02 || acutance > 0.02) && !animateGrain) {
+    const passes: Array<[number, number]> = []
+    if (acutance > 0.02) passes.push([2.2 * ref, acutance])
+    if (clarity > 0.02) passes.push([14 * ref, clarity])
+    for (const [radius, amt] of passes) {
+      const blurC = document.createElement('canvas')
+      blurC.width = w
+      blurC.height = h
+      const bctx = blurC.getContext('2d')!
+      bctx.filter = `blur(${radius.toFixed(2)}px)`
+      bctx.drawImage(canvas, 0, 0)
+      bctx.filter = 'none'
+      const base = ctx.getImageData(0, 0, w, h)
+      const blurD = bctx.getImageData(0, 0, w, h).data
+      const bd = base.data
+      for (let i = 0; i < bd.length; i += 4) {
+        const L = (bd[i] * 0.299 + bd[i + 1] * 0.587 + bd[i + 2] * 0.114) / 255
+        const wgt = amt * (4 * L * (1 - L)) // midtones only
+        if (wgt > 0.003) {
+          bd[i] += (bd[i] - blurD[i]) * wgt
+          bd[i + 1] += (bd[i + 1] - blurD[i + 1]) * wgt
+          bd[i + 2] += (bd[i + 2] - blurD[i + 2]) * wgt
+        }
       }
+      ctx.putImageData(base, 0, 0)
     }
-    ctx.putImageData(base, 0, 0)
   }
 
   /* 1.75 — subject separation: when the on-device model found a face, the
@@ -498,7 +506,9 @@ export function renderStyled(
     // gentler than before, and grain lands on top of this pass (below), so
     // smoothed skin keeps an emulsion texture instead of going plastic.
     // rides the intensity slider like everything else: intensity 0 = original
-    ctx.globalAlpha = (params.smoothing / 100) * (focal ? 0.42 : 0.3) * Math.min(1, s * 1.25)
+    // without a subject lock, "beauty blur" over the whole frame is just
+    // fuzz — cap it near-invisible; with a face it stays a real retouch
+    ctx.globalAlpha = (params.smoothing / 100) * (focal ? 0.42 : 0.12) * Math.min(1, s * 1.25)
     ctx.filter = `blur(${(2.2 * ref).toFixed(2)}px)`
     ctx.drawImage(canvas, 0, 0)
     ctx.restore()
@@ -514,15 +524,21 @@ export function renderStyled(
   if (halation > 0.01) {
     const lights = scene.lights
     const onLights = lights.length ? lens.lightHalation : 0
+    // scene-adaptive bloom: at night the glow IS the look (keep 100%), but
+    // on a bright day large sky regions survive the crush and the whole
+    // frame would wash lighter+softer — so the base bloom stands down as
+    // the scene key rises. Halos on actual lights are untouched.
+    const bloomScale = scene.analyzed ? 0.35 + 0.65 * smoothstep(0.55, 0.18, scene.key) : 1
     ctx.save()
     ctx.globalCompositeOperation = 'screen'
     // trade a little of the uniform bloom for the per-source glows — but only
     // a little: the glows are localized, the base pass carries the scene
-    ctx.globalAlpha = halation * 0.8 * (1 - 0.25 * onLights)
+    ctx.globalAlpha = halation * 0.8 * (1 - 0.25 * onLights) * bloomScale
     // warm/red-biased bloom: the anti-halation layer failing scatters red
     // light around speculars — that orange halo is the film tell, not a
     // neutral glow. sepia + saturate push the crushed highlights warm.
-    ctx.filter = `brightness(0.5) contrast(3.4) saturate(1.5) sepia(0.5) blur(${(9 * ref).toFixed(2)}px)`
+    // crush tight: only true highlights may glow, never the midtone field
+    ctx.filter = `brightness(0.46) contrast(3.8) saturate(1.5) sepia(0.5) blur(${(9 * ref).toFixed(2)}px)`
     ctx.drawImage(canvas, 0, 0)
     ctx.restore()
     ctx.filter = 'none'
