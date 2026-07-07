@@ -57,6 +57,21 @@ export const NEUTRAL_SCENE: SceneProfile = {
 
 type Source = HTMLImageElement | HTMLCanvasElement | ImageBitmap | HTMLVideoElement
 
+/** the meter's one-word reading of a scene — shown in the studio viewfinder
+ *  so the person can see the lens thinking. Rule-based, from the profile. */
+export function sceneLabel(p: SceneProfile): string {
+  if (!p.analyzed) return 'READING'
+  if (p.key < 0.1) return 'NIGHT'
+  if (p.faceLum != null && p.key - p.faceLum > 0.15) return 'BACKLIT'
+  if (p.key < 0.26) return 'LOW LIGHT'
+  // cast direction only — the meter can't know tungsten from golden hour,
+  // so it says what it actually measured and never guesses wrong
+  if (p.illum[2] > 1.18) return 'WARM LIGHT'
+  if (p.illum[0] > 1.18) return 'COOL LIGHT'
+  if (p.p99 - p.p01 < 0.45) return 'FLAT'
+  return 'DAYLIGHT'
+}
+
 const THUMB = 96
 const LUMA_R = 0.299
 const LUMA_G = 0.587

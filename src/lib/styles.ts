@@ -69,6 +69,12 @@ export interface LensResponse {
   toneMap?: number
   /** 0..1 — face-aware subject separation; the lens's background falloff */
   dof?: number
+  /** 0..1 — auto-ISO: how much grain rises as the scene darkens (real
+   *  cameras push ISO in the dark; texture follows) */
+  autoIso?: number
+  /** 0..1 — local-contrast clarity; the "detail that bites" of digital
+   *  compacts and editorial glass. 0 for soft dreamy stocks. */
+  clarity?: number
 }
 
 export interface CameraStyle {
@@ -136,7 +142,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
     tier: 'free',
     defaults: P({ grain: 16, contrast: 62, warmth: 46, flash: 82, shadows: 62 }),
     character: {
-      lens: { meterStrength: 0.85, faceWeight: 0.8, awb: 0.8, awbClamp: 0.45, dof: 0.32, toneMap: 0.7 },
+      lens: { meterStrength: 0.85, faceWeight: 0.8, awb: 0.8, awbClamp: 0.45, dof: 0.32, toneMap: 0.7, clarity: 0.15 },
       curve: 0.15,
       saturate: 1.03,
       brightness: 1.06,
@@ -177,7 +183,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
     tier: 'free',
     defaults: P({ grain: 26, contrast: 60, warmth: 48, flash: 0, shadows: 44 }),
     character: {
-      lens: { faceWeight: 0.7, dof: 0.55, toneMap: 0.6 },
+      lens: { faceWeight: 0.7, dof: 0.55, toneMap: 0.6, clarity: 0.2 },
       curve: 0.3,
       saturate: 0.94,
       brightness: 1.0,
@@ -195,7 +201,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
     tier: 'premium',
     defaults: P({ grain: 8, contrast: 64, warmth: 54, flash: 18, shadows: 52, smoothing: 38 }),
     character: {
-      lens: { meterStrength: 0.9, faceWeight: 0.85, awb: 0.85, dof: 0.85, toneMap: 0.4 },
+      lens: { meterStrength: 0.9, faceWeight: 0.85, awb: 0.85, dof: 0.85, toneMap: 0.4, clarity: 0.2, autoIso: 0.15 },
       grainSize: 0.6,
       colorMatrix: [1.05, 0.0, -0.03, -0.01, 1.0, 0.0, -0.02, -0.02, 1.03],
       curve: 0.25,
@@ -370,7 +376,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
     tier: 'premium',
     defaults: P({ grain: 70, contrast: 58, warmth: 40, flash: 0, shadows: 36 }),
     character: {
-      lens: { meterStrength: 0.9, awb: 0.9, awbClamp: 0.45, dof: 0, toneMap: 0.2 },
+      lens: { meterStrength: 0.9, awb: 0.9, awbClamp: 0.45, dof: 0, toneMap: 0.2, clarity: 0.25, autoIso: 0.9 },
       grainSize: 1.5,
       curve: 0.35,
       saturate: 0.35,
@@ -405,6 +411,8 @@ export const CAMERA_STYLES: CameraStyle[] = [
         toneMap: 0.5,
         dof: 0.2,
         lightHalation: 0.5,
+        clarity: 0.35,
+        autoIso: 0.4,
       },
       curve: 0.2,
       colorMatrix: [1.08, -0.04, -0.04, -0.03, 1.06, -0.03, -0.04, -0.02, 1.06],
@@ -448,7 +456,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
     badge: 'trending',
     defaults: P({ grain: 26, contrast: 66, warmth: 38, flash: 0, shadows: 62 }),
     character: {
-      lens: { meterBias: -0.3, awb: 0.15, lightHalation: 1.0, dof: 0.55, toneMap: 0.15 },
+      lens: { meterBias: -0.3, awb: 0.15, lightHalation: 1.0, dof: 0.55, toneMap: 0.15, autoIso: 0.8 },
       curve: 0.35,
       colorMatrix: [1.04, -0.02, 0.02, -0.03, 1.0, 0.02, 0.03, 0.02, 1.05],
       splitTone: { shadows: '#312e81', highlights: '#f0abfc', amount: 0.8 },

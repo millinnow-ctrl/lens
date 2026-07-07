@@ -26,6 +26,8 @@ const DEFAULT_LENS: Required<LensResponse> = {
   lightHalation: 0.7,
   toneMap: 0.5,
   dof: 0.4,
+  autoIso: 0.5,
+  clarity: 0,
 }
 
 type Source = HTMLImageElement | HTMLCanvasElement | ImageBitmap | HTMLVideoElement
@@ -74,7 +76,12 @@ function fitted(source: Source, maxSize: number): { w: number; h: number } {
   const sw = srcWidth(source)
   const sh = srcHeight(source)
   const scale = Math.min(1, maxSize / Math.max(sw, sh))
-  return { w: Math.max(1, Math.round(sw * scale)), h: Math.max(1, Math.round(sh * scale)) }
+  // `|| 1` guards NaN from zero-dimension sources (0 * Infinity) — a wedged
+  // canvas here would strand the develop overlay
+  return {
+    w: Math.max(1, Math.round(sw * scale) || 1),
+    h: Math.max(1, Math.round(sh * scale) || 1),
+  }
 }
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t
@@ -331,6 +338,34 @@ export function renderStyled(
     ctx.putImageData(img, 0, 0)
   }
 
+  /* 1.6 — clarity: local contrast, the "detail that bites" of digital
+     compacts and editorial glass. Unsharp-mask against a wide blur,
+     midtone-weighted so blacks and highlights never crunch. Stills only —
+     too heavy for the per-frame video path. */
+  const clarity = lens.clarity * s
+  if (clarity > 0.02 && !animateGrain) {
+    const blurC = document.createElement('canvas')
+    blurC.width = w
+    blurC.height = h
+    const bctx = blurC.getContext('2d')!
+    bctx.filter = `blur(${(14 * ref).toFixed(2)}px)`
+    bctx.drawImage(canvas, 0, 0)
+    bctx.filter = 'none'
+    const base = ctx.getImageData(0, 0, w, h)
+    const blurD = bctx.getImageData(0, 0, w, h).data
+    const bd = base.data
+    for (let i = 0; i < bd.length; i += 4) {
+      const L = (bd[i] * 0.299 + bd[i + 1] * 0.587 + bd[i + 2] * 0.114) / 255
+      const wgt = clarity * (4 * L * (1 - L)) // midtones only
+      if (wgt > 0.003) {
+        bd[i] += (bd[i] - blurD[i]) * wgt
+        bd[i + 1] += (bd[i + 1] - blurD[i + 1]) * wgt
+        bd[i + 2] += (bd[i + 2] - blurD[i + 2]) * wgt
+      }
+    }
+    ctx.putImageData(base, 0, 0)
+  }
+
   /* 1.75 — subject separation: when the on-device model found a face, the
      lens renders a shallow depth of field — the subject stays sharp and the
      background falls softly out of focus, the way a fast prime does. A blurred
@@ -504,16 +539,19 @@ export function renderStyled(
     ctx.restore()
   }
 
-  /* 8 — shadow depth / vignette */
+  /* 8 — shadow depth / vignette. With a subject locked, the clear center
+     rides toward them — a printer dodging the person, not the frame. */
   const vig = (params.shadows / 100) * s
   if (vig > 0.02) {
+    const vx = focal ? lerp(w / 2, focal.x * w, 0.6) : w / 2
+    const vy = focal ? lerp(h / 2, focal.y * h, 0.6) : h / 2
     ctx.save()
     const g = ctx.createRadialGradient(
-      w / 2,
-      h / 2,
+      vx,
+      vy,
       Math.min(w, h) * 0.35,
-      w / 2,
-      h / 2,
+      vx,
+      vy,
       Math.max(w, h) * 0.78,
     )
     g.addColorStop(0, 'rgba(8,8,12,0)')
@@ -550,7 +588,12 @@ export function renderStyled(
   }
 
   /* 9 — grain: size follows the stock. Wet plates and 8mm clump big;
-     slide film resolves fine. */
+     slide film resolves fine. Auto-ISO: a real camera pushes ISO as the
+     scene darkens and the texture rises with it — dark bar shots grain up,
+     daylight stays clean. Rides the measured scene key. */
+  const isoBoost = scene.analyzed
+    ? 1 + lens.autoIso * 1.2 * smoothstep(0.32, 0.06, scene.key)
+    : 1
   const grain = params.grain / 100
   if (grain > 0.02) {
     if (animateGrain) {
@@ -558,7 +601,7 @@ export function renderStyled(
       const gs = Math.max(0.5, (ch.grainSize ?? 1) * ref)
       ctx.save()
       ctx.globalCompositeOperation = 'overlay'
-      ctx.globalAlpha = grain * 0.5 * Math.min(1, s * 1.25)
+      ctx.globalAlpha = Math.min(1, grain * 0.5 * Math.min(1, s * 1.25) * isoBoost)
       ctx.scale(gs, gs)
       ctx.fillStyle = ctx.createPattern(getNoiseTile(), 'repeat')!
       const ox = Math.floor(Math.random() * 192)
@@ -574,7 +617,7 @@ export function renderStyled(
       const img = ctx.getImageData(0, 0, w, h)
       const dd = img.data
       const gs = Math.max(1, Math.round((ch.grainSize ?? 1) * ref))
-      const amp = grain * 34 * (ch.grainAmp ?? 1) * Math.min(1, s * 1.25)
+      const amp = grain * 34 * (ch.grainAmp ?? 1) * Math.min(1, s * 1.25) * isoBoost
       const chroma = ch.bw ? 0 : (ch.grainChroma ?? 0.4)
       const seed = hash32(style.id) & 0xffff
       const clumped = gs > 1

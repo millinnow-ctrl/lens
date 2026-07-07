@@ -392,7 +392,7 @@ function HomeContent({
       <motion.section variants={childVariants} className="mt-10 px-5 flex flex-col items-center gap-1.5">
         <ApertureMark className="w-7 h-7 opacity-80" />
         <p className="font-mono font-semibold text-[9.5px] tracking-[0.2em] uppercase text-fog tabular-nums text-center">
-          LensMood · Cut R25 “Point & Shoot”
+          LensMood · Cut R26 “Smart Lens”
         </p>
         <p className="font-mono font-semibold text-[9.5px] tracking-[0.2em] uppercase text-fog/80 text-center">
           Made in the darkroom

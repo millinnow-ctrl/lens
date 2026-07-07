@@ -21,14 +21,26 @@ const SAMPLES = [
  *  six-photo roll from pinning ~200MB of base64 in a WKWebView */
 const INGEST_MAX = 2560
 
+type RollItemLike = { url: string; name: string }
+
 /** read a photo in, downscaling giant camera files to a sane working size.
- *  Anything the browser can't decode falls back to the raw data URL. */
-async function ingestPhoto(file: File): Promise<string> {
+ *  Returns null for images the pipeline must refuse (decompression bombs,
+ *  dimensionless SVGs); undecodable-but-renderable files fall back to raw. */
+async function ingestPhoto(file: File): Promise<string | null> {
   const raw = await fileToDataURL(file)
+  const img = new Image()
+  img.src = raw
   try {
-    const img = new Image()
-    img.src = raw
     await img.decode()
+  } catch {
+    return raw // the browser may still render it in an <img> later
+  }
+  // dimensionless sources (some SVGs) wedge the render pipeline downstream
+  if (!img.naturalWidth || !img.naturalHeight) return null
+  // decompression-bomb guard: a cap-compliant PNG can still decode to
+  // gigabytes of RGBA — refuse anything past a sane pixel budget (~50MP)
+  if (img.naturalWidth * img.naturalHeight > 50_000_000) return null
+  try {
     const scale = INGEST_MAX / Math.max(img.naturalWidth, img.naturalHeight)
     if (!Number.isFinite(scale) || scale >= 1) return raw
     const c = document.createElement('canvas')
@@ -97,11 +109,18 @@ export default function UploadArea() {
         return
       }
       haptic('light')
-      const urls = await Promise.all(images.slice(0, MAX_ROLL).map((f) => ingestPhoto(f)))
-      if (urls.length === 1) {
-        setImage(urls[0], images[0].name)
+      const ingested = await Promise.all(images.slice(0, MAX_ROLL).map((f) => ingestPhoto(f)))
+      const ok = ingested
+        .map((url, i) => (url ? { url, name: images[i].name } : null))
+        .filter((x): x is RollItemLike => !!x)
+      if (ok.length < ingested.length) {
+        setError('One of those images couldn’t be processed — it may be too large or empty.')
+        if (ok.length === 0) return
+      }
+      if (ok.length === 1) {
+        setImage(ok[0].url, ok[0].name)
       } else {
-        setRoll(urls.map((url, i) => ({ url, name: images[i].name })))
+        setRoll(ok)
       }
     },
     [hasVideoPlan, setImage, setRoll, setVideo],

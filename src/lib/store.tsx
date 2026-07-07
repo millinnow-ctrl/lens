@@ -91,11 +91,26 @@ function sanitize(raw: unknown, fallback: Persisted): Persisted {
         })
       : [],
     presets: Array.isArray(p.presets)
-      ? (p.presets as unknown[]).filter((s): s is SavedPreset => {
-          const e = s as Partial<SavedPreset> | null
-          return !!e && isStr(e.id) && isStr(e.name) && isStr(e.styleId) && !!getStyle(e.styleId) &&
-            typeof e.params === 'object' && e.params !== null
-        })
+      ? (p.presets as unknown[])
+          .filter((s): s is SavedPreset => {
+            const e = s as Partial<SavedPreset> | null
+            return !!e && isStr(e.id) && isStr(e.name) && isStr(e.styleId) && !!getStyle(e.styleId) &&
+              typeof e.params === 'object' && e.params !== null
+          })
+          // clamp every param to a finite 0–100 (same contract decodeParams
+          // enforces for deep links) so a poisoned preset can't feed NaN or
+          // absurd values into the engine
+          .map((e) => {
+            const base = getStyle(e.styleId)!.defaults
+            const raw = e.params as unknown as Record<string, unknown>
+            const params = Object.fromEntries(
+              (Object.keys(base) as (keyof StyleParams)[]).map((k) => {
+                const v = raw[k]
+                return [k, isNum(v) ? Math.max(0, Math.min(100, v)) : base[k]]
+              }),
+            ) as unknown as StyleParams
+            return { ...e, params }
+          })
       : [],
     favorites: strArray(p.favorites),
     user:

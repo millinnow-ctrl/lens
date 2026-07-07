@@ -8,6 +8,33 @@ import { viteSingleFile } from 'vite-plugin-singlefile'
 // code inlined) used for shareable previews. The normal build keeps the PWA.
 const singleFile = process.env.LM_SINGLEFILE === '1'
 
+// Content-Security-Policy for the normal (PWA / iOS shell) build — enforces
+// "photos never leave the device" at the platform level, so a future
+// dependency regression can't silently phone home. The single-file preview
+// inlines all scripts, which a strict CSP forbids, so it is skipped there.
+const CSP = [
+  "default-src 'self'",
+  "script-src 'self' 'wasm-unsafe-eval'", // mediapipe wasm
+  "style-src 'self' 'unsafe-inline'", // framer-motion inline styles + splash
+  "img-src 'self' data: blob:",
+  "media-src 'self' data: blob:",
+  "font-src 'self' data:",
+  "connect-src 'self' data: blob:",
+  "worker-src 'self' blob:",
+  "object-src 'none'",
+  "base-uri 'self'",
+].join('; ')
+
+const cspPlugin = () => ({
+  name: 'lm-csp',
+  transformIndexHtml(html: string) {
+    return html.replace(
+      '<meta charset="UTF-8" />',
+      `<meta charset="UTF-8" />\n    <meta http-equiv="Content-Security-Policy" content="${CSP}" />`,
+    )
+  },
+})
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: singleFile
@@ -15,6 +42,7 @@ export default defineConfig({
     : [
         react(),
         tailwindcss(),
+        cspPlugin(),
         VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icons/apple-touch-icon.png'],

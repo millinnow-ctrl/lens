@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import UploadArea from '../components/UploadArea'
@@ -12,6 +12,7 @@ import { IconFilm } from '../components/icons'
 import { loadImage, renderStyled, thumbnail } from '../lib/engine'
 import { claimDaily, dailyStyle, isDailyClaimed } from '../lib/lab'
 import { detectFocal, type Focal } from '../lib/focal'
+import { analyzeScene, sceneLabel } from '../lib/scene'
 import { haptic } from '../lib/native'
 import {
   GENERATION_STEPS,
@@ -80,6 +81,13 @@ export default function Studio() {
   /* load the active photo into an Image element, then let the on-device
      face model find the subject (silently — the engine works without it) */
   const [focal, setFocal] = useState<Focal | null>(null)
+  /* the meter's reading of the loaded photo — the AI showing its work in the
+     viewfinder chrome. Cached per (image, focal), so this is ~free. */
+  const meterReading = useMemo(() => {
+    if (!source) return null
+    const label = sceneLabel(analyzeScene(source, focal))
+    return focal ? `${label} · FACE` : label
+  }, [source, focal])
   useEffect(() => {
     setResultUrl(null)
     setPhase('idle')
@@ -257,6 +265,7 @@ export default function Studio() {
             <div className="h-9 px-4 flex items-center justify-between gap-3 border-b border-white/[0.08]">
               <span className="font-mono font-semibold text-[10px] tracking-[0.16em] uppercase text-vf-chrome truncate">
                 {style ? style.name : 'Original'}
+                {meterReading && <span className="text-vf-chrome/70"> · {meterReading}</span>}
               </span>
               <span className="flex items-center gap-2 font-mono font-semibold text-[10px] tracking-[0.16em] uppercase text-vf-chrome tabular-nums shrink-0">
                 {video && <span className="w-1.5 h-1.5 rounded-full bg-[#E1251B] inline-block" aria-hidden />}
