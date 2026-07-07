@@ -70,6 +70,10 @@ sync to the in-app plan automatically.
   unlimited; free exports watermarked; out of credits → paywall.
 - **Paywall/Account** — Creator $8 / Pro $15 / Studio $29, monthly/annual
   (2 months free), RevenueCat when configured, restore purchases.
+- **Print Lab** (Polaroid stock) — flash + shutter/motor sound, the print
+  ejects black and chemistry-develops over ~2.7s, then lands on a staged
+  surface (wood / sand / linen / marble / grass) with a contact shadow;
+  Share/Save export a Skia composite that reads like a photo of the print.
 - **Gallery** — develop history (cap 60), large view, share, remove.
 - **Engine** — full pipeline: adaptive metering, AWB, tone LUT + smart-HDR,
   vibrance w/ skin guard, shadow denoise, clarity + universal acutance,

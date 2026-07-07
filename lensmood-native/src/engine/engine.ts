@@ -355,7 +355,7 @@ export function renderStyled(
   params: StyleParams,
   opts: RenderOptions = {},
 ): SkImage {
-  const { maxSize = 1280, watermark = false, animateGrain = false, focal = null } = opts
+  const { maxSize = 1280, watermark = false, animateGrain = false, focal = null, frame = true } = opts
   const ch = style.character
   const s = params.intensity / 100 // global look strength
 
@@ -1007,7 +1007,7 @@ export function renderStyled(
   let outW = w
   let outH = h
   let outSurface: SkSurface = surface
-  if (ch.polaroidFrame && s > 0.15) {
+  if (ch.polaroidFrame && s > 0.15 && frame) {
     sync()
     const m = Math.round(Math.max(w, h) * 0.055)
     const bottom = Math.round(Math.max(w, h) * 0.16)

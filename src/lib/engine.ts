@@ -14,6 +14,9 @@ export interface RenderOptions {
   /** precomputed scene profile; omit to analyze (cached), null to disable
    *  the adaptive lens entirely */
   scene?: SceneProfile | null
+  /** draw the instant-film paper frame (default true); the compare view
+   *  renders a frameless companion so the wipe stays pixel-aligned */
+  frame?: boolean
 }
 
 /** how the glass responds to a scene when the stock doesn't say otherwise */
@@ -191,7 +194,7 @@ export function renderStyled(
   params: StyleParams,
   opts: RenderOptions = {},
 ): HTMLCanvasElement {
-  const { maxSize = 1280, watermark = false, target, animateGrain = false, focal = null } = opts
+  const { maxSize = 1280, watermark = false, target, animateGrain = false, focal = null, frame = true } = opts
   const { w, h } = fitted(source, maxSize)
   const ch = style.character
   const s = params.intensity / 100 // global look strength
@@ -854,7 +857,7 @@ export function renderStyled(
 
   /* 11 — polaroid frame (re-composites onto larger canvas) */
   let out = canvas
-  if (ch.polaroidFrame && s > 0.15) {
+  if (ch.polaroidFrame && s > 0.15 && frame) {
     const m = Math.round(Math.max(w, h) * 0.055)
     const bottom = Math.round(Math.max(w, h) * 0.16)
     const fc = document.createElement('canvas')

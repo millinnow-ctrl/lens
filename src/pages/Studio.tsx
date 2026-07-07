@@ -52,6 +52,9 @@ export default function Studio() {
   const [phase, setPhase] = useState<Phase>('idle')
   const [stepIndex, setStepIndex] = useState(0)
   const [resultUrl, setResultUrl] = useState<string | null>(null)
+  /* frameless companion of a framed (polaroid) develop — the compare wipe
+     must stay pixel-aligned with the original, so it never shows the frame */
+  const [compareUrl, setCompareUrl] = useState<string | null>(null)
   const [view, setView] = useState<View>('result')
   const [exportOpen, setExportOpen] = useState(false)
   const [paywall, setPaywall] = useState(false)
@@ -106,6 +109,7 @@ export default function Studio() {
       generationTimer.current = null
     }
     setResultUrl(null)
+    setCompareUrl(null)
     setPhase('idle')
     setView('result')
     setFocal(null)
@@ -201,6 +205,7 @@ export default function Studio() {
      One persistent scratch canvas is reused across re-renders — halves the
      transient allocation spike per slider move (matters in a WKWebView). */
   const scratchCanvas = useRef<HTMLCanvasElement | null>(null)
+  const scratchCompare = useRef<HTMLCanvasElement | null>(null)
   useEffect(() => {
     if (phase !== 'done' || !source || !style || !params) return
     cancelAnimationFrame(renderRaf.current)
@@ -212,6 +217,18 @@ export default function Studio() {
         target: scratchCanvas.current,
       })
       setResultUrl(canvas.toDataURL('image/jpeg', 0.9))
+      if (style.character.polaroidFrame && params.intensity > 15) {
+        if (!scratchCompare.current) scratchCompare.current = document.createElement('canvas')
+        const frameless = renderStyled(source, style, params, {
+          maxSize: 1280,
+          focal,
+          target: scratchCompare.current,
+          frame: false,
+        })
+        setCompareUrl(frameless.toDataURL('image/jpeg', 0.9))
+      } else {
+        setCompareUrl(null)
+      }
     })
     return () => cancelAnimationFrame(renderRaf.current)
   }, [params, phase, source, style, focal])
@@ -303,7 +320,7 @@ export default function Studio() {
             ) : view === 'compare' && resultUrl && photo ? (
               <BeforeAfterSlider
                 before={photo}
-                after={resultUrl}
+                after={compareUrl ?? resultUrl}
                 fitToImage
                 className="w-full aspect-4/5"
               />

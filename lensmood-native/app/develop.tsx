@@ -63,6 +63,9 @@ export default function Develop() {
   const [params, setParams] = useState<StyleParams | null>(style ? { ...style.defaults } : null)
   const [photo, setPhoto] = useState<Picked | null>(null)
   const [result, setResult] = useState<DevelopResult | null>(null)
+  // frameless companion of a framed (polaroid) result, so the compare wipe
+  // stays pixel-aligned with the original; null for the other stocks
+  const [compareResult, setCompareResult] = useState<DevelopResult | null>(null)
   const [developing, setDeveloping] = useState(false)
   const [view, setView] = useState<ViewMode>('result')
   const [meter, setMeter] = useState<string | null>(null)
@@ -101,6 +104,18 @@ export default function Develop() {
         })
         if (myRun !== runIdRef.current) return // superseded by a newer run
         setResult(developed)
+        if (st.character.polaroidFrame && p.intensity > 15) {
+          const frameless = await developImage(img, st, p, {
+            scene: sceneRef.current,
+            maxSize: 1280,
+            watermark: !isPaid,
+            frame: false,
+          })
+          if (myRun !== runIdRef.current) return
+          setCompareResult(frameless)
+        } else {
+          setCompareResult(null)
+        }
         setView('result')
         addHistory({ thumb: developed.uri, styleId: st.id, styleName: st.name })
         haptics.light()
@@ -141,6 +156,7 @@ export default function Develop() {
       haptics.medium()
       setPhoto(picked)
       setResult(null)
+      setCompareResult(null)
       sourceRef.current = null
       sceneRef.current = null
       const img = await loadImageFromUri(picked.uri)
@@ -295,7 +311,7 @@ export default function Develop() {
           {photo && result && view === 'compare' ? (
             <CompareSlider
               beforeUri={photo.uri}
-              afterUri={result.uri}
+              afterUri={compareResult?.uri ?? result.uri}
               afterLabel={style?.name ?? 'Developed'}
               width={frameW}
               height={frameH}
@@ -389,6 +405,26 @@ export default function Develop() {
           >
             <Text style={styles.btnPrimaryText}>{photo ? 'New photo' : 'Pick a photo'}</Text>
           </Pressable>
+          {result && style?.character.polaroidFrame && (params?.intensity ?? 0) > 15 && (
+            <Pressable
+              onPress={() => {
+                haptics.medium()
+                router.push({
+                  pathname: '/print',
+                  params: { uri: result.uri, w: String(result.width), h: String(result.height) },
+                })
+              }}
+              style={({ pressed }) => [
+                styles.btn,
+                styles.btnSecondary,
+                pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Print it — stage the polaroid in a scene"
+            >
+              <Text style={styles.btnSecondaryText}>Print it</Text>
+            </Pressable>
+          )}
           {result && (
             <View style={styles.exportRow}>
               <Pressable

@@ -220,6 +220,9 @@ export interface RenderOptions {
   /** precomputed scene profile; omit to analyze (cached), null to disable
    *  the adaptive lens entirely */
   scene?: SceneProfile | null
+  /** draw the instant-film paper frame (default true); the compare view
+   *  renders a frameless companion so the wipe stays pixel-aligned */
+  frame?: boolean
 
   // NOTE — web-only field intentionally dropped in the native port:
   //   target?: HTMLCanvasElement  → the Skia engine allocates its own
