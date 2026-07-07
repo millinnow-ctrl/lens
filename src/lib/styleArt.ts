@@ -16,7 +16,7 @@ import artSuper8 from '../assets/style-super-8.jpg'
 import artLomo from '../assets/style-lomo.jpg'
 import artKodachrome from '../assets/style-kodachrome.jpg'
 import artSecurityCam from '../assets/style-security-cam.jpg'
-import artBlockbuster from '../assets/style-blockbuster.jpg'
+import artPointShoot from '../assets/style-point-shoot.jpg'
 import artPastel from '../assets/style-pastel-cinema.jpg'
 import artTokyoNeon from '../assets/style-tokyo-neon.jpg'
 import artPhotobooth from '../assets/style-photobooth.jpg'
@@ -36,7 +36,7 @@ export const STYLE_ART: Record<string, string> = {
   lomo: artLomo,
   kodachrome: artKodachrome,
   'security-cam': artSecurityCam,
-  blockbuster: artBlockbuster,
+  'point-shoot': artPointShoot,
   'pastel-cinema': artPastel,
   'tokyo-neon': artTokyoNeon,
   photobooth: artPhotobooth,

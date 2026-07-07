@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import Header from '../components/home/Header'
@@ -14,9 +13,8 @@ import AccountSheet from '../components/home/AccountSheet'
 import PhoneFrame from '../components/home/PhoneFrame'
 import BeforeAfterSlider from '../components/BeforeAfterSlider'
 import { ApertureMark } from '../components/Logo'
-import { IconCheck, IconChevronRight, IconClose, IconUpload } from '../components/icons'
+import { IconCheck, IconChevronRight, IconClose } from '../components/icons'
 import { sectionStagger, sectionChild } from '../lib/motion'
-import { useSheetOpen } from '../lib/useSheetOpen'
 import { loadImage, renderStyled } from '../lib/engine'
 import { dailyRecipe, dailyStyle, isDailyClaimed, jitterParams } from '../lib/lab'
 import { CAMERA_STYLES, encodeParams, getStyle, type CameraStyle } from '../lib/styles'
@@ -394,7 +392,7 @@ function HomeContent({
       <motion.section variants={childVariants} className="mt-10 px-5 flex flex-col items-center gap-1.5">
         <ApertureMark className="w-7 h-7 opacity-80" />
         <p className="font-mono font-semibold text-[9.5px] tracking-[0.2em] uppercase text-fog tabular-nums text-center">
-          LensMood · Cut R24 “Auditor”
+          LensMood · Cut R25 “Point & Shoot”
         </p>
         <p className="font-mono font-semibold text-[9.5px] tracking-[0.2em] uppercase text-fog/80 text-center">
           Made in the darkroom
@@ -409,65 +407,6 @@ export default function Home() {
   const [category, setCategory] = useState<CategoryId>('all')
   const [uploadOpen, setUploadOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
-
-  /* first run: one screen, one job — get their photo into the engine.
-     Never shown again after any choice; never shown to returning users. */
-  const [welcome, setWelcome] = useState(() => {
-    try {
-      return (
-        localStorage.getItem('lensmood.welcome.v1') === null &&
-        !localStorage.getItem('lensmood.v1') // any persisted state = not new
-      )
-    } catch {
-      return false
-    }
-  })
-  useSheetOpen(welcome)
-  const dismissWelcome = (thenUpload: boolean) => {
-    try {
-      localStorage.setItem('lensmood.welcome.v1', '1')
-    } catch {
-      /* storage unavailable */
-    }
-    setWelcome(false)
-    if (thenUpload) setUploadOpen(true)
-  }
-
-  // portal to body: a fixed overlay inside the route's transformed motion.div
-  // would be trapped by its transform containing-block (and z-capped under
-  // the dock). The sheet also bows the dock out via useSheetOpen.
-  const welcomeOverlay = welcome
-    ? createPortal(
-        <div className="fixed inset-0 z-[85] flex items-end justify-center" role="dialog" aria-label="Welcome">
-          <div className="absolute inset-0 bg-vf/55" aria-hidden />
-          <div className="hm-sheet relative w-full max-w-md bg-surface rounded-t-[28px] px-6 pt-8 pb-[calc(env(safe-area-inset-bottom)+28px)] shadow-[0_-8px_44px_rgb(60_42_24/0.4),inset_0_1px_0_rgb(255_255_255/0.6)]">
-            <ApertureMark className="w-12 h-12 mb-4" />
-            <h2 className="type-display text-[26px] mb-2">Your camera roll is full of movie stills.</h2>
-            <p className="text-[14.5px] text-ink-soft leading-relaxed mb-6">
-              Pick a photo, choose one of {CAMERA_STYLES.length} cameras, and watch it develop. Every
-              shot is its own take — and the first one’s on us.
-            </p>
-            {/* house grammar: one content-hugging pill + a quiet inline exit */}
-            <div className="flex items-center gap-5">
-              <button
-                onClick={() => dismissWelcome(true)}
-                className="btn btn-lg gap-2.5 btn-brass font-semibold px-7"
-              >
-                <IconUpload size={17} />
-                Pick a photo
-              </button>
-              <button
-                onClick={() => dismissWelcome(false)}
-                className="text-[13.5px] font-semibold text-ink-soft underline underline-offset-4 decoration-ink/25"
-              >
-                Look around first
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body,
-      )
-    : null
 
   const content = (
     <HomeContent
@@ -522,7 +461,6 @@ export default function Home() {
   return (
     <main className="hm-canvas min-h-dvh">
       {content}
-      {welcomeOverlay}
       <UploadModal open={uploadOpen} onClose={() => setUploadOpen(false)} />
       <AccountSheet open={accountOpen} onClose={() => setAccountOpen(false)} />
     </main>

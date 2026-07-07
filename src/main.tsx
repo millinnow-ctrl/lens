@@ -23,3 +23,19 @@ createRoot(document.getElementById('root')!).render(
     </ErrorBoundary>
   </StrictMode>,
 )
+
+/* dismiss the launch splash once the app has painted — a short native-style
+   hold, then a fade; the node is removed so it can't intercept taps */
+const splash = document.getElementById('lm-splash')
+if (splash) {
+  const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  const hold = reduce ? 0 : 350
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      splash.classList.add('gone')
+      const drop = () => splash.remove()
+      splash.addEventListener('transitionend', drop, { once: true })
+      setTimeout(drop, 700) // fallback if transitionend never fires
+    }, hold)
+  })
+}

@@ -16,9 +16,9 @@ export type CategoryId = (typeof CATEGORIES)[number]['id']
 export const CATEGORY_STYLES: Record<CategoryId, string[]> = {
   all: [],
   film: ['disposable', 'leica-street', 'a24-still', 'film-noir', 'polaroid', 'super-8', 'lomo', 'kodachrome', 'tintype'],
-  flash: ['iphone-flash', 'y2k-digicam', 'disposable', 'photobooth', 'tokyo-neon'],
+  flash: ['iphone-flash', 'y2k-digicam', 'disposable', 'photobooth', 'tokyo-neon', 'point-shoot'],
   video: ['camcorder-90s', 'y2k-digicam', 'security-cam', 'super-8'],
-  editorial: ['gq-editorial', 'leica-street', 'a24-still', 'blockbuster', 'pastel-cinema'],
+  editorial: ['gq-editorial', 'leica-street', 'a24-still', 'pastel-cinema'],
   bw: ['film-noir', 'tintype', 'photobooth', 'security-cam'],
 }
 
