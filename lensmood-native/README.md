@@ -63,7 +63,9 @@ sync to the in-app plan automatically.
 - **Develop** — pick photo → on-device scene analysis (meter readout) →
   Skia develop; stock rail to switch looks; named-stop fine-tune panel
   (debounced re-develops, haptic detents); Original / LensMood / Compare
-  (drag wipe); Share + Save to Photos.
+  (drag wipe); Share + Save to Photos. First run: four bundled sample
+  shots (golden-hour portrait, neon night, party flash, brunch) develop
+  credit-free — the lenses can be tried before granting photo access.
 - **Credits & plans** — first develop free, then 5/month free; paid plans
   unlimited; free exports watermarked; out of credits → paywall.
 - **Paywall/Account** — Creator $8 / Pro $15 / Studio $29, monthly/annual

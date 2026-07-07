@@ -11,6 +11,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   View,
   Text,
+  Image,
   Pressable,
   StyleSheet,
   ActivityIndicator,
@@ -22,6 +23,7 @@ import {
 import { Stack, router, useLocalSearchParams } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Canvas, Image as SkiaImage, useImage } from '@shopify/react-native-skia'
+import { Asset } from 'expo-asset'
 import * as ImagePicker from 'expo-image-picker'
 import * as Sharing from 'expo-sharing'
 import * as MediaLibrary from 'expo-media-library'
@@ -40,6 +42,16 @@ type Picked = { uri: string; width: number; height: number }
 type ViewMode = 'original' | 'result' | 'compare'
 
 const MONO = Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' })
+
+/** Curated sample shots (bundled) — trying the lenses on these never spends a credit.
+ *  Each one exercises a different side of the engine: backlit face metering, night
+ *  light-mapping/halation, party-flash skin relight, still-life color science. */
+const SAMPLES = [
+  { key: 'golden', label: 'Golden hour', src: require('../assets/samples/sample-golden.jpg') },
+  { key: 'night', label: 'Neon rain', src: require('../assets/samples/sample-night.jpg') },
+  { key: 'friends', label: 'Party flash', src: require('../assets/samples/sample-friends.jpg') },
+  { key: 'brunch', label: 'Slow brunch', src: require('../assets/samples/sample-brunch.jpg') },
+] as const
 
 export default function Develop() {
   const insets = useSafeAreaInsets()
@@ -63,6 +75,8 @@ export default function Develop() {
   const sceneRef = useRef<SceneProfile | null>(null)
   // which (photo, stock) pairings have already been paid for
   const chargedRef = useRef<Set<string>>(new Set())
+  // bundled sample shots develop free — their uris bypass the credit gate
+  const sampleUrisRef = useRef<Set<string>>(new Set())
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const runIdRef = useRef(0)
 
@@ -103,6 +117,10 @@ export default function Develop() {
   /** develop with the credit gate — used for new photos and stock switches */
   const developCharged = useCallback(
     (st: CameraStyle, p: StyleParams, photoUri: string) => {
+      if (sampleUrisRef.current.has(photoUri)) {
+        void runDevelop(st, p)
+        return
+      }
       const key = `${photoUri}::${st.id}`
       if (!chargedRef.current.has(key)) {
         if (!spendCredit()) {
@@ -117,6 +135,27 @@ export default function Develop() {
     [spendCredit, runDevelop],
   )
 
+  /** decode + meter a chosen photo, then develop — shared by the picker and samples */
+  const loadPicked = useCallback(
+    async (picked: Picked) => {
+      haptics.medium()
+      setPhoto(picked)
+      setResult(null)
+      sourceRef.current = null
+      sceneRef.current = null
+      const img = await loadImageFromUri(picked.uri)
+      if (!img) {
+        Alert.alert('Photo error', 'That photo could not be decoded.')
+        return
+      }
+      sourceRef.current = img
+      sceneRef.current = analyzeScene(img)
+      setMeter(sceneLabel(sceneRef.current))
+      if (style && params) developCharged(style, params, picked.uri)
+    },
+    [style, params, developCharged],
+  )
+
   const pickPhoto = useCallback(async () => {
     if (libPerm && !libPerm.granted && libPerm.canAskAgain) {
       const req = await requestLibPerm()
@@ -129,22 +168,23 @@ export default function Develop() {
     })
     if (res.canceled || !res.assets?.length) return
     const a = res.assets[0]
-    const picked: Picked = { uri: a.uri, width: a.width ?? 0, height: a.height ?? 0 }
-    haptics.medium()
-    setPhoto(picked)
-    setResult(null)
-    sourceRef.current = null
-    sceneRef.current = null
-    const img = await loadImageFromUri(picked.uri)
-    if (!img) {
-      Alert.alert('Photo error', 'That photo could not be decoded.')
-      return
-    }
-    sourceRef.current = img
-    sceneRef.current = analyzeScene(img)
-    setMeter(sceneLabel(sceneRef.current))
-    if (style && params) developCharged(style, params, picked.uri)
-  }, [libPerm, requestLibPerm, style, params, developCharged])
+    await loadPicked({ uri: a.uri, width: a.width ?? 0, height: a.height ?? 0 })
+  }, [libPerm, requestLibPerm, loadPicked])
+
+  const loadSample = useCallback(
+    async (sample: (typeof SAMPLES)[number]) => {
+      try {
+        const asset = Asset.fromModule(sample.src)
+        await asset.downloadAsync()
+        const uri = asset.localUri ?? asset.uri
+        sampleUrisRef.current.add(uri)
+        await loadPicked({ uri, width: asset.width ?? 0, height: asset.height ?? 0 })
+      } catch {
+        Alert.alert('Sample unavailable', 'That sample shot could not be loaded.')
+      }
+    },
+    [loadPicked],
+  )
 
   /** switching stocks on the rail */
   const onSelectStyle = useCallback(
@@ -275,6 +315,26 @@ export default function Develop() {
                     It develops on-device through {style?.name ?? 'your chosen stock'} — nothing is
                     uploaded, the darkroom is your phone.
                   </Text>
+                  <Text style={styles.sampleLabel}>OR TRY A SAMPLE SHOT — FREE</Text>
+                  <View style={styles.sampleRow}>
+                    {SAMPLES.map((s) => (
+                      <Pressable
+                        key={s.key}
+                        onPress={() => void loadSample(s)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Try the ${s.label} sample shot`}
+                        style={({ pressed }) => [
+                          styles.sampleItem,
+                          pressed && { opacity: 0.8, transform: [{ scale: 0.96 }] },
+                        ]}
+                      >
+                        <Image source={s.src} style={styles.sampleThumb} />
+                        <Text style={styles.sampleName} numberOfLines={1}>
+                          {s.label}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
                 </View>
               )}
               {developing && (
@@ -396,6 +456,23 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', padding: 24, gap: 8 },
   emptyText: { color: 'rgba(255,255,255,0.9)', fontSize: 16, fontWeight: '700' },
   emptySub: { color: 'rgba(255,255,255,0.55)', fontSize: 13, textAlign: 'center', lineHeight: 18 },
+  sampleLabel: {
+    color: 'rgba(255,255,255,0.45)',
+    fontSize: 10,
+    letterSpacing: 1.6,
+    fontFamily: MONO,
+    fontWeight: '600',
+    marginTop: 12,
+  },
+  sampleRow: { flexDirection: 'row', gap: 12, marginTop: 2 },
+  sampleItem: { alignItems: 'center', gap: 5 },
+  sampleThumb: {
+    width: 56,
+    height: 72,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  sampleName: { color: 'rgba(255,255,255,0.55)', fontSize: 10.5, maxWidth: 62 },
   developing: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
