@@ -12,7 +12,6 @@ import UploadModal from '../components/home/UploadModal'
 import AccountSheet from '../components/home/AccountSheet'
 import PhoneFrame from '../components/home/PhoneFrame'
 import BeforeAfterSlider from '../components/BeforeAfterSlider'
-import { ApertureMark } from '../components/Logo'
 import { IconCheck, IconChevronRight, IconClose } from '../components/icons'
 import { sectionStagger, sectionChild } from '../lib/motion'
 import { loadImage, renderStyled } from '../lib/engine'
@@ -382,20 +381,8 @@ function HomeContent({
             <img src={sampleGolden} alt="" className="aspect-[4/3] w-full object-cover" />
           )}
         </div>
-        <p className="px-1 pt-2.5 text-[12px] text-fog">
+        <p className="px-1 pt-2.5 text-[12px] text-fog text-center">
           Film Noir — drag to compare. Rendered on your phone, nothing uploaded.
-        </p>
-      </motion.section>
-
-      {/* colophon — the maker's mark at the end of the roll (doubles as a
-          visible build stamp so you always know which cut you're holding) */}
-      <motion.section variants={childVariants} className="mt-10 px-5 flex flex-col items-center gap-1.5">
-        <ApertureMark className="w-7 h-7 opacity-80" />
-        <p className="font-mono font-semibold text-[9.5px] tracking-[0.2em] uppercase text-fog tabular-nums text-center">
-          LensMood · Cut R28 “Deep Color”
-        </p>
-        <p className="font-mono font-semibold text-[9.5px] tracking-[0.2em] uppercase text-fog/80 text-center">
-          Made in the darkroom
         </p>
       </motion.section>
     </motion.div>

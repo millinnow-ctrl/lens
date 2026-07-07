@@ -69,7 +69,7 @@ export default function AccountSheet({ open, onClose, container }: Props) {
                     <span className="text-white font-bold text-[15px]">{user.name.charAt(0).toUpperCase()}</span>
                   </span>
                 ) : (
-                  <ApertureMark className="w-10 h-10" />
+                  <ApertureMark className="w-10 h-10" tile={false} />
                 )}
                 <button
                   onClick={onClose}

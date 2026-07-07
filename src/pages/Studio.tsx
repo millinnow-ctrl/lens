@@ -89,6 +89,14 @@ export default function Studio() {
     return focal ? `${label} · FACE` : label
   }, [source, focal])
   useEffect(() => {
+    // cancel any develop still counting down for the PREVIOUS photo — without
+    // this, switching photo (or "New photo") mid-develop lets the stale timer
+    // fire 2.3s later with the old source in its closure, painting the wrong
+    // image and logging a phantom history entry
+    if (generationTimer.current) {
+      clearTimeout(generationTimer.current)
+      generationTimer.current = null
+    }
     setResultUrl(null)
     setPhase('idle')
     setView('result')

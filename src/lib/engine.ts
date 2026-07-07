@@ -271,7 +271,7 @@ export function renderStyled(
   // meter's saturation census drives it, so a hazy overcast upload gets its
   // color back while a neon night is untouched. Skin hues are guarded below.
   const vib =
-    lens.vibrance * s * (scene.analyzed ? 0.3 + 0.7 * smoothstep(0.4, 0.12, scene.sat) : 0.3)
+    lens.vibrance * s * (scene.analyzed ? 0.08 + 0.92 * smoothstep(0.4, 0.12, scene.sat) : 0.08)
   const doVib = vib > 0.02 && !ch.bw
   // high-ISO chroma suppression: as the scene darkens, deep shadows give up
   // their color the way a real sensor's noise reduction does — pairs with
@@ -364,7 +364,10 @@ export function renderStyled(
             // lives get most of the boost withheld — faces never go orange
             let guard = 1
             if (r > g && g >= b) {
-              const hue = (g - b) / (mx - mn + 1)
+              // mx-mn is r-b here, and > 0 whenever mx > mn; the earlier +1
+              // was on the 0-255 scale and compressed the hue for low-chroma
+              // (muted) skin, under-protecting exactly the faces this guards
+              const hue = (g - b) / (mx - mn)
               const skinW = smoothstep(0.12, 0.3, hue) * (1 - smoothstep(0.62, 0.88, hue))
               guard = 1 - 0.75 * skinW
             }
@@ -450,7 +453,10 @@ export function renderStyled(
     bx.save()
     bx.globalCompositeOperation = 'screen'
     bx.globalAlpha = Math.min(0.85, 0.4 + dof * 0.5)
-    bx.filter = `brightness(0.75) contrast(3.2) blur(${(8 * dof * ref + 2).toFixed(2)}px)`
+    // crush hard before the blur so ONLY point speculars survive — a soft
+    // pre-multiply let bright/backlit fields (overcast sky, windows) clip
+    // through and haze the whole background instead of forming bokeh balls
+    bx.filter = `brightness(0.4) contrast(3.4) blur(${(8 * dof * ref + 2).toFixed(2)}px)`
     bx.drawImage(canvas, 0, 0)
     bx.restore()
     bx.filter = 'none'

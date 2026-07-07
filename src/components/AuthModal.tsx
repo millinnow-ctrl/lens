@@ -18,7 +18,7 @@ export default function AuthModal() {
   return (
     <Modal open={authOpen} onClose={() => setAuthOpen(false)}>
       <div className="p-8">
-        <ApertureMark className="w-9 h-9 mb-5" />
+        <ApertureMark className="w-9 h-9 mb-5" tile={false} />
         <h3 className="font-sans font-semibold text-[22px] tracking-[-0.01em] mb-1.5">
           Welcome to the darkroom
         </h3>

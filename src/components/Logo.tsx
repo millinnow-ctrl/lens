@@ -116,7 +116,7 @@ export function ApertureMarkVector({
 export default function Logo({ dark = false }: { dark?: boolean }) {
   return (
     <span className="inline-flex items-center gap-2.5">
-      <ApertureMark className="w-10 h-10" />
+      <ApertureMark className="w-10 h-10" tile={false} />
       <span className={`brand-word text-[23px] leading-none ${dark ? 'text-white' : 'text-ink'}`}>
         Lens
         <span className="grad-text">Mood</span>

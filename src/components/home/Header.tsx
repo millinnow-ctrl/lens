@@ -12,8 +12,10 @@ export default function Header({ onAccount }: Props) {
   return (
     <header className="flex items-center justify-between gap-2 px-5 pt-1 pb-1">
       <button onClick={onAccount} className="hm-press inline-flex items-center gap-2.5" aria-label="LensMood account">
-        <ApertureMark className="w-16 h-16" tile={false} />
-        <span className="brand-word text-[31px] leading-none text-ink">
+        <ApertureMark className="w-12 h-12" tile={false} />
+        {/* nudge down ~2px: the mark's optical weight (the lens) sits below
+            its bounding-box center, so a flush items-center reads slightly high */}
+        <span className="brand-word text-[25px] leading-none text-ink translate-y-[1.5px]">
           Lens
           <span className="grad-text">Mood</span>
         </span>
