@@ -62,8 +62,8 @@ const drawBrandPill = (
   ctx.fill()
   // gradient brand dot
   const g = ctx.createLinearGradient(cx - bw / 2 + padX, 0, cx - bw / 2 + padX + dot * 2, 0)
-  g.addColorStop(0, '#a855f7')
-  g.addColorStop(1, '#ec4899')
+  g.addColorStop(0, '#0f7d92')
+  g.addColorStop(1, '#2846c8')
   ctx.fillStyle = g
   ctx.beginPath()
   ctx.arc(cx - bw / 2 + padX + dot, cy, dot, 0, Math.PI * 2)

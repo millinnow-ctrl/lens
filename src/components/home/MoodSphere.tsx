@@ -201,7 +201,7 @@ export default function MoodSphere({
             <linearGradient id="orbit" x1="0" y1="0" x2="1" y2="0">
               <stop offset="0" stopColor="#60a5fa" stopOpacity="0" />
               <stop offset="0.2" stopColor="#f2593f" stopOpacity="0.28" />
-              <stop offset="0.5" stopColor="#5f7247" stopOpacity="0.38" />
+              <stop offset="0.5" stopColor="#0f7d92" stopOpacity="0.38" />
               <stop offset="0.8" stopColor="#b02a26" stopOpacity="0.28" />
               <stop offset="1" stopColor="#b02a26" stopOpacity="0" />
             </linearGradient>
@@ -291,7 +291,7 @@ export default function MoodSphere({
                         width="9"
                         height="9"
                         fill="none"
-                        stroke="#5f7247"
+                        stroke="#0f7d92"
                         strokeWidth="1.8"
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -371,7 +371,7 @@ export default function MoodSphere({
                     width: 3,
                     height: isFront ? 14 : 8,
                     background: shot
-                      ? 'rgb(95 114 71 / 0.9)'
+                      ? 'rgb(15 125 146 / 0.9)'
                       : isFront
                         ? 'rgb(38 30 21 / 0.85)'
                         : 'rgb(60 42 24 / 0.22)',

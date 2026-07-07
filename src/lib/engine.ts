@@ -790,7 +790,7 @@ export function renderStyled(
     wx.fillStyle = 'rgba(16,16,16,0.62)'
     wx.fillRect(x, y, bw, bh)
     // brand dot
-    wx.fillStyle = '#8B5CF6'
+    wx.fillStyle = '#0f7d92'
     wx.beginPath()
     wx.arc(x + pad + dot, y + bh / 2, dot, 0, Math.PI * 2)
     wx.fill()

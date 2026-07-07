@@ -23,43 +23,43 @@
   --font-weight-semibold: 640;
   --font-weight-bold: 700;
 
-  /* LensMood palette — "matcha darkroom": warm oatmeal-cream paper, deep
-     matcha for feature blocks, one calm sage accent. Aesthetic, tactile,
+  /* LensMood palette — "ocean darkroom": cool gray-white paper, deep
+     teal for feature blocks, one calm ocean accent. Aesthetic, tactile,
      human — the photograph is still the loudest color. */
-  --color-paper: #f5f1ea; /* app canvas — warm porcelain (warm, not coffee) */
-  --color-surface: #fdfbf7; /* raised cards / sheets — warm near-white */
-  --color-clay: #57683f; /* deep matcha — hero / feature blocks */
-  --color-clay-deep: #3e4b2c; /* pressed / darker matcha */
-  --color-ink: #261e15; /* primary text — warm espresso (not pure black) */
-  --color-ink-soft: #6e6250; /* secondary text — warm taupe */
-  --color-fog: #877b62; /* tertiary / captions — warm grey (>=3:1 on cream) */
-  --color-hairline: #e8e2d8; /* dividers, borders — warm hairline */
-  --color-violet: #5f7247; /* THE accent — matcha sage, 4.7:1 on paper (name kept for reach) */
-  --color-orchid: #66794b; /* sage (eyebrows / logo mid-stop) */
-  --color-magenta: #6f8352; /* lighter matcha — favorites / hearts */
-  /* legacy accent name used across the app — maps to the matcha accent */
-  --color-signal: #5f7247;
-  --color-vf: #201811; /* deepest well — viewfinder / contact sheet (dark espresso) */
-  --color-vf-chrome: #94886f;
+  --color-paper: #eef2f5; /* app canvas — cool gray-white (not pure white) */
+  --color-surface: #ffffff; /* raised cards / sheets — crisp white */
+  --color-clay: #0c5568; /* deep ocean teal — hero / feature blocks */
+  --color-clay-deep: #083c4a; /* pressed / darker teal */
+  --color-ink: #17242d; /* primary text — cool navy-ink (not pure black) */
+  --color-ink-soft: #586974; /* secondary text — cool slate */
+  --color-fog: #6e7c86; /* tertiary / captions — cool grey (>=3:1 on paper) */
+  --color-hairline: #e1e7ec; /* dividers, borders — cool hairline */
+  --color-violet: #0e7487; /* THE accent — ocean teal, 4.6:1 on paper (name kept for reach) */
+  --color-orchid: #1c8397; /* mid teal (eyebrows / logo mid-stop) */
+  --color-magenta: #39a6bb; /* lighter teal — favorites / hearts */
+  /* legacy accent name used across the app — maps to the ocean accent */
+  --color-signal: #0e7487;
+  --color-vf: #141a1f; /* deepest well — viewfinder / contact sheet (cool charcoal) */
+  --color-vf-chrome: #8a96a0;
 
   --radius-xs: 10px;
 
-  --shadow-modal: 0 1px 0 rgb(38 30 21 / 0.05), 0 24px 64px -16px rgb(38 30 21 / 0.28);
+  --shadow-modal: 0 1px 0 rgb(18 33 43 / 0.05), 0 24px 64px -16px rgb(18 33 43 / 0.26);
 
-  /* ---- elevation system: warm, layered, tactile (prints on a kraft bench).
+  /* ---- elevation system: cool, layered, tactile (prints on a steel bench).
      Each tier = a tight contact shadow + a soft ambient cast + a top
      material highlight, so a rounded rect reads as a physical object,
-     not a flat fill. Shadow color is a warm brown (60 42 24), never grey. */
-  --shadow-e1: 0 1px 2px rgb(60 42 24 / 0.14), 0 5px 12px -2px rgb(60 42 24 / 0.16),
+     not a flat fill. Shadow color is a cool slate (18 33 43), never brown. */
+  --shadow-e1: 0 1px 2px rgb(18 33 43 / 0.10), 0 5px 12px -2px rgb(18 33 43 / 0.12),
     inset 0 1px 0 rgb(255 255 255 / 0.6);
-  --shadow-e2: 0 2px 4px rgb(60 42 24 / 0.15), 0 12px 26px -5px rgb(60 42 24 / 0.22),
+  --shadow-e2: 0 2px 4px rgb(18 33 43 / 0.11), 0 12px 26px -5px rgb(18 33 43 / 0.16),
     inset 0 1px 0 rgb(255 255 255 / 0.65);
-  --shadow-e3: 0 3px 6px rgb(60 42 24 / 0.16), 0 22px 46px -8px rgb(60 42 24 / 0.28),
+  --shadow-e3: 0 3px 6px rgb(18 33 43 / 0.12), 0 22px 46px -8px rgb(18 33 43 / 0.20),
     inset 0 1px 0 rgb(255 255 255 / 0.6);
-  --shadow-e4: 0 5px 10px rgb(60 42 24 / 0.16), 0 38px 72px -14px rgb(60 42 24 / 0.34),
+  --shadow-e4: 0 5px 10px rgb(18 33 43 / 0.12), 0 38px 72px -14px rgb(18 33 43 / 0.26),
     inset 0 1px 0 rgb(255 255 255 / 0.55);
-  --shadow-press: inset 0 2px 6px rgb(60 42 24 / 0.18), 0 1px 1px rgb(60 42 24 / 0.05);
-  --edge-hairline: 1px solid rgb(60 42 24 / 0.10);
+  --shadow-press: inset 0 2px 6px rgb(18 33 43 / 0.14), 0 1px 1px rgb(18 33 43 / 0.05);
+  --edge-hairline: 1px solid rgb(18 33 43 / 0.09);
 }
 
 html {
@@ -87,7 +87,7 @@ body::before {
   z-index: 0;
   pointer-events: none;
   opacity: 0.5;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.24 0 0 0 0 0.17 0 0 0 0 0.09 0 0 0 0.045 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.09 0 0 0 0 0.13 0 0 0 0 0.17 0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)'/%3E%3C/svg%3E");
   background-size: 240px 240px;
 }
 /* app content sits above the tooth */
@@ -128,9 +128,9 @@ summary {
 .skeleton {
   background: linear-gradient(
     100deg,
-    rgb(60 42 24 / 0.05) 30%,
-    rgb(60 42 24 / 0.11) 50%,
-    rgb(60 42 24 / 0.05) 70%
+    rgb(18 33 43 / 0.05) 30%,
+    rgb(18 33 43 / 0.11) 50%,
+    rgb(18 33 43 / 0.05) 70%
   );
   background-size: 200% 100%;
   animation: lm-shimmer 1.4s ease-in-out infinite;
@@ -210,7 +210,7 @@ summary {
 }
 
 ::selection {
-  background: rgb(95 114 71 / 0.20);
+  background: rgb(15 125 146 / 0.20);
 }
 
 :focus-visible {
@@ -220,40 +220,40 @@ summary {
 
 /* ---------- brand gradient helpers ---------- */
 
-/* deep-red → red → warm coral, e.g. the "Mood" in LensMood */
+/* deep teal → ocean → bright teal, e.g. the "Mood" in LensMood */
 .grad-text {
-  background: linear-gradient(96deg, #465434 0%, #5f7247 52%, #7d9159 100%);
+  background: linear-gradient(96deg, #0c6376 0%, #0f7d92 52%, #2ea0b3 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-/* glossy film-red fill — the addicting primary action */
+/* glossy ocean fill — the addicting primary action */
 .grad-fill {
-  background: linear-gradient(180deg, #6c8050 0%, #526440 100%);
+  background: linear-gradient(180deg, #128aa0 0%, #0c5e70 100%);
 }
 
-/* warm material lift behind primary actions / focal cards — depth, not neon */
+/* cool material lift behind primary actions / focal cards — depth, not neon */
 .aura {
   box-shadow:
-    0 4px 10px rgb(60 42 24 / 0.16),
-    0 14px 28px -8px rgb(60 42 24 / 0.28);
+    0 4px 10px rgb(18 33 43 / 0.14),
+    0 14px 28px -8px rgb(18 33 43 / 0.24);
 }
 .aura-soft {
   box-shadow:
-    0 3px 8px rgb(60 42 24 / 0.14),
-    0 10px 20px -6px rgb(60 42 24 / 0.20);
+    0 3px 8px rgb(18 33 43 / 0.12),
+    0 10px 20px -6px rgb(18 33 43 / 0.18);
 }
 
-/* warm gradient ring around a pill/card: wrap content in an element with this class */
+/* ocean gradient ring around a pill/card: wrap content in an element with this class */
 .glow-ring {
   position: relative;
   border-radius: 999px;
   padding: 2px;
-  background: linear-gradient(120deg, #7d9159 0%, #5f7247 45%, #465434 100%);
+  background: linear-gradient(120deg, #2ea0b3 0%, #0f7d92 45%, #0c6376 100%);
   box-shadow:
-    0 6px 22px rgb(95 114 71 / 0.35),
-    0 6px 26px rgb(70 84 52 / 0.18);
+    0 6px 22px rgb(15 125 146 / 0.35),
+    0 6px 26px rgb(12 85 104 / 0.18);
 }
 .glow-ring-card {
   border-radius: 28px;
@@ -384,11 +384,11 @@ summary {
   border: 1px solid var(--color-ink);
 }
 .btn-primary:hover {
-  background: #241d30;
-  border-color: #241d30;
+  background: #1b2a33;
+  border-color: #1b2a33;
 }
 .btn-primary:disabled {
-  background: rgb(23 19 31 / 0.08);
+  background: rgb(23 36 45 / 0.08);
   border-color: transparent;
   color: var(--color-fog);
   cursor: default;
@@ -402,16 +402,16 @@ summary {
   border: 1px solid transparent;
 }
 .btn-hero:hover {
-  background: #241d30;
+  background: #1b2a33;
 }
 
 .btn-outline {
   background: var(--color-surface);
   color: var(--color-ink);
-  border: 1px solid rgb(23 19 31 / 0.12);
+  border: 1px solid rgb(23 36 45 / 0.12);
 }
 .btn-outline:hover {
-  border-color: rgb(23 19 31 / 0.3);
+  border-color: rgb(23 36 45 / 0.3);
 }
 .btn-outline:disabled {
   opacity: 0.35;
@@ -440,15 +440,15 @@ summary {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   padding: 3px 8px;
-  border: 1px solid rgb(23 19 31 / 0.1);
+  border: 1px solid rgb(23 36 45 / 0.1);
   border-radius: 999px;
   color: var(--color-ink-soft);
   background: var(--color-surface);
 }
 .tag-signal {
   color: var(--color-violet);
-  border-color: rgb(95 114 71 / 0.35);
-  background: rgb(95 114 71 / 0.10);
+  border-color: rgb(15 125 146 / 0.35);
+  background: rgb(15 125 146 / 0.10);
 }
 .tag-fill {
   background: var(--color-ink);
@@ -508,8 +508,8 @@ input[type='range'].lm-slider::-webkit-slider-runnable-track {
     to right,
     var(--color-violet) 0%,
     var(--color-violet) var(--fill, 50%),
-    rgb(23 19 31 / 0.1) var(--fill, 50%),
-    rgb(23 19 31 / 0.1) 100%
+    rgb(23 36 45 / 0.1) var(--fill, 50%),
+    rgb(23 36 45 / 0.1) 100%
   );
 }
 input[type='range'].lm-slider::-webkit-slider-thumb {
@@ -520,8 +520,8 @@ input[type='range'].lm-slider::-webkit-slider-thumb {
   margin-top: -7px;
   border-radius: 999px;
   background: #ffffff;
-  border: 1.5px solid rgb(23 19 31 / 0.12);
-  box-shadow: 0 1px 4px rgb(23 19 31 / 0.18);
+  border: 1.5px solid rgb(23 36 45 / 0.12);
+  box-shadow: 0 1px 4px rgb(23 36 45 / 0.18);
   transition: transform 0.12s ease;
 }
 input[type='range'].lm-slider::-webkit-slider-thumb:hover {
@@ -530,7 +530,7 @@ input[type='range'].lm-slider::-webkit-slider-thumb:hover {
 input[type='range'].lm-slider::-moz-range-track {
   height: 4px;
   border-radius: 999px;
-  background: rgb(23 19 31 / 0.1);
+  background: rgb(23 36 45 / 0.1);
 }
 input[type='range'].lm-slider::-moz-range-progress {
   height: 4px;
@@ -542,8 +542,8 @@ input[type='range'].lm-slider::-moz-range-thumb {
   height: 16px;
   border-radius: 999px;
   background: #ffffff;
-  border: 1.5px solid rgb(23 19 31 / 0.15);
-  box-shadow: 0 1px 4px rgb(23 19 31 / 0.18);
+  border: 1.5px solid rgb(23 36 45 / 0.15);
+  box-shadow: 0 1px 4px rgb(23 36 45 / 0.18);
 }
 
 /* ---------- marquee carousel ---------- */
@@ -929,13 +929,13 @@ input[type='range'].lm-slider::-moz-range-thumb {
    blur/saturation + a bright top rim = the lens-like material. ---------- */
 .glass {
   position: relative;
-  background: linear-gradient(180deg, rgb(255 255 255 / 0.52), rgb(255 253 248 / 0.26));
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.52), rgb(255 255 255 / 0.26));
   backdrop-filter: blur(18px) saturate(1.55);
   -webkit-backdrop-filter: blur(18px) saturate(1.55);
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.8),
-    inset 0 -1px 1px rgb(60 42 24 / 0.06),
-    0 2px 10px rgb(60 42 24 / 0.12);
+    inset 0 -1px 1px rgb(18 33 43 / 0.06),
+    0 2px 10px rgb(18 33 43 / 0.12);
 }
 /* glass for dark grounds (over photos): a smoked lens with a lit top edge */
 .glass-dark {
@@ -993,38 +993,38 @@ body[data-sheet-open='true'] .hm-dock {
 
 /* cine film edge — a dark strip with backlit sprocket holes */
 .sprockets {
-  background-color: #120d08;
-  background-image: radial-gradient(circle at 7px 50%, rgb(241 232 214 / 0.8) 2.1px, transparent 2.7px);
+  background-color: #0d1418;
+  background-image: radial-gradient(circle at 7px 50%, rgb(224 232 238 / 0.8) 2.1px, transparent 2.7px);
   background-size: 15px 100%;
   background-repeat: repeat-x;
 }
 
-/* ---------- brass: the warm action metal from the reference. Gold carries
-   ACTIONS (primary buttons, the active selector, the FAB); film-red stays
-   the signal color (LIVE, TODAY, destructive). ---------- */
+/* ---------- primary hero action — a clean porcelain pill. On the dark hero
+   video a crisp white button reads premium (Apple "Get" energy) and has no
+   bright rim to look cropped. Gold now lives ONLY in the rotating headline
+   word (.serif-accent). Class name kept for reach (LiveHero CTA). ---------- */
 .btn-brass {
-  background: linear-gradient(180deg, #f2c880 0%, #e0a34e 55%, #cf8d33 100%);
-  color: #3a2410;
-  border: 1px solid rgb(255 255 255 / 0.45);
+  background: #ffffff;
+  color: var(--color-ink);
+  border: 1px solid rgb(18 33 43 / 0.05);
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.65),
-    inset 0 -2px 4px rgb(120 70 20 / 0.28),
-    0 4px 12px rgb(160 100 30 / 0.35);
+    0 1px 2px rgb(18 33 43 / 0.12),
+    0 10px 26px -8px rgb(18 33 43 / 0.45);
 }
 .btn-brass:hover {
-  background: linear-gradient(180deg, #f5cf8e 0%, #e3a955 55%, #d29338 100%);
+  background: #f4f8fa;
 }
 
-/* the glassy selector puck that sits over the active tab — gold-tinted
-   glass with a refracted rim, per the reference */
+/* the glassy selector puck that sits over the active tab — clean white glass
+   with a soft rim; a neutral iOS segmented-control puck on the cool ground */
 .tab-puck {
-  background: linear-gradient(180deg, rgb(250 216 150 / 0.75), rgb(235 178 95 / 0.55));
-  backdrop-filter: blur(10px) saturate(1.4);
-  -webkit-backdrop-filter: blur(10px) saturate(1.4);
-  border: 1px solid rgb(255 255 255 / 0.7);
+  background: rgb(255 255 255 / 0.94);
+  backdrop-filter: blur(10px) saturate(1.2);
+  -webkit-backdrop-filter: blur(10px) saturate(1.2);
+  border: 1px solid rgb(18 33 43 / 0.05);
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.7),
-    0 2px 8px rgb(160 100 30 / 0.3);
+    inset 0 1px 0 rgb(255 255 255 / 0.8),
+    0 2px 8px rgb(18 33 43 / 0.16);
 }
 
 /* the warm word inside a headline — brass gold, same SF cut as its line */
@@ -1044,7 +1044,7 @@ body[data-sheet-open='true'] .hm-dock {
 /* browsers without backdrop-filter get a solid fallback that stays legible */
 @supports not (backdrop-filter: blur(1px)) {
   .glass {
-    background: rgb(253 251 247 / 0.94);
+    background: rgb(247 250 252 / 0.94);
   }
   .glass-dark {
     background: rgb(24 18 12 / 0.78);
@@ -1054,13 +1054,13 @@ body[data-sheet-open='true'] .hm-dock {
 .hm-pill {
   position: relative;
   border-radius: 999px;
-  background: linear-gradient(180deg, rgb(255 255 255 / 0.52), rgb(255 253 248 / 0.26));
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.52), rgb(255 255 255 / 0.26));
   backdrop-filter: blur(18px) saturate(1.55);
   -webkit-backdrop-filter: blur(18px) saturate(1.55);
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.8),
-    inset 0 -1px 1px rgb(60 42 24 / 0.06),
-    0 2px 10px rgb(60 42 24 / 0.12);
+    inset 0 -1px 1px rgb(18 33 43 / 0.06),
+    0 2px 10px rgb(18 33 43 / 0.12);
 }
 .hm-pill::before {
   content: '';
@@ -1090,13 +1090,13 @@ body[data-sheet-open='true'] .hm-dock {
   height: 36px;
   padding: 0 15px;
   border-radius: 999px;
-  background: linear-gradient(180deg, rgb(255 255 255 / 0.5), rgb(255 253 248 / 0.24));
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.5), rgb(255 255 255 / 0.24));
   backdrop-filter: blur(16px) saturate(1.5);
   -webkit-backdrop-filter: blur(16px) saturate(1.5);
   border: 1px solid rgb(255 255 255 / 0.6);
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.75),
-    0 1px 6px rgb(60 42 24 / 0.08);
+    0 1px 6px rgb(18 33 43 / 0.08);
   font-size: 13px;
   font-weight: 560;
   color: var(--color-ink-soft);
@@ -1122,32 +1122,32 @@ body[data-sheet-open='true'] .hm-dock {
 .hm-drop {
   position: relative;
   border-radius: 28px;
-  border: 1px dashed rgb(60 42 24 / 0.22);
-  background: rgb(60 42 24 / 0.03);
-  box-shadow: inset 0 2px 8px rgb(60 42 24 / 0.08);
+  border: 1px dashed rgb(18 33 43 / 0.22);
+  background: rgb(18 33 43 / 0.03);
+  box-shadow: inset 0 2px 8px rgb(18 33 43 / 0.08);
 }
 
 .hm-cta {
   box-shadow:
     0 2px 6px rgb(38 30 21 / 0.16),
-    0 10px 28px rgb(95 114 71 / 0.30);
+    0 10px 28px rgb(15 125 146 / 0.30);
 }
 
 /* floating pill tab bar — lifted off the bench, like the reference */
 .hm-dock {
-  background: linear-gradient(180deg, rgb(255 255 253 / 0.82), rgb(250 248 243 / 0.68));
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.82), rgb(244 247 249 / 0.68));
   backdrop-filter: blur(40px) saturate(1.6);
   -webkit-backdrop-filter: blur(40px) saturate(1.6);
   border: 1px solid rgb(255 255 255 / 0.75);
   border-radius: 30px;
   box-shadow:
-    0 2px 5px rgb(60 42 24 / 0.12),
-    0 18px 38px -8px rgb(60 42 24 / 0.3),
+    0 2px 5px rgb(18 33 43 / 0.12),
+    0 18px 38px -8px rgb(18 33 43 / 0.3),
     inset 0 1px 0 rgb(255 255 255 / 0.85);
 }
 @supports not (backdrop-filter: blur(1px)) {
   .hm-dock {
-    background: rgb(253 251 247 / 0.96);
+    background: rgb(247 250 252 / 0.96);
   }
 }
 

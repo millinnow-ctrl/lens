@@ -58,7 +58,7 @@ export default function CategoryChips({ active, onSelect }: Props) {
               )}
               <span
                 className={`relative text-[12.5px] whitespace-nowrap transition-colors duration-150 ${
-                  on ? 'text-[#3a2410] font-semibold' : 'text-ink-soft font-medium'
+                  on ? 'text-violet font-semibold' : 'text-ink-soft font-medium'
                 }`}
               >
                 {c.label}

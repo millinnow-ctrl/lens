@@ -75,7 +75,14 @@ export default function BottomNav({ variant = 'fixed', onAccount, onCreate, clas
                   </svg>
                 </motion.span>
               ) : (
-                <Icon size={21} className={active ? 'text-violet' : 'text-fog'} />
+                // active tab sits in a soft gray pill, like an iOS tab bar
+                <span
+                  className={`flex items-center justify-center rounded-full px-3.5 h-7 transition-colors ${
+                    active ? 'bg-[rgb(23_36_45/0.06)]' : ''
+                  }`}
+                >
+                  <Icon size={21} className={active ? 'text-violet' : 'text-fog'} />
+                </span>
               )}
               <span
                 className={`text-[10.5px] leading-none ${

@@ -9,18 +9,18 @@ const config: CapacitorConfig = {
     // env(safe-area-inset-top) — 'automatic' would inset the whole webview
     // below the status bar and double the gap above the header
     contentInset: 'never',
-    backgroundColor: "#f6f5f1",
+    backgroundColor: "#eef2f5",
   },
   plugins: {
     SplashScreen: {
       launchShowDuration: 900,
       launchAutoHide: true,
-      backgroundColor: "#f6f5f1",
+      backgroundColor: "#eef2f5",
       showSpinner: false,
     },
     StatusBar: {
       style: 'LIGHT',
-      backgroundColor: "#f6f5f1",
+      backgroundColor: "#eef2f5",
       overlaysWebView: true,
     },
   },

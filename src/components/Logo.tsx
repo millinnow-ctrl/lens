@@ -37,17 +37,17 @@ export function ApertureMark({
     <svg viewBox="0 0 48 48" className={`${className} select-none`} aria-hidden>
       <defs>
         <linearGradient id={ring} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#8fc31f" />
-          <stop offset="1" stopColor="#5a8f00" />
+          <stop offset="0" stopColor="#33b3c8" />
+          <stop offset="1" stopColor="#0b6a7d" />
         </linearGradient>
         <radialGradient id={glass} cx="0.38" cy="0.3" r="0.85">
-          <stop offset="0" stopColor="#b06cf0" />
-          <stop offset="0.55" stopColor="#7a1fd0" />
-          <stop offset="1" stopColor="#3c0a70" />
+          <stop offset="0" stopColor="#5b8ff0" />
+          <stop offset="0.55" stopColor="#2846c8" />
+          <stop offset="1" stopColor="#122a6e" />
         </radialGradient>
         <radialGradient id={core} cx="0.4" cy="0.35" r="0.9">
-          <stop offset="0" stopColor="#c084fc" />
-          <stop offset="1" stopColor="#6b21a8" />
+          <stop offset="0" stopColor="#7aa8ff" />
+          <stop offset="1" stopColor="#1f3f96" />
         </radialGradient>
         <clipPath id={clip}>
           <circle cx="23" cy="26" r="10.2" />
@@ -65,13 +65,13 @@ export function ApertureMark({
         fill={`url(#${ring})`}
       />
 
-      {/* lens barrel with an inscribed matcha ring */}
-      <circle cx="23" cy="26" r="13.2" fill="#170e2c" />
-      <circle cx="23" cy="26" r="11.4" fill="none" stroke="#74a80e" strokeWidth="1.5" />
+      {/* lens barrel with an inscribed teal ring */}
+      <circle cx="23" cy="26" r="13.2" fill="#0b1322" />
+      <circle cx="23" cy="26" r="11.4" fill="none" stroke="#1a8ba0" strokeWidth="1.5" />
 
-      {/* violet glass, stepped elements, glossy sweep */}
+      {/* cobalt-blue glass, stepped elements, glossy sweep */}
       <circle cx="23" cy="26" r="10.2" fill={`url(#${glass})`} />
-      <circle cx="23" cy="26" r="6.6" fill="none" stroke="#2a0850" strokeWidth="1.4" strokeOpacity="0.75" />
+      <circle cx="23" cy="26" r="6.6" fill="none" stroke="#0a1c4a" strokeWidth="1.4" strokeOpacity="0.75" />
       <circle cx="23" cy="26" r="3.7" fill={`url(#${core})`} />
       <g clipPath={`url(#${clip})`}>
         <ellipse cx="28" cy="19.5" rx="9.5" ry="5.2" transform="rotate(-32 28 19.5)" fill="#ffffff" opacity="0.26" />
@@ -101,14 +101,14 @@ export function ApertureMarkVector({
   const seams = Array.from({ length: 6 }, (_, i) => bladeSeam(i, 14.2, 5.6, 24, 24))
   return (
     <svg viewBox="0 0 48 48" className={className} aria-hidden>
-      {tile && <rect x="0.5" y="0.5" width="47" height="47" rx="13" fill="#241c12" />}
-      <circle cx="24" cy="24" r="17.6" fill="none" stroke="#5f7247" strokeWidth="2.4" />
+      {tile && <rect x="0.5" y="0.5" width="47" height="47" rx="13" fill="#0e1c22" />}
+      <circle cx="24" cy="24" r="17.6" fill="none" stroke="#0f7d92" strokeWidth="2.4" />
       {/* solid blade annulus with twisted seams cut through it */}
-      <circle cx="24" cy="24" r="9.9" fill="none" stroke={tile ? '#f3ecd9' : '#e6ddc8'} strokeWidth="8.6" />
+      <circle cx="24" cy="24" r="9.9" fill="none" stroke={tile ? '#e8eef2' : '#dbe4ea'} strokeWidth="8.6" />
       {seams.map((d) => (
-        <path key={d} d={d} stroke="#241c12" strokeWidth="1.7" strokeLinecap="round" />
+        <path key={d} d={d} stroke="#0e1c22" strokeWidth="1.7" strokeLinecap="round" />
       ))}
-      <circle cx="24" cy="24" r="6" fill="#57683f" />
+      <circle cx="24" cy="24" r="6" fill="#0c5568" />
     </svg>
   )
 }
