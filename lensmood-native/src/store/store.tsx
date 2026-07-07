@@ -34,6 +34,7 @@ import {
   type ReactNode,
 } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { Directory, File, Paths } from 'expo-file-system'
 import { getStyle } from '@/engine/styles'
 import type { StyleParams } from '@/engine/types'
 
@@ -84,9 +85,11 @@ export interface Persisted {
   presets: SavedPreset[]
   favorites: string[]
   user: User | null
-  /** every mood ever developed — fuels the collection meter and marks the
-   *  first-ever develop (which is always free) */
+  /** every mood ever developed — fuels the collection meter */
   tried: string[]
+  /** the one free first develop has been granted; free samples never set
+   *  this, so trying a sample can't consume the perk */
+  usedFirstFree: boolean
   streak: Streak
 }
 
@@ -181,6 +184,11 @@ export function sanitize(raw: unknown, fallback: Persisted): Persisted {
         ? { name: (p.user as User).name, email: (p.user as User).email }
         : null,
     tried: strArray(p.tried),
+    // migration: slices written before this flag existed infer it from usage
+    usedFirstFree:
+      typeof p.usedFirstFree === 'boolean'
+        ? p.usedFirstFree
+        : strArray(p.tried).length > 0 || (Array.isArray(p.history) && p.history.length > 0),
     streak:
       streak && isNum(streak.count) && isStr(streak.last)
         ? { count: Math.max(0, streak.count), last: streak.last }
@@ -198,6 +206,7 @@ export function freshPersisted(): Persisted {
     favorites: [],
     user: null,
     tried: [],
+    usedFirstFree: false,
     streak: { count: 0, last: '' },
   }
 }
@@ -238,6 +247,27 @@ export interface AppState extends Persisted {
 
 const Ctx = createContext<AppState | null>(null)
 
+/** every develop/print writes a JPEG to the cache dir and nothing ever
+ *  deleted them — sweep files older than a week that no gallery entry still
+ *  references, so the footprint stays bounded. Best-effort, never throws. */
+const PRUNE_AGE_MS = 7 * 24 * 3600 * 1000
+function pruneCache(history: HistoryEntry[]) {
+  try {
+    const referenced = new Set(history.map((h) => h.thumb))
+    const now = Date.now()
+    for (const entry of new Directory(Paths.cache).list()) {
+      if (!(entry instanceof File)) continue
+      if (!/lensmood-.*\.jpg$/.test(entry.name)) continue
+      if (referenced.has(entry.uri)) continue
+      const t = entry.modificationTime ?? 0
+      const modMs = t > 1e12 ? t : t * 1000 // platform units vary
+      if (now - modMs > PRUNE_AGE_MS) entry.delete()
+    }
+  } catch {
+    /* cache sweep is housekeeping — never let it break launch */
+  }
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
   const [persisted, setPersisted] = useState<Persisted>(freshPersisted)
   const [ready, setReady] = useState(false)
@@ -261,6 +291,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setPersisted(next)
         setReady(true)
       }
+      pruneCache(next.history)
     })()
     return () => {
       cancelled = true
@@ -289,7 +320,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const isPaid = persisted.plan !== 'free'
   const hasVideoPlan = persisted.plan === 'pro' || persisted.plan === 'studio'
-  const firstDevelopFree = persisted.tried.length === 0 && persisted.history.length === 0
+  const firstDevelopFree = !persisted.usedFirstFree
 
   /* month-rollover aware: if the app has stayed open across a month boundary,
    * the stale counter reads as zero used */
@@ -298,8 +329,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const spendCredit = useCallback((): boolean => {
     if (persisted.plan !== 'free') return true
-    // the very first develop is always on the house — the aha moment
-    if (persisted.tried.length === 0 && persisted.history.length === 0) return true
+    // the very first develop is always on the house — the aha moment.
+    // Granted via an explicit flag so free samples never consume it.
+    if (!persisted.usedFirstFree) {
+      setPersisted((prev) => ({ ...prev, usedFirstFree: true }))
+      return true
+    }
     const used = persisted.creditsMonth === monthKey() ? persisted.creditsUsed : 0
     if (FREE_CREDITS - used <= 0) return false
     setPersisted((prev) => {
@@ -311,13 +346,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     })
     return true
-  }, [
-    persisted.plan,
-    persisted.creditsMonth,
-    persisted.creditsUsed,
-    persisted.tried.length,
-    persisted.history.length,
-  ])
+  }, [persisted.plan, persisted.creditsMonth, persisted.creditsUsed, persisted.usedFirstFree])
 
   const addHistory = useCallback((e: Omit<HistoryEntry, 'id' | 'date'>) => {
     setPersisted((prev) => {

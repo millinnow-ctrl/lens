@@ -19,6 +19,7 @@ import {
 import { Stack, router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as Sharing from 'expo-sharing'
+import { File } from 'expo-file-system'
 import { useApp, haptics, type HistoryEntry } from '@/store'
 import BottomDock from '@/components/BottomDock'
 import { colors } from '@/theme/colors'
@@ -34,8 +35,20 @@ export default function Gallery() {
   const cell = (screenW - 16 * 2 - 10 * 2) / 3
 
   const share = async (entry: HistoryEntry) => {
-    if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(entry.thumb, { mimeType: 'image/jpeg', UTI: 'public.jpeg' })
+    try {
+      // iOS may purge the cache directory — the persisted uri can be gone
+      if (entry.thumb.startsWith('file://') && !new File(entry.thumb).exists) {
+        Alert.alert(
+          'Print faded',
+          'iOS cleared this develop from temporary storage. Re-develop the photo to share it again.',
+        )
+        return
+      }
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(entry.thumb, { mimeType: 'image/jpeg', UTI: 'public.jpeg' })
+      }
+    } catch {
+      Alert.alert('Share failed', 'This develop could not be shared.')
     }
   }
 

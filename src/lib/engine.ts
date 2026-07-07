@@ -267,7 +267,11 @@ export function renderStyled(
   const curveAmt = (ch.curve ?? 0) * s
   const split = ch.splitTone
   const splitAmt = (split?.amount ?? 0) * s
-  const fringePx = Math.round((ch.fringe ?? 0) * s * ref)
+  // lens physics — how this stock's glass misbehaves (all optional, 0 = off)
+  const optics = { ca: 0, cornerSoft: 0, distortion: 0, flareAniso: 0, ...ch.optics }
+  // legacy fringe (px at 1000px ref) folds into radial CA: corner shift in px
+  const caPx = ((ch.fringe ?? 0) + optics.ca * 3) * s * ref
+  const kDist = optics.distortion * 0.09 * s
   const mtx = ch.colorMatrix // 3×3 channel crosstalk (real film mixes channels)
   const hiDesat = 0.6 * s // film bleaches highlights toward paper-white
   const doMeter = Math.abs(ev) > 0.02 || doLevels || doTone
@@ -286,25 +290,55 @@ export function renderStyled(
   // emulsion's dye preferences (Kodachrome's deep reds, Neon's cyan bloom)
   const bands = ch.bands
   const doBands = !!bands && !ch.bw && s > 0.02
-  if (curveAmt > 0.02 || splitAmt > 0.02 || fringePx >= 1 || mtx || hiDesat > 0.02 || doMeter || doWb || doVib || doSdn || doBands) {
+  /* 1.4 — lens geometry: barrel distortion + radial chromatic aberration in
+     one remap. Real glass bends the image (cheap wide lenses bow lines
+     outward) and focuses wavelengths at slightly different scales (magenta/
+     green fringes that GROW toward the corners, zero at center) — a filter
+     recolors pixels, a lens moves them. */
+  if (kDist > 0.0015 || caPx >= 0.5) {
     const img = ctx.getImageData(0, 0, w, h)
     const d = img.data
-
-    if (fringePx >= 1) {
-      // chromatic fringe: red shifts right, blue shifts left
-      const orig = new Uint8ClampedArray(d)
-      const stride = w * 4
-      for (let y = 0; y < h; y++) {
-        const row = y * stride
-        for (let x = 0; x < w; x++) {
-          const px = row + x * 4
-          const xr = Math.max(0, x - fringePx)
-          const xb = Math.min(w - 1, x + fringePx)
-          d[px] = orig[row + xr * 4]
-          d[px + 2] = orig[row + xb * 4 + 2]
-        }
+    const orig = new Uint8ClampedArray(d)
+    const cx = w / 2
+    const cy = h / 2
+    const rmax = Math.sqrt(cx * cx + cy * cy)
+    const caF = caPx / rmax
+    const stride = w * 4
+    // bilinear tap of one channel from the untouched copy
+    const tap = (fx: number, fy: number, c: number): number => {
+      const x0 = Math.max(0, Math.min(w - 1, Math.floor(fx)))
+      const y0 = Math.max(0, Math.min(h - 1, Math.floor(fy)))
+      const x1 = Math.min(w - 1, x0 + 1)
+      const y1 = Math.min(h - 1, y0 + 1)
+      const tx = fx - x0
+      const ty = fy - y0
+      const a = orig[y0 * stride + x0 * 4 + c]
+      const b = orig[y0 * stride + x1 * 4 + c]
+      const p = orig[y1 * stride + x0 * 4 + c]
+      const q = orig[y1 * stride + x1 * 4 + c]
+      return a + (b - a) * tx + (p - a + (q - b - (p - a)) * tx) * ty
+    }
+    for (let y = 0; y < h; y++) {
+      const row = y * stride
+      const dy = y - cy
+      for (let x = 0; x < w; x++) {
+        const dx = x - cx
+        const d2 = (dx * dx + dy * dy) / (rmax * rmax)
+        const sb = 1 + kDist * d2 // barrel: edges sample outward → lines bow
+        const sR = sb * (1 - caF * d2)
+        const sB = sb * (1 + caF * d2)
+        const px = row + x * 4
+        d[px] = tap(cx + dx * sR, cy + dy * sR, 0)
+        if (kDist > 0.0015) d[px + 1] = tap(cx + dx * sb, cy + dy * sb, 1)
+        d[px + 2] = tap(cx + dx * sB, cy + dy * sB, 2)
       }
     }
+    ctx.putImageData(img, 0, 0)
+  }
+
+  if (curveAmt > 0.02 || splitAmt > 0.02 || mtx || hiDesat > 0.02 || doMeter || doWb || doVib || doSdn || doBands) {
+    const img = ctx.getImageData(0, 0, w, h)
+    const d = img.data
 
     const lut = responseLut(
       curveAmt,
@@ -473,6 +507,34 @@ export function renderStyled(
     }
   }
 
+  /* 1.7 — field curvature: cheap glass can't hold the whole field in focus
+     at once, so the corners drift soft while the center stays crisp. A
+     blurred copy is laid back over the frame through a radial mask that is
+     empty at center and opens toward the corners. */
+  if (optics.cornerSoft > 0.02 && s > 0.02) {
+    const soft = optics.cornerSoft * s
+    const cs = document.createElement('canvas')
+    cs.width = w
+    cs.height = h
+    const cxx = cs.getContext('2d')!
+    cxx.filter = `blur(${(2.6 * soft * ref + 0.8).toFixed(2)}px)`
+    cxx.drawImage(canvas, 0, 0)
+    cxx.filter = 'none'
+    // carve the sharp center out of the blur layer
+    cxx.globalCompositeOperation = 'destination-out'
+    const rmax = Math.sqrt(w * w + h * h) / 2
+    const hole = cxx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, rmax)
+    hole.addColorStop(0, 'rgba(0,0,0,1)')
+    hole.addColorStop(Math.max(0.05, 0.62 - soft * 0.2), 'rgba(0,0,0,1)')
+    hole.addColorStop(1, 'rgba(0,0,0,0)')
+    cxx.fillStyle = hole
+    cxx.fillRect(0, 0, w, h)
+    ctx.save()
+    ctx.globalAlpha = Math.min(1, 0.9 * soft)
+    ctx.drawImage(cs, 0, 0)
+    ctx.restore()
+  }
+
   /* 1.75 — subject separation: when the on-device model found a face, the
      lens renders a shallow depth of field — the subject stays sharp and the
      background falls softly out of focus, the way a fast prime does. A blurred
@@ -595,12 +657,30 @@ export function renderStyled(
         const r = Math.round(chroma(lt.tint[0]))
         const g = Math.round(chroma(lt.tint[1]))
         const bch = Math.round(chroma(lt.tint[2]))
-        const glow = ctx.createRadialGradient(lt.x * w, lt.y * h, 0, lt.x * w, lt.y * h, lr)
-        glow.addColorStop(0, `rgba(${r},${g},${bch},${a.toFixed(3)})`)
-        glow.addColorStop(0.5, `rgba(${r},${g},${bch},${(a * 0.35).toFixed(3)})`)
-        glow.addColorStop(1, `rgba(${r},${g},${bch},0)`)
-        ctx.fillStyle = glow
-        ctx.fillRect(0, 0, w, h)
+        if (optics.flareAniso > 0.02) {
+          // uncoated/cheap glass streaks its flare outward along the axis
+          // through frame center — each glow is stretched away from center,
+          // squeezed across it, so lamps at the edges smear like real flare
+          const ang = Math.atan2(lt.y * h - h / 2, lt.x * w - w / 2)
+          ctx.save()
+          ctx.translate(lt.x * w, lt.y * h)
+          ctx.rotate(ang)
+          ctx.scale(1 + optics.flareAniso * 1.4 * s, Math.max(0.55, 1 - optics.flareAniso * 0.35 * s))
+          const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, lr)
+          glow.addColorStop(0, `rgba(${r},${g},${bch},${a.toFixed(3)})`)
+          glow.addColorStop(0.5, `rgba(${r},${g},${bch},${(a * 0.35).toFixed(3)})`)
+          glow.addColorStop(1, `rgba(${r},${g},${bch},0)`)
+          ctx.fillStyle = glow
+          ctx.fillRect(-(w + h) * 2, -(w + h) * 2, (w + h) * 4, (w + h) * 4)
+          ctx.restore()
+        } else {
+          const glow = ctx.createRadialGradient(lt.x * w, lt.y * h, 0, lt.x * w, lt.y * h, lr)
+          glow.addColorStop(0, `rgba(${r},${g},${bch},${a.toFixed(3)})`)
+          glow.addColorStop(0.5, `rgba(${r},${g},${bch},${(a * 0.35).toFixed(3)})`)
+          glow.addColorStop(1, `rgba(${r},${g},${bch},0)`)
+          ctx.fillStyle = glow
+          ctx.fillRect(0, 0, w, h)
+        }
       }
       ctx.restore()
     }

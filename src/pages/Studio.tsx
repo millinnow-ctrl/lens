@@ -89,8 +89,11 @@ export default function Studio() {
   const meterReading = useMemo(() => {
     if (!source) return null
     const profile = analyzeScene(source, focal)
-    const label = sceneLabel(profile)
-    return focal ? `${label} · FACE` : label
+    const bits = [sceneLabel(profile)]
+    if (focal) bits.push('FACE')
+    if (profile.lights.length)
+      bits.push(`${profile.lights.length} LIGHT${profile.lights.length > 1 ? 'S' : ''}`)
+    return bits.join(' · ')
   }, [source, focal])
   /* the meter's decisions, spelled out under the frame — the lens showing
      its work ("backlight — shadows opened · cast neutralized") */

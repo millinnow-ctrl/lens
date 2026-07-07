@@ -67,6 +67,18 @@ export interface StyleCharacter {
   splitTone?: { shadows: string; highlights: string; amount: number }
   /** chromatic fringe in px at 1000px reference width */
   fringe?: number
+  /** lens physics — how this stock's GLASS misbehaves (all 0..1, 0 = off).
+   *  Color science is the film; this is the lens bolted in front of it. */
+  optics?: {
+    /** lateral chromatic aberration: fringes growing toward the corners */
+    ca?: number
+    /** field curvature: corners drift soft while the center stays crisp */
+    cornerSoft?: number
+    /** barrel distortion: cheap wide glass bows straight lines outward */
+    distortion?: number
+    /** flare anisotropy: per-light halation streaks outward from center */
+    flareAniso?: number
+  }
   /** 0..1 warm light leak bleeding in from one edge */
   leak?: number
   /** grain clump size multiplier — wet plate 1.8, slide film 0.7 */

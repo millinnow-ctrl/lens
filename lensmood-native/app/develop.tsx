@@ -29,6 +29,7 @@ import * as Sharing from 'expo-sharing'
 import * as MediaLibrary from 'expo-media-library'
 import { getStyle } from '@/engine/styles'
 import { analyzeScene, sceneLabel } from '@/engine/scene'
+import { detectFocal, type Focal } from '@/engine/focal'
 import { develop as developImage, loadImageFromUri } from '@/engine/engine'
 import type { CameraStyle, StyleParams, SceneProfile, DevelopResult } from '@/engine/types'
 import type { SkImage } from '@shopify/react-native-skia'
@@ -71,11 +72,13 @@ export default function Develop() {
   const [meter, setMeter] = useState<string | null>(null)
 
   const [libPerm, requestLibPerm] = ImagePicker.useMediaLibraryPermissions()
+  const [camPerm, requestCamPerm] = ImagePicker.useCameraPermissions()
   const [savePerm, requestSavePerm] = MediaLibrary.usePermissions()
 
-  // decoded source + its meter reading, cached per photo
+  // decoded source + its meter reading + subject lock, cached per photo
   const sourceRef = useRef<SkImage | null>(null)
   const sceneRef = useRef<SceneProfile | null>(null)
+  const focalRef = useRef<Focal | null>(null)
   // which (photo, stock) pairings have already been paid for
   const chargedRef = useRef<Set<string>>(new Set())
   // bundled sample shots develop free — their uris bypass the credit gate
@@ -86,9 +89,11 @@ export default function Develop() {
   const originalImg = useImage(photo?.uri ?? null)
   const resultImg = useImage(result?.uri ?? null)
 
-  /** run the engine on the cached source (assumes credit already handled) */
+  /** run the engine on the cached source (assumes credit already handled).
+   *  commit=true records history — new photos and stock switches only, so
+   *  slider fine-tuning doesn't spam the gallery with near-duplicates */
   const runDevelop = useCallback(
-    async (st: CameraStyle, p: StyleParams) => {
+    async (st: CameraStyle, p: StyleParams, commit = false) => {
       const img = sourceRef.current
       if (!img) return
       const myRun = ++runIdRef.current
@@ -96,11 +101,12 @@ export default function Develop() {
       // let the spinner paint before the heavy synchronous pass
       await new Promise((r) => setTimeout(r, 30))
       try {
-        if (!sceneRef.current) sceneRef.current = analyzeScene(img)
+        if (!sceneRef.current) sceneRef.current = analyzeScene(img, focalRef.current)
         const developed = await developImage(img, st, p, {
           scene: sceneRef.current,
           maxSize: 1280,
           watermark: !isPaid,
+          focal: focalRef.current,
         })
         if (myRun !== runIdRef.current) return // superseded by a newer run
         setResult(developed)
@@ -109,6 +115,7 @@ export default function Develop() {
             scene: sceneRef.current,
             maxSize: 1280,
             watermark: !isPaid,
+            focal: focalRef.current,
             frame: false,
           })
           if (myRun !== runIdRef.current) return
@@ -117,7 +124,7 @@ export default function Develop() {
           setCompareResult(null)
         }
         setView('result')
-        addHistory({ thumb: developed.uri, styleId: st.id, styleName: st.name })
+        if (commit) addHistory({ thumb: developed.uri, styleId: st.id, styleName: st.name })
         haptics.light()
       } catch (e) {
         if (myRun === runIdRef.current)
@@ -133,7 +140,13 @@ export default function Develop() {
   const developCharged = useCallback(
     (st: CameraStyle, p: StyleParams, photoUri: string) => {
       if (sampleUrisRef.current.has(photoUri)) {
-        void runDevelop(st, p)
+        void runDevelop(st, p, true)
+        return
+      }
+      // premium stocks are paid-kit only for real photos (samples showcase free)
+      if (st.tier === 'premium' && !isPaid) {
+        haptics.warning()
+        router.push('/paywall')
         return
       }
       const key = `${photoUri}::${st.id}`
@@ -145,9 +158,9 @@ export default function Develop() {
         }
         chargedRef.current.add(key)
       }
-      void runDevelop(st, p)
+      void runDevelop(st, p, true)
     },
-    [spendCredit, runDevelop],
+    [spendCredit, runDevelop, isPaid],
   )
 
   /** decode + meter a chosen photo, then develop — shared by the picker and samples */
@@ -159,14 +172,22 @@ export default function Develop() {
       setCompareResult(null)
       sourceRef.current = null
       sceneRef.current = null
+      focalRef.current = null
       const img = await loadImageFromUri(picked.uri)
       if (!img) {
         Alert.alert('Photo error', 'That photo could not be decoded.')
         return
       }
       sourceRef.current = img
-      sceneRef.current = analyzeScene(img)
-      setMeter(sceneLabel(sceneRef.current))
+      // the subject finder feeds face metering, DoF, relight, and smoothing
+      focalRef.current = await detectFocal(img)
+      sceneRef.current = analyzeScene(img, focalRef.current)
+      // the lens showing its work: what it read, what it locked, what it mapped
+      const bits = [sceneLabel(sceneRef.current)]
+      if (focalRef.current) bits.push('FACE LOCK')
+      if (sceneRef.current.lights.length)
+        bits.push(`${sceneRef.current.lights.length} LIGHT${sceneRef.current.lights.length > 1 ? 'S' : ''}`)
+      setMeter(bits.join(' · '))
       if (style && params) developCharged(style, params, picked.uri)
     },
     [style, params, developCharged],
@@ -187,6 +208,21 @@ export default function Develop() {
     await loadPicked({ uri: a.uri, width: a.width ?? 0, height: a.height ?? 0 })
   }, [libPerm, requestLibPerm, loadPicked])
 
+  /** shoot with the iPhone camera, then develop through the chosen stock */
+  const shootPhoto = useCallback(async () => {
+    if (camPerm && !camPerm.granted) {
+      const req = await requestCamPerm()
+      if (!req.granted) {
+        Alert.alert('Permission needed', 'Allow camera access to shoot a photo to develop.')
+        return
+      }
+    }
+    const res = await ImagePicker.launchCameraAsync({ quality: 1, exif: false })
+    if (res.canceled || !res.assets?.length) return
+    const a = res.assets[0]
+    await loadPicked({ uri: a.uri, width: a.width ?? 0, height: a.height ?? 0 })
+  }, [camPerm, requestCamPerm, loadPicked])
+
   const loadSample = useCallback(
     async (sample: (typeof SAMPLES)[number]) => {
       try {
@@ -202,16 +238,21 @@ export default function Develop() {
     [loadPicked],
   )
 
-  /** switching stocks on the rail */
+  /** switching stocks on the rail — premium stocks are part of the paid kit */
   const onSelectStyle = useCallback(
     (st: CameraStyle) => {
+      if (st.tier === 'premium' && !isPaid) {
+        haptics.warning()
+        router.push('/paywall')
+        return
+      }
       haptics.selection()
       setStyle(st)
       const fresh = { ...st.defaults }
       setParams(fresh)
       if (photo) developCharged(st, fresh, photo.uri)
     },
-    [photo, developCharged],
+    [photo, developCharged, isPaid],
   )
 
   /** fine-tune changes re-develop free, debounced */
@@ -264,12 +305,19 @@ export default function Develop() {
     }
   }, [result, savePerm, requestSavePerm])
 
-  // frame geometry
+  // frame geometry — the result view sizes to the developed print (a framed
+  // polaroid is taller than the photo), other views to the source photo
   const frameW = screenW - 32
-  const aspect = photo && photo.width && photo.height ? photo.height / photo.width : 4 / 3
+  const photoAspect = photo && photo.width && photo.height ? photo.height / photo.width : 4 / 3
+  const aspect =
+    view === 'result' && result && result.width ? result.height / result.width : photoAspect
   const frameH = Math.min(Math.round(frameW * aspect), Math.round(screenW * 1.2))
 
   const canCompare = !!photo && !!result
+  // a framed polaroid compares via its frameless companion — hold the pill
+  // until that second render lands so the wipe never shows the padded print
+  const compareReady =
+    !style?.character.polaroidFrame || (params?.intensity ?? 0) <= 15 || !!compareResult
   const showingImg = view === 'original' ? originalImg : resultImg
   const viewModes: ViewMode[] = ['original', 'result', 'compare']
 
@@ -367,13 +415,16 @@ export default function Develop() {
             <View style={styles.segment}>
               {viewModes.map((m) => {
                 const active = view === m
+                const disabled = m === 'compare' && !compareReady
                 return (
                   <Pressable
                     key={m}
-                    onPress={() => setView(m)}
+                    onPress={() => !disabled && setView(m)}
+                    disabled={disabled}
                     style={({ pressed }) => [
                       styles.segItem,
                       active && styles.segItemActive,
+                      disabled && { opacity: 0.4 },
                       pressed && { opacity: 0.85 },
                     ]}
                   >
@@ -395,16 +446,32 @@ export default function Develop() {
 
         {/* actions */}
         <View style={styles.actions}>
-          <Pressable
-            onPress={pickPhoto}
-            style={({ pressed }) => [
-              styles.btn,
-              styles.btnPrimary,
-              pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] },
-            ]}
-          >
-            <Text style={styles.btnPrimaryText}>{photo ? 'New photo' : 'Pick a photo'}</Text>
-          </Pressable>
+          <View style={styles.exportRow}>
+            <Pressable
+              onPress={pickPhoto}
+              style={({ pressed }) => [
+                styles.btn,
+                styles.btnPrimary,
+                styles.exportBtn,
+                pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] },
+              ]}
+            >
+              <Text style={styles.btnPrimaryText}>{photo ? 'New photo' : 'Pick a photo'}</Text>
+            </Pressable>
+            <Pressable
+              onPress={shootPhoto}
+              style={({ pressed }) => [
+                styles.btn,
+                styles.btnGhost,
+                styles.exportBtn,
+                pressed && { opacity: 0.85 },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Shoot a photo with the camera"
+            >
+              <Text style={styles.btnGhostText}>Shoot</Text>
+            </Pressable>
+          </View>
           {result && style?.character.polaroidFrame && (params?.intensity ?? 0) > 15 && (
             <Pressable
               onPress={() => {

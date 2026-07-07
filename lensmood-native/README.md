@@ -79,12 +79,23 @@ sync to the in-app plan automatically.
   vibrance w/ skin guard, shadow denoise, clarity + universal acutance,
   scene-adaptive halation, DoF + specular bokeh, subject vignette, film
   grain w/ auto-ISO, dither, leaks, frames, watermark.
+- **Subject finder** (focal.ts) — classical on-device skin-blob detector
+  (no deps, Expo Go-safe): a confident lock turns on face metering, DoF
+  bokeh, skin relight, clipped smoothing, flash centering, and the subject
+  vignette; anything ambiguous returns null (the safe pre-R37 behavior).
+  Apple Vision via a dev build is the planned upgrade.
+- **Optics** (per stock) — radial chromatic aberration, barrel distortion,
+  field-curvature corner softness, anisotropic per-light flare. Cheap glass
+  (disposable/lomo/point-and-shoot) misbehaves; Leica/editorial glass barely
+  does. This is the lens in front of the film's color science.
+- **Camera capture** — shoot straight from the develop screen
+  (ImagePicker.launchCameraAsync) alongside library picking.
 
 ## Still to come
 
 - Video develop (engine's animateGrain path is ready; capture/preview UI isn't)
-- On-device face detection (focal.ts returns null → DoF/face-metering stay off;
-  a TFLite/MLKit port of BlazeFace is the plan)
+- Apple Vision face detection via an EAS dev build (upgrades the classical
+  subject finder; same Focal contract)
 - The 3D mood carousel, deep-link recipes, saved-preset UI
 
 ## Honest notes
