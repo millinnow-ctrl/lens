@@ -28,6 +28,8 @@ const DEFAULT_LENS: Required<LensResponse> = {
   dof: 0.4,
   autoIso: 0.5,
   clarity: 0,
+  vibrance: 0.45,
+  shadowDenoise: 0.6,
 }
 
 type Source = HTMLImageElement | HTMLCanvasElement | ImageBitmap | HTMLVideoElement
@@ -137,6 +139,7 @@ function responseLut(
   ev: number,
   scene: SceneProfile,
   toneMap: number,
+  adapt = 1,
 ): Uint8ClampedArray {
   const lut = new Uint8ClampedArray(256)
   const gain = Math.pow(2, ev)
@@ -165,7 +168,10 @@ function responseLut(
     const sC = y * y * (3 - 2 * y) // classic S (toe + shoulder)
     // pull the top down so white lands ~0.94 — emulsion never hits paper-white
     const f = sC - 0.06 * smoothstep(0.62, 1, y)
-    lut[i] = Math.round(255 * lerp(y, f, curveAmt))
+    // the whole adaptive response rides the intensity slider: at 0 the LUT
+    // is a straight wire — auto-levels and the pre-shoulder included, so
+    // "original" really is the original
+    lut[i] = Math.round(255 * lerp(i / 255, lerp(y, f, curveAmt), adapt))
   }
   return lut
 }
@@ -261,7 +267,18 @@ export function renderStyled(
   const mtx = ch.colorMatrix // 3×3 channel crosstalk (real film mixes channels)
   const hiDesat = 0.6 * s // film bleaches highlights toward paper-white
   const doMeter = Math.abs(ev) > 0.02 || doLevels || doTone
-  if (curveAmt > 0.02 || splitAmt > 0.02 || fringePx >= 1 || mtx || hiDesat > 0.02 || doMeter || doWb) {
+  // vibrance: recover color on muted scenes, leave vivid ones alone — the
+  // meter's saturation census drives it, so a hazy overcast upload gets its
+  // color back while a neon night is untouched. Skin hues are guarded below.
+  const vib =
+    lens.vibrance * s * (scene.analyzed ? 0.3 + 0.7 * smoothstep(0.4, 0.12, scene.sat) : 0.3)
+  const doVib = vib > 0.02 && !ch.bw
+  // high-ISO chroma suppression: as the scene darkens, deep shadows give up
+  // their color the way a real sensor's noise reduction does — pairs with
+  // the auto-ISO grain so dark shots read "pushed", not "smeared"
+  const sdn = lens.shadowDenoise * s * (scene.analyzed ? smoothstep(0.3, 0.08, scene.key) : 0)
+  const doSdn = sdn > 0.02
+  if (curveAmt > 0.02 || splitAmt > 0.02 || fringePx >= 1 || mtx || hiDesat > 0.02 || doMeter || doWb || doVib || doSdn) {
     const img = ctx.getImageData(0, 0, w, h)
     const d = img.data
 
@@ -286,6 +303,7 @@ export function renderStyled(
       doMeter ? ev : 0,
       doLevels || doTone ? scene : NEUTRAL_SCENE,
       doTone ? toneMap : 0,
+      Math.min(1, s * 1.25),
     )
     const doCurve = curveAmt > 0.02 || doMeter
     const sh = split ? hexRgb(split.shadows) : null
@@ -293,6 +311,10 @@ export function renderStyled(
     const doSplit = !!(sh && hi && splitAmt > 0.02)
     const k = splitAmt * 0.55
     const mAmt = mtx ? s : 0
+    // ±1-level luma dither under the tone curve — breaks the banding a LUT
+    // carves into smooth skies on low-grain stocks. Deterministic per pixel.
+    const dither = doCurve ? 1.1 * Math.min(1, s * 1.25) : 0
+    const dseed = hash32(style.id) ^ 0x9e3779b9
     for (let i = 0; i < d.length; i += 4) {
       // white balance first: the stock's palette operates on scene-neutral
       // light, so tungsten and daylight shots each land in *its* cast
@@ -330,6 +352,43 @@ export function renderStyled(
           g = lerp(g, L, t) + t * 4
           b = lerp(b, L, t)
         }
+      }
+      if (doVib || doSdn) {
+        const L = r * 0.299 + g * 0.587 + b * 0.114
+        if (doVib) {
+          const mx = r > g ? (r > b ? r : b) : g > b ? g : b
+          const mn = r < g ? (r < b ? r : b) : g < b ? g : b
+          if (mx > 20) {
+            const sat = (mx - mn) / mx
+            // skin guard: warm hues in the red–yellow sextant where skin
+            // lives get most of the boost withheld — faces never go orange
+            let guard = 1
+            if (r > g && g >= b) {
+              const hue = (g - b) / (mx - mn + 1)
+              const skinW = smoothstep(0.12, 0.3, hue) * (1 - smoothstep(0.62, 0.88, hue))
+              guard = 1 - 0.75 * skinW
+            }
+            // muted pixels get the most lift; saturated ones are left alone
+            const f = 1 + vib * (1 - sat) * guard * 0.8
+            r = L + (r - L) * f
+            g = L + (g - L) * f
+            b = L + (b - L) * f
+          }
+        }
+        if (doSdn) {
+          const t = sdn * (1 - smoothstep(13, 66, L))
+          if (t > 0.003) {
+            r = lerp(r, L, t)
+            g = lerp(g, L, t)
+            b = lerp(b, L, t)
+          }
+        }
+      }
+      if (dither) {
+        const dn = (nHash(i, 1, dseed) - 0.5) * 2 * dither
+        r += dn
+        g += dn
+        b += dn
       }
       d[i] = r
       d[i + 1] = g
@@ -384,6 +443,16 @@ export function renderStyled(
     // the defocus itself — radius scales with the separation amount
     bx.filter = `blur(${(3.4 * dof * ref + 1).toFixed(2)}px)`
     bx.drawImage(canvas, 0, 0)
+    bx.filter = 'none'
+    // specular bokeh: bright points in the defocused field bloom the way
+    // real out-of-focus highlights do — crush to the speculars, blur wide,
+    // screen back over the defocus. Sells the glass; midtones untouched.
+    bx.save()
+    bx.globalCompositeOperation = 'screen'
+    bx.globalAlpha = Math.min(0.85, 0.4 + dof * 0.5)
+    bx.filter = `brightness(0.75) contrast(3.2) blur(${(8 * dof * ref + 2).toFixed(2)}px)`
+    bx.drawImage(canvas, 0, 0)
+    bx.restore()
     bx.filter = 'none'
     // carve the sharp subject back out of the blurred layer: opaque at the
     // frame edge, fading to transparent across the subject. The protected

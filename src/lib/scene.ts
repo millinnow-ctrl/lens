@@ -37,6 +37,9 @@ export interface SceneProfile {
   p99: number
   /** white-balance gains [r, g, b], luma-preserving (never change exposure) */
   illum: [number, number, number]
+  /** mean pixel saturation 0..1 — how much color the scene actually has;
+   *  drives vibrance recovery on muted uploads */
+  sat: number
   /** up to 5 detected light sources, largest energy first */
   lights: LightSource[]
   /** mean luminance under the face ellipse, when a face was found */
@@ -51,6 +54,7 @@ export const NEUTRAL_SCENE: SceneProfile = {
   p50: 0.4,
   p99: 1,
   illum: [1, 1, 1],
+  sat: 0.35,
   lights: [],
   faceLum: null,
 }
@@ -68,6 +72,7 @@ export function sceneLabel(p: SceneProfile): string {
   // so it says what it actually measured and never guesses wrong
   if (p.illum[2] > 1.18) return 'WARM LIGHT'
   if (p.illum[0] > 1.18) return 'COOL LIGHT'
+  if (p.sat < 0.1) return 'MUTED'
   if (p.p99 - p.p01 < 0.45) return 'FLAT'
   return 'DAYLIGHT'
 }
@@ -138,6 +143,8 @@ function analyze(source: Source, focal: Focal | null): SceneProfile {
   let eg = 0
   let eb = 0
   let mid = 0
+  let satSum = 0
+  let satCnt = 0
   const lum = new Float32Array(n)
   for (let i = 0; i < n; i++) {
     const r = px[i * 4] / 255
@@ -147,6 +154,13 @@ function analyze(source: Source, focal: Focal | null): SceneProfile {
     lum[i] = L
     logSum += Math.log(Math.max(L, 0.001))
     hist[Math.min(63, (L * 64) | 0)]++
+    // saturation census — near-black pixels excluded (their hue is noise)
+    const mx = r > g ? (r > b ? r : b) : g > b ? g : b
+    if (mx > 0.06) {
+      const mn = r < g ? (r < b ? r : b) : g < b ? g : b
+      satSum += (mx - mn) / mx
+      satCnt++
+    }
     if (L > 0.04 && L < 0.96) {
       // Minkowski p=6 — between gray-world and white-patch; clipped pixels
       // excluded so a blown sky doesn't read as "blue light"
@@ -299,5 +313,15 @@ function analyze(source: Source, focal: Focal | null): SceneProfile {
     if (cnt > 4) faceLum = sum / cnt
   }
 
-  return { analyzed: true, key, p01, p50, p99, illum, lights, faceLum }
+  return {
+    analyzed: true,
+    key,
+    p01,
+    p50,
+    p99,
+    illum,
+    sat: satCnt > n * 0.05 ? satSum / satCnt : 0.35,
+    lights,
+    faceLum,
+  }
 }
