@@ -156,7 +156,7 @@ function HomeContent({
 
       {/* hero — a lookbook reel of ambient clips, each shot on a different
           lens, rotating under the headline so the first view is alive */}
-      <motion.section variants={childVariants} className="mt-3 px-5">
+      <motion.section variants={childVariants} className="mt-1 px-5">
         <LiveHero onUpload={onUpload} />
       </motion.section>
 
