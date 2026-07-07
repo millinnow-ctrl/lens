@@ -74,6 +74,9 @@ export interface StyleCharacter {
   /** 3×3 channel-crosstalk matrix (row-major, on 0–255) — the signature
    *  colour science of a stock: how its dye layers contaminate each other */
   colorMatrix?: number[]
+  /** per-stock colour science: six hue bands (R/Y/G/C/B/M), each with its
+   *  own saturation and luminance delta (-1..1), interpolated per-pixel. */
+  bands?: { sat: number[]; lum: number[] }
   /** grain amplitude multiplier (default 1) */
   grainAmp?: number
   /** grain chroma / per-channel decorrelation, 0 = monochrome (default 0.4) */
@@ -118,6 +121,10 @@ export interface LensResponse {
   /** 0..1 — high-ISO shadow chroma suppression: in low light, deep shadows
    *  desaturate toward neutral the way a real sensor kills color noise */
   shadowDenoise?: number
+  /** 0..1 — flash-on-skin relighting: with a face locked and the flash up,
+   *  existing facial highlights catch the light and a soft catchlight
+   *  blooms — light interacting with skin, not a white overlay. */
+  skinGlow?: number
 }
 
 /* ------------------------------------------------------------- the stock */

@@ -12,7 +12,7 @@ import { IconFilm } from '../components/icons'
 import { loadImage, renderStyled, thumbnail } from '../lib/engine'
 import { claimDaily, dailyStyle, isDailyClaimed } from '../lib/lab'
 import { detectFocal, type Focal } from '../lib/focal'
-import { analyzeScene, sceneLabel } from '../lib/scene'
+import { analyzeScene, sceneLabel, sceneNotes } from '../lib/scene'
 import { haptic } from '../lib/native'
 import {
   GENERATION_STEPS,
@@ -85,8 +85,16 @@ export default function Studio() {
      viewfinder chrome. Cached per (image, focal), so this is ~free. */
   const meterReading = useMemo(() => {
     if (!source) return null
-    const label = sceneLabel(analyzeScene(source, focal))
+    const profile = analyzeScene(source, focal)
+    const label = sceneLabel(profile)
     return focal ? `${label} · FACE` : label
+  }, [source, focal])
+  /* the meter's decisions, spelled out under the frame — the lens showing
+     its work ("backlight — shadows opened · cast neutralized") */
+  const meterNotes = useMemo(() => {
+    if (!source) return null
+    const notes = sceneNotes(analyzeScene(source, focal))
+    return notes.length ? notes.slice(0, 3).join(' · ') : null
   }, [source, focal])
   useEffect(() => {
     // cancel any develop still counting down for the PREVIOUS photo — without
@@ -447,6 +455,13 @@ export default function Studio() {
                 )
               })}
             </div>
+          )}
+
+          {/* the meter's decisions — the lens showing its work */}
+          {meterNotes && phase === 'done' && (
+            <p className="mt-3 text-center font-mono font-semibold text-[9.5px] tracking-[0.14em] uppercase text-fog">
+              {meterNotes}
+            </p>
           )}
 
           {/* view toggles + actions under preview */}

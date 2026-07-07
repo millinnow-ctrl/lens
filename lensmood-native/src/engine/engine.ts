@@ -89,6 +89,7 @@ const DEFAULT_LENS: Required<LensResponse> = {
   clarity: 0,
   vibrance: 0.45,
   shadowDenoise: 0.6,
+  skinGlow: 0.3,
 }
 
 /* ------------------------------------------------------------- helpers */
@@ -392,7 +393,8 @@ export function renderStyled(
   // ----- the reusable scratch surface + current frame -----
   const surface = makeSurface(w, h)
   const canvas = surface.getCanvas()
-  let cur: SkImage
+  // assigned by the initial commit() in pass 1 below; TS can't see through the closure
+  let cur!: SkImage
   // true when `surface` no longer reflects `cur` (after a per-pixel rebuild)
   let dirty = false
 
@@ -455,7 +457,11 @@ export function renderStyled(
   const doVib = vib > 0.02 && !ch.bw
   const sdn = lens.shadowDenoise * s * (scene.analyzed ? smoothstep(0.3, 0.08, scene.key) : 0)
   const doSdn = sdn > 0.02
-  if (curveAmt > 0.02 || splitAmt > 0.02 || fringePx >= 1 || mtx || hiDesat > 0.02 || doMeter || doWb || doVib || doSdn) {
+  // per-stock colour science: hue-band saturation/luminance response — the
+  // emulsion's dye preferences (Kodachrome's deep reds, Neon's cyan bloom)
+  const bands = ch.bands
+  const doBands = !!bands && !ch.bw && s > 0.02
+  if (curveAmt > 0.02 || splitAmt > 0.02 || fringePx >= 1 || mtx || hiDesat > 0.02 || doMeter || doWb || doVib || doSdn || doBands) {
     const d = readRGBA(cur)
     if (d) {
       if (fringePx >= 1) {
@@ -547,6 +553,35 @@ export function renderStyled(
               r = lerp(r, L, t)
               g = lerp(g, L, t)
               b = lerp(b, L, t)
+            }
+          }
+        }
+        if (doBands) {
+          const mx2 = r > g ? (r > b ? r : b) : g > b ? g : b
+          const mn2 = r < g ? (r < b ? r : b) : g < b ? g : b
+          const c2 = mx2 - mn2
+          if (c2 > 8) {
+            // hue in sextants 0..6 (R=0, Y=1, G=2, C=3, B=4, M=5)
+            let hh =
+              mx2 === r ? (g - b) / c2 : mx2 === g ? (b - r) / c2 + 2 : (r - g) / c2 + 4
+            if (hh < 0) hh += 6
+            const i0 = hh | 0
+            const i1 = (i0 + 1) % 6
+            const f = hh - i0
+            const bs = (bands!.sat[i0] + (bands!.sat[i1] - bands!.sat[i0]) * f) * s
+            const bl = (bands!.lum[i0] + (bands!.lum[i1] - bands!.lum[i0]) * f) * s
+            const L2 = r * 0.299 + g * 0.587 + b * 0.114
+            if (bs) {
+              const fS = 1 + bs
+              r = L2 + (r - L2) * fS
+              g = L2 + (g - L2) * fS
+              b = L2 + (b - L2) * fS
+            }
+            if (bl) {
+              const mul = 1 + bl * (c2 / 255) * 0.9
+              r *= mul
+              g *= mul
+              b *= mul
             }
           }
         }
@@ -785,6 +820,65 @@ export function renderStyled(
     )
     canvas.drawRect(full, dark)
     commit()
+
+    /* 6.5 — skin relight: the flash CATCHES on the subject. Inside the face
+       ellipse, existing facial highlights brighten with a specular curve, so
+       the flash reads as light striking skin, not a white disc. Plus a soft
+       catchlight bloom just above face center. Only fires with a face lock. */
+    const skinGlow = lens.skinGlow * flash
+    if (focal && skinGlow > 0.02 && !animateGrain) {
+      const fx2 = focal.x * w
+      const fy2 = focal.y * h
+      const fr2 = Math.max(focal.r * Math.max(w, h), 24)
+      const rx = fr2 * 1.05
+      const ry = fr2 * 1.35
+      const x0 = Math.max(0, Math.floor(fx2 - rx))
+      const x1 = Math.min(w - 1, Math.ceil(fx2 + rx))
+      const y0 = Math.max(0, Math.floor(fy2 - ry))
+      const y1 = Math.min(h - 1, Math.ceil(fy2 + ry))
+      if (x1 > x0 && y1 > y0) {
+        const fd = readRGBA(cur)
+        if (fd) {
+          const amp = skinGlow * 0.55
+          for (let yy = y0; yy <= y1; yy++) {
+            const dy = (yy - fy2) / ry
+            for (let xx = x0; xx <= x1; xx++) {
+              const dx = (xx - fx2) / rx
+              const d2 = dx * dx + dy * dy
+              if (d2 > 1) continue
+              const idx = (yy * w + xx) * 4
+              const L = (fd[idx] * 0.299 + fd[idx + 1] * 0.587 + fd[idx + 2] * 0.114) / 255
+              // specular curve: brightens what already turns toward the
+              // light, eases off before clipping, feathers at the edge
+              const spec = smoothstep(0.5, 0.92, L) * (1 - smoothstep(0.92, 1, L))
+              const boost = 1 + amp * spec * (1 - d2 * d2)
+              if (boost > 1.003) {
+                fd[idx] = cl(fd[idx] * boost)
+                fd[idx + 1] = cl(fd[idx + 1] * boost)
+                fd[idx + 2] = cl(fd[idx + 2] * boost * 0.985) // faintly warm speculars
+              }
+            }
+          }
+          setCur(imageFromRGBA(fd, w, h))
+          // catchlight — a soft bloom where the flash meets the upper face
+          sync()
+          const catchR = fr2 * 0.95
+          const catchP = Skia.Paint()
+          catchP.setBlendMode(BlendMode.Screen)
+          catchP.setShader(
+            Skia.Shader.MakeRadialGradient(
+              Skia.Point(fx2, fy2 - fr2 * 0.18),
+              catchR,
+              [color(255, 249, 238, skinGlow * 0.2), color(255, 249, 238, 0)],
+              [0, 1],
+              TileMode.Clamp,
+            ),
+          )
+          canvas.drawRect(full, catchP)
+          commit()
+        }
+      }
+    }
   }
 
   /* 7 — faded blacks (film lift) */

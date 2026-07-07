@@ -77,6 +77,24 @@ export function sceneLabel(p: SceneProfile): string {
   return 'DAYLIGHT'
 }
 
+/** the meter's decisions, spelled out — the lens showing its work. Pure
+ *  deterministic strings from the profile; shown after a develop so the
+ *  person sees WHAT the intelligence actually did to their photo. */
+export function sceneNotes(p: SceneProfile): string[] {
+  if (!p.analyzed) return []
+  const notes: string[] = []
+  if (p.faceLum != null) notes.push('metered for the face')
+  if (p.key < 0.1) notes.push('exposure recovered, ISO pushed')
+  else if (p.key < 0.26) notes.push('low light — exposure lifted')
+  if (p.faceLum != null && p.key - p.faceLum > 0.15) notes.push('backlight — shadows opened')
+  if (p.illum[2] > 1.12 || p.illum[0] > 1.12) notes.push('color cast neutralized')
+  if (p.sat < 0.14) notes.push('muted scene — color recovered')
+  if (p.lights.length > 0)
+    notes.push(`${p.lights.length} light source${p.lights.length > 1 ? 's' : ''} mapped`)
+  if (p.p99 - p.p01 > 0.85) notes.push('high contrast — highlights guarded')
+  return notes
+}
+
 const THUMB = 96
 const LUMA_R = 0.299
 const LUMA_G = 0.587

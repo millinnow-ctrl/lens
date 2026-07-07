@@ -34,7 +34,9 @@ export const CAMERA_STYLES: CameraStyle[] = [
     badge: 'trending',
     defaults: P({ grain: 62, contrast: 57, warmth: 66, flash: 48, shadows: 34 }),
     character: {
-      lens: { meterBias: 0.35, meterStrength: 0.7, awb: 0.3, lightHalation: 0.85, dof: 0.28 },
+      // colour science: the emulsion's dye response per hue band [R,Y,G,C,B,M]
+      bands: { sat: [0.2, 0.12, 0, 0, 0.1, 0], lum: [-0.05, 0, 0, 0, -0.05, 0] },
+      lens: { skinGlow: 0.7, meterBias: 0.35, meterStrength: 0.7, awb: 0.3, lightHalation: 0.85, dof: 0.28 },
       grainSize: 1.3,
       colorMatrix: [1.06, -0.02, -0.02, -0.02, 1.0, 0.0, -0.03, 0.02, 1.0],
       grainChroma: 0.5,
@@ -60,7 +62,9 @@ export const CAMERA_STYLES: CameraStyle[] = [
     tier: 'free',
     defaults: P({ grain: 16, contrast: 62, warmth: 46, flash: 82, shadows: 62 }),
     character: {
-      lens: { meterStrength: 0.85, faceWeight: 0.8, awb: 0.8, awbClamp: 0.45, dof: 0.32, toneMap: 0.7, clarity: 0.15, vibrance: 0.6, shadowDenoise: 0.75 },
+      // colour science: the emulsion's dye response per hue band [R,Y,G,C,B,M]
+      bands: { sat: [0.1, 0.08, 0.05, 0.05, 0.1, 0.05], lum: [0.06, 0.05, 0, 0, 0, 0] },
+      lens: { skinGlow: 0.95, meterStrength: 0.85, faceWeight: 0.8, awb: 0.8, awbClamp: 0.45, dof: 0.32, toneMap: 0.7, clarity: 0.15, vibrance: 0.6, shadowDenoise: 0.75 },
       curve: 0.15,
       saturate: 1.03,
       brightness: 1.06,
@@ -78,6 +82,8 @@ export const CAMERA_STYLES: CameraStyle[] = [
     tier: 'premium',
     defaults: P({ grain: 46, contrast: 47, warmth: 52, flash: 8, shadows: 28 }),
     character: {
+      // colour science: the emulsion's dye response per hue band [R,Y,G,C,B,M]
+      bands: { sat: [0.15, 0.1, 0.2, 0.1, 0.05, 0], lum: [0, 0, 0, 0, 0, 0] },
       grainSize: 1.4,
       curve: 0.15,
       fringe: 1.4,
@@ -101,6 +107,8 @@ export const CAMERA_STYLES: CameraStyle[] = [
     tier: 'free',
     defaults: P({ grain: 26, contrast: 60, warmth: 48, flash: 0, shadows: 44 }),
     character: {
+      // colour science: the emulsion's dye response per hue band [R,Y,G,C,B,M]
+      bands: { sat: [0.12, 0, -0.08, 0, 0.08, 0], lum: [-0.06, 0, -0.04, 0, -0.06, 0] },
       lens: { faceWeight: 0.7, dof: 0.55, toneMap: 0.6, clarity: 0.2, vibrance: 0.5 },
       curve: 0.3,
       saturate: 0.94,
@@ -119,7 +127,9 @@ export const CAMERA_STYLES: CameraStyle[] = [
     tier: 'premium',
     defaults: P({ grain: 8, contrast: 64, warmth: 54, flash: 18, shadows: 52, smoothing: 38 }),
     character: {
-      lens: { meterStrength: 0.9, faceWeight: 0.85, awb: 0.85, dof: 0.85, toneMap: 0.4, clarity: 0.2, autoIso: 0.15, vibrance: 0.55, shadowDenoise: 0.5 },
+      // colour science: the emulsion's dye response per hue band [R,Y,G,C,B,M]
+      bands: { sat: [0.12, -0.08, -0.22, 0, 0.1, 0.05], lum: [0, 0.05, -0.06, 0, -0.05, 0] },
+      lens: { skinGlow: 0.5, meterStrength: 0.9, faceWeight: 0.85, awb: 0.85, dof: 0.85, toneMap: 0.4, clarity: 0.2, autoIso: 0.15, vibrance: 0.55, shadowDenoise: 0.5 },
       grainSize: 0.6,
       colorMatrix: [1.05, 0.0, -0.03, -0.01, 1.0, 0.0, -0.02, -0.02, 1.03],
       curve: 0.25,
@@ -141,6 +151,8 @@ export const CAMERA_STYLES: CameraStyle[] = [
     badge: 'featured',
     defaults: P({ grain: 30, contrast: 55, warmth: 46, flash: 0, shadows: 58 }),
     character: {
+      // colour science: the emulsion's dye response per hue band [R,Y,G,C,B,M]
+      bands: { sat: [0.05, -0.05, -0.25, -0.1, 0, 0], lum: [0, 0, -0.05, 0, 0, 0] },
       lens: { meterBias: -0.1, faceWeight: 0.7, awb: 0.5, dof: 0.7, toneMap: 0.7, vibrance: 0.2 },
       curve: 0.25,
       colorMatrix: [0.92, 0.06, 0.02, 0.03, 0.94, 0.03, 0.03, 0.05, 0.94],
@@ -184,6 +196,8 @@ export const CAMERA_STYLES: CameraStyle[] = [
     badge: 'trending',
     defaults: P({ grain: 20, contrast: 58, warmth: 45, flash: 72, shadows: 30 }),
     character: {
+      // colour science: the emulsion's dye response per hue band [R,Y,G,C,B,M]
+      bands: { sat: [0.1, 0.05, 0.1, 0.28, 0.2, 0.15], lum: [0.05, 0, 0, 0.05, 0, 0] },
       curve: 0.2,
       fringe: 1.8,
       saturate: 1.24,
@@ -204,7 +218,9 @@ export const CAMERA_STYLES: CameraStyle[] = [
     tier: 'free',
     defaults: P({ grain: 30, contrast: 43, warmth: 60, flash: 22, shadows: 24 }),
     character: {
-      lens: { meterBias: 0.2, meterStrength: 0.6, awb: 0.4, dof: 0.3, vibrance: 0.1 },
+      // colour science: the emulsion's dye response per hue band [R,Y,G,C,B,M]
+      bands: { sat: [-0.05, 0.05, -0.1, 0.1, 0.15, 0.1], lum: [0.05, 0.05, 0, 0, 0.05, 0.05] },
+      lens: { skinGlow: 0.6, meterBias: 0.2, meterStrength: 0.6, awb: 0.4, dof: 0.3, vibrance: 0.1 },
       saturate: 0.85,
       brightness: 1.06,
       blur: 0.4,
@@ -224,6 +240,8 @@ export const CAMERA_STYLES: CameraStyle[] = [
     tier: 'premium',
     defaults: P({ grain: 58, contrast: 52, warmth: 68, flash: 0, shadows: 40 }),
     character: {
+      // colour science: the emulsion's dye response per hue band [R,Y,G,C,B,M]
+      bands: { sat: [0.2, 0.25, -0.05, -0.1, -0.05, 0], lum: [0, 0.05, 0, 0, -0.05, 0] },
       grainSize: 1.5,
       curve: 0.25,
       leak: 0.55,
@@ -248,6 +266,8 @@ export const CAMERA_STYLES: CameraStyle[] = [
     badge: 'new',
     defaults: P({ grain: 36, contrast: 66, warmth: 52, flash: 0, shadows: 78 }),
     character: {
+      // colour science: the emulsion's dye response per hue band [R,Y,G,C,B,M]
+      bands: { sat: [0.3, 0.2, 0.25, 0.2, 0.3, 0.25], lum: [-0.1, 0, -0.05, 0, -0.1, 0] },
       grainSize: 1.2,
       curve: 0.45,
       fringe: 2.2,
@@ -271,6 +291,8 @@ export const CAMERA_STYLES: CameraStyle[] = [
     tier: 'premium',
     defaults: P({ grain: 18, contrast: 62, warmth: 58, flash: 0, shadows: 46 }),
     character: {
+      // colour science: the emulsion's dye response per hue band [R,Y,G,C,B,M]
+      bands: { sat: [0.35, 0.15, 0.1, 0, 0.15, 0.2], lum: [-0.15, -0.05, -0.08, 0, -0.1, -0.1] },
       lens: { meterBias: -0.15, awb: 0.45, dof: 0.55, toneMap: 0.6, vibrance: 0.7 },
       grainSize: 0.7,
       colorMatrix: [1.14, -0.06, -0.05, -0.06, 1.07, -0.03, -0.04, -0.09, 1.08],
@@ -320,9 +342,11 @@ export const CAMERA_STYLES: CameraStyle[] = [
     badge: 'new',
     defaults: P({ grain: 10, contrast: 60, warmth: 48, flash: 55, shadows: 50 }),
     character: {
+      // colour science: the emulsion's dye response per hue band [R,Y,G,C,B,M]
+      bands: { sat: [0.15, 0.1, 0.15, 0.1, 0.2, 0.1], lum: [0.05, 0.05, 0, 0, 0, 0] },
       // the "model": a computational little camera — strong auto-everything,
       // deep focus (tiny sensor), cool-white flash, clean noise not film grain
-      lens: {
+      lens: { skinGlow: 0.85,
         meterStrength: 0.85,
         faceWeight: 0.8,
         awb: 0.7,
@@ -356,6 +380,8 @@ export const CAMERA_STYLES: CameraStyle[] = [
     tier: 'free',
     defaults: P({ grain: 12, contrast: 40, warmth: 55, flash: 0, shadows: 16, smoothing: 20 }),
     character: {
+      // colour science: the emulsion's dye response per hue band [R,Y,G,C,B,M]
+      bands: { sat: [-0.15, -0.05, -0.1, 0.05, 0.1, 0.15], lum: [0.08, 0.08, 0.05, 0.05, 0.05, 0.08] },
       grainSize: 0.75,
       saturate: 0.88,
       brightness: 1.08,
@@ -378,6 +404,8 @@ export const CAMERA_STYLES: CameraStyle[] = [
     badge: 'trending',
     defaults: P({ grain: 26, contrast: 66, warmth: 38, flash: 0, shadows: 62 }),
     character: {
+      // colour science: the emulsion's dye response per hue band [R,Y,G,C,B,M]
+      bands: { sat: [0.15, 0, 0, 0.35, 0.3, 0.4], lum: [0, 0, 0, 0.08, 0.05, 0.08] },
       lens: { meterBias: -0.3, awb: 0.15, lightHalation: 1.0, dof: 0.55, toneMap: 0.15, autoIso: 0.8, vibrance: 0.8, shadowDenoise: 0.25 },
       curve: 0.35,
       colorMatrix: [1.04, -0.02, 0.02, -0.03, 1.0, 0.02, 0.03, 0.02, 1.05],
@@ -423,7 +451,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
     defaults: P({ grain: 64, contrast: 60, warmth: 60, flash: 0, shadows: 84 }),
     character: {
       // a box camera has no electronics: weak fixed meter, no AWB, no HDR
-      lens: { meterStrength: 0.35, awb: 0.15, toneMap: 0, lightHalation: 0.3 },
+      lens: { skinGlow: 0.65, meterStrength: 0.35, awb: 0.15, toneMap: 0, lightHalation: 0.3 },
       grainSize: 1.8,
       curve: 0.5,
       sepia: 0.85,

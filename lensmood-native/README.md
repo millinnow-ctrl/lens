@@ -17,7 +17,7 @@ On any computer (Windows/Linux/Mac) with Node 20+:
 
 ```bash
 cd lensmood-native
-npm install
+npm install --legacy-peer-deps   # skia 2.2.3 lists reanimated ^3 as an optional peer; the flag reconciles it with reanimated 4
 npx expo start --tunnel     # --tunnel = phone connects over the internet,
                             #   same wifi not required
 ```
