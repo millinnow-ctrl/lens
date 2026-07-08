@@ -164,7 +164,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
       // Kodak FunSaver party flash: vivid Gold-800 reds and yellows, hard flash on skin, chunky grain, corner vignette — punchy color, never a sepia wash.
       optics: { ca: 0.5, cornerSoft: 0.45, distortion: 0.5, flareAniso: 0.5 },
       bands: { sat: [0.3, 0.22, 0.05, -0.08, 0.08, 0.12], lum: [0.04, 0.06, 0, -0.04, -0.08, -0.02] },
-      lens: { meterBias: 0.5, meterStrength: 0.85, faceWeight: 0.85, awb: 0.15, awbClamp: 0.2, lightHalation: 0.75, toneMap: 0.2, dof: 0.2, autoIso: 0.8, clarity: 0.15, vibrance: 0.5, shadowDenoise: 0.25, skinGlow: 0.9, flashStrength: 0.8, flashFalloff: 0.5, flashSpecular: 0.55, flashCool: 0.08, flashSpread: 1.4 },
+      lens: { meterBias: 0.5, meterStrength: 0.85, faceWeight: 0.85, awb: 0.15, awbClamp: 0.2, lightHalation: 0.75, toneMap: 0.2, dof: 0.2, autoIso: 0.8, clarity: 0.15, vibrance: 0.5, shadowDenoise: 0.25, skinGlow: 0.9, flashStrength: 0.55, flashFalloff: 0.5, flashSpecular: 0.5, flashCool: 0.08, flashSpread: 1.4 },
       grainSize: 1.25,
       grainAmp: 1.3,
       grainChroma: 0.55,

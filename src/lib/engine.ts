@@ -212,7 +212,16 @@ function buildSubjectMask(
       const p = i * 4
       const skin = isSkin(px[p], px[p + 1], px[p + 2]) ? 1 : 0
       const gate = clamp01(1.4 - Math.sqrt(dx * dx + dy * dy))
-      raw[i] = clamp01(Math.max(cap, skin * gate * 0.85))
+      // saliency: a sharp, high-local-contrast pixel near the lock is in-focus
+      // foreground (the background is soft), so it reinforces the subject pick
+      const lc = (px[p] * 0.299 + px[p + 1] * 0.587 + px[p + 2] * 0.114) / 255
+      const rp = mx < mw - 1 ? p + 4 : p
+      const dpp = my < mh - 1 ? p + mw * 4 : p
+      const lr = (px[rp] * 0.299 + px[rp + 1] * 0.587 + px[rp + 2] * 0.114) / 255
+      const ld = (px[dpp] * 0.299 + px[dpp + 1] * 0.587 + px[dpp + 2] * 0.114) / 255
+      const sharp = clamp01((Math.abs(lc - lr) + Math.abs(lc - ld)) * 4)
+      const sal = sharp * gate * 0.4
+      raw[i] = clamp01(Math.max(cap, skin * gate * 0.85, sal))
     }
   return featherMask(raw, mw, mh, 2)
 }
@@ -832,6 +841,30 @@ export function renderStyled(
     mctx.drawImage(source, 0, 0, mw, mh)
     const mpx = mctx.getImageData(0, 0, mw, mh).data
     const mask = buildSubjectMask(mpx, mw, mh, focal, lens.flashSpread)
+    // adaptive skin reference: the flash "learns" THIS person's skin from the
+    // ungraded thumb (mean luma of skin pixels near the lock), so the material
+    // model measures shine/subsurface relative to their tone, not a constant
+    let skinSum = 0
+    let skinN = 0
+    for (let i = 0; i < mw * mh; i++) {
+      const p = i * 4
+      if (isSkin(mpx[p], mpx[p + 1], mpx[p + 2])) {
+        skinSum += (mpx[p] * 0.299 + mpx[p + 1] * 0.587 + mpx[p + 2] * 0.114) / 255
+        skinN++
+      }
+    }
+    const skinRef = skinN > mw * mh * 0.01 ? skinSum / skinN : 0.55
+
+    // low-frequency "light + albedo" copy: blurring the graded frame separates
+    // soft shading (Lb) from fine texture (detail = L - Lb). We light Lb by
+    // material and re-add detail, so pores / weave / strands survive the flash.
+    const bc = document.createElement('canvas')
+    bc.width = w
+    bc.height = h
+    const bx = bc.getContext('2d')!
+    bx.filter = `blur(${Math.max(1, Math.round(ref * 3))}px)`
+    bx.drawImage(canvas, 0, 0)
+    const blur = bx.getImageData(0, 0, w, h).data
 
     const spec = lens.flashSpecular
     const cool = lens.flashCool
@@ -844,24 +877,41 @@ export function renderStyled(
         let g = d[idx + 1]
         let b = d[idx + 2]
         const L = (r * 0.299 + g * 0.587 + b * 0.114) / 255
+        const Lb = (blur[idx] * 0.299 + blur[idx + 1] * 0.587 + blur[idx + 2] * 0.114) / 255
+        const detail = L - Lb // fine texture + specular micro-spikes
         const M = sampleMask(mask, mw, mh, (x + 0.5) / w, (y + 0.5) / h)
         const far = 1 - M
+        const skin = isSkin(r, g, b) ? 1 : 0
         // background falls off by distance² (the flash carves depth); the
         // ambient sep term gives available-light stocks a gentle subject read
         const darken = 1 - (sep * 0.5 + flash * 0.6) * far * far
-        // the flash lifts the subject, strongest where the mask is densest —
-        // but rolled off in the highlights so an already-bright near object
-        // (a hand reaching for the lens) keeps its detail instead of clipping
-        const hi = 1 - smoothstep(0.72, 1, L)
-        const lift = 1 + flash * (0.4 + 0.6 * M) * M * hi
-        let gain = darken * lift
-        // reflective specular: mid-highlights on skin/jewelry pop, rolled off
-        // before pure white so speculars read as reflectance, not blown discs
-        const sp = smoothstep(0.55, 0.85, L) * (1 - smoothstep(0.88, 1, L)) * M
-        gain *= 1 + spec * (flash * 1.3 + sep * 0.4) * sp
+        // DIFFUSE: a real flash reflects by the surface's albedo — dark hair and
+        // clothes barely lift, mid-tones catch the most light, whites are held.
+        // This is directional light (contrast WITHIN the subject), not a wash.
+        const albedo = Lb
+        const reflect = albedo * (1.35 - 0.35 * albedo)
+        const diffuse = flash * M * reflect * 0.62
+        let gain = darken * (1 + diffuse)
         r *= gain
         g *= gain
         b *= gain
+        // SPECULAR: a sharp positive detail spike above this person's skin tone
+        // is a shiny micro-highlight. Non-skin (jewelry, eyes, glass, metal)
+        // shines hard; skin shines softly and only where it's already oily.
+        const shine = smoothstep(0.06, 0.2, detail) * smoothstep(skinRef * 0.7, skinRef * 1.15, L)
+        const material = skin ? 0.4 : 1
+        const specular = (flash * 0.9 + sep * 0.3) * M * shine * material * spec * 255
+        // TEXTURE: re-add amplified high-frequency so the lit surface reads
+        // crisp — pores, fabric weave, hair — instead of a flat brightened tone
+        const tex = detail * (0.4 * flash * M) * 255
+        r += specular + tex
+        g += specular + tex
+        b += specular + tex
+        // SKIN SUBSURFACE: flash-lit skin glows soft and faintly warm (light
+        // scatters under the surface), so faces read luminous, not gray-white
+        const sub = skin * diffuse * 0.5
+        r += sub * 14
+        b -= sub * 10
         // flash white balance: the lit subject cools toward ~5500K while the
         // background keeps whatever ambient cast the scene had
         const pull = cool * flash * M
