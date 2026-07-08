@@ -75,6 +75,10 @@ export default function Develop() {
   // stays pixel-aligned with the original; null for the other stocks
   const [compareResult, setCompareResult] = useState<DevelopResult | null>(null)
   const [developing, setDeveloping] = useState(false)
+  // the develop is a real staged pipeline — this is the current stage the engine
+  // is actually working on (scene read → subject recognition → develop), shown so
+  // the compute is visible rather than an instant filter flip
+  const [phase, setPhase] = useState('Developing')
   const [view, setView] = useState<ViewMode>('result')
   const [meter, setMeter] = useState<string | null>(null)
 
@@ -107,7 +111,8 @@ export default function Develop() {
       if (!img) return
       const myRun = ++runIdRef.current
       setDeveloping(true)
-      // let the spinner paint before the heavy synchronous pass
+      setPhase('Developing')
+      // yield so the phase paints before the heavy synchronous render pass
       await new Promise((r) => setTimeout(r, 30))
       try {
         if (!sceneRef.current) sceneRef.current = analyzeScene(img, focalRef.current)
@@ -158,6 +163,7 @@ export default function Develop() {
       }
       // premium stocks are paid-kit only for real photos (samples showcase free)
       if (st.tier === 'premium' && !isPaid) {
+        setDeveloping(false) // clear the staged-develop spinner before the gate
         haptics.warning()
         router.push('/paywall')
         return
@@ -165,6 +171,7 @@ export default function Develop() {
       const key = `${photoUri}::${st.id}`
       if (!chargedRef.current.has(key)) {
         if (!spendCredit()) {
+          setDeveloping(false)
           haptics.warning()
           router.push('/paywall')
           return
@@ -193,8 +200,16 @@ export default function Develop() {
         return
       }
       sourceRef.current = img
+      // real staged recognition — each stage is genuine work (not a timer); the
+      // yields just let the phase label paint between passes so the compute shows
+      setDeveloping(true)
+      setPhase('Finding your subject')
+      await new Promise((r) => setTimeout(r, 16))
       // the subject finder feeds face metering, DoF, relight, and smoothing
+      // (this is the seam where on-device Vision segmentation slots in)
       focalRef.current = await detectFocal(img)
+      setPhase('Reading the light')
+      await new Promise((r) => setTimeout(r, 16))
       sceneRef.current = analyzeScene(img, focalRef.current)
       // the lens showing its work: what it read, what it locked, what it mapped
       const bits = [sceneLabel(sceneRef.current)]
@@ -427,7 +442,7 @@ export default function Develop() {
               {developing && (
                 <View style={styles.developing}>
                   <ActivityIndicator color="#fff" />
-                  <Text style={styles.developingText}>developing…</Text>
+                  <Text style={styles.developingText}>{phase.toLowerCase()}…</Text>
                 </View>
               )}
             </View>
