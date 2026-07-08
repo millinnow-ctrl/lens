@@ -61,6 +61,13 @@ export interface StyleCharacter {
   grainChroma?: number
   /** how this camera's metering/AWB electronics respond to the scene */
   lens?: LensResponse
+  /** per-channel film dye transfer — each channel's [shadowShift, highlightShift]
+   *  in ~-0.3..0.3. Cross-process casts, teal-shadow dyes, a highlight channel
+   *  that clips before the others: a per-channel transfer no slider produces. */
+  channelCurves?: { r: [number, number]; g: [number, number]; b: [number, number] }
+  /** low print DMax (0..0.25): blacks clamp up to this floor — instant film and
+   *  cheap processes never reach true black. A chemistry limit, not a fade fill. */
+  dmax?: number
 }
 
 /**
@@ -312,11 +319,12 @@ export const CAMERA_STYLES: CameraStyle[] = [
       optics: { ca: 0.06, cornerSoft: 0.15, distortion: 0.02, flareAniso: 0.25 },
       bands: { sat: [-0.08, -0.15, -0.06, 0.08, 0.04, -0.22], lum: [0, 0.02, -0.02, 0.03, -0.03, -0.04] },
       lens: { meterBias: -0.2, meterStrength: 0.5, faceWeight: 0.65, awb: 0.5, awbClamp: 0.3, lightHalation: 0.4, toneMap: 0.35, dof: 0.5, autoIso: 0.55, clarity: 0.12, vibrance: 0.1, shadowDenoise: 0.2, skinGlow: 0.05, flashStrength: 0, flashFalloff: 0.1, flashSpecular: 0.1, flashCool: 0.05, flashSpread: 1.5 },
+      channelCurves: { r: [-0.05, 0.0], g: [0.0, 0.0], b: [0.06, 0.0] },
+      dmax: 0.09,
       colorMatrix: [0.94, 0.05, 0.01, 0.02, 0.98, 0, 0.03, 0.06, 0.91],
       curve: 0.3,
       saturate: 0.84,
       brightness: 0.99,
-      fade: 0.14,
       halation: 0.12,
       splitTone: { shadows: '#22423f', highlights: '#e6e2d4', amount: 0.5 },
       grainSize: 1.05,
@@ -366,6 +374,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
       optics: { ca: 0.6, cornerSoft: 0.25, distortion: 0.35, flareAniso: 0.4 },
       bands: { sat: [0.18, 0.1, 0.2, 0.25, 0.22, 0.25], lum: [0.03, 0.04, 0, 0.06, -0.02, 0.02] },
       lens: { meterBias: 0.1, meterStrength: 0.7, faceWeight: 0.75, awb: 0.35, awbClamp: 0.25, lightHalation: 0.35, toneMap: 0.05, dof: 0.05, autoIso: 0.85, clarity: 0.65, vibrance: 0.7, shadowDenoise: 0.15, skinGlow: 0.5, flashStrength: 0.78, flashFalloff: 0.55, flashSpecular: 0.72, flashCool: 0.3, flashSpread: 1.4 },
+      channelCurves: { r: [0.0, -0.12], g: [0.0, 0.04], b: [0.0, -0.09] },
       curve: 0.35,
       hue: -4,
       saturate: 1.22,
@@ -396,6 +405,8 @@ export const CAMERA_STYLES: CameraStyle[] = [
       optics: { ca: 0.18, cornerSoft: 0.55, distortion: 0.08, flareAniso: 0.2 },
       bands: { sat: [-0.05, 0.06, -0.1, 0.1, 0.02, -0.05], lum: [0.05, 0.06, 0, 0.02, 0.02, 0.02] },
       lens: { meterBias: 0.15, meterStrength: 0.7, faceWeight: 0.8, awb: 0.4, awbClamp: 0.25, lightHalation: 0.8, toneMap: 0.25, dof: 0.3, autoIso: 0.3, clarity: 0, vibrance: 0.15, shadowDenoise: 0.3, skinGlow: 0.7, flashStrength: 0.42, flashFalloff: 0.22, flashSpecular: 0.22, flashCool: 0.12, flashSpread: 1.7 },
+      channelCurves: { r: [-0.12, 0.06], g: [0.0, 0.02], b: [0.18, -0.08] },
+      dmax: 0.11,
       colorMatrix: [1.06, 0.03, -0.09, 0.02, 1, -0.02, -0.03, 0.05, 0.94],
       splitTone: { shadows: '#1e6f6f', highlights: '#ffeacc', amount: 0.45 },
       tint: { color: '#ffe2b8', alpha: 0.1, blend: 'soft-light' },
@@ -404,7 +415,6 @@ export const CAMERA_STYLES: CameraStyle[] = [
       saturate: 0.9,
       brightness: 1.04,
       blur: 0.35,
-      fade: 0.1,
       halation: 0.28,
       grainSize: 0.85,
       grainAmp: 0.6,
@@ -459,6 +469,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
       optics: { ca: 0.7, cornerSoft: 0.9, distortion: 0.7, flareAniso: 0.55 },
       bands: { sat: [0.3, 0.15, 0.35, 0.3, 0.2, 0.35], lum: [0.04, 0, -0.08, -0.05, -0.1, 0.04] },
       lens: { meterBias: -0.15, meterStrength: 0.35, faceWeight: 0.5, awb: 0.15, awbClamp: 0.18, lightHalation: 0.55, toneMap: 0, dof: 0.3, autoIso: 0.65, clarity: 0.3, vibrance: 0.8, shadowDenoise: 0, skinGlow: 0.35, flashStrength: 0, flashFalloff: 0.32, flashSpecular: 0.3, flashCool: 0.1, flashSpread: 1.3 },
+      channelCurves: { r: [-0.12, 0.16], g: [0.1, -0.1], b: [-0.14, 0.12] },
       grainSize: 1.1,
       grainAmp: 1.2,
       grainChroma: 0.6,
@@ -580,6 +591,8 @@ export const CAMERA_STYLES: CameraStyle[] = [
       optics: { ca: 0.05, cornerSoft: 0.22, distortion: 0, flareAniso: 0.15 },
       bands: { sat: [-0.12, -0.06, -0.1, -0.04, -0.08, 0.04], lum: [0.08, 0.12, 0.06, 0.08, 0.04, 0.12] },
       lens: { meterBias: 0.1, meterStrength: 0.8, faceWeight: 0.8, awb: 0.7, awbClamp: 0.35, lightHalation: 0.25, toneMap: 0.3, dof: 0.45, autoIso: 0.05, clarity: 0.12, vibrance: 0.25, shadowDenoise: 0.5, skinGlow: 0.5, flashStrength: 0, flashFalloff: 0.1, flashSpecular: 0.15, flashCool: 0.1, flashSpread: 1.6 },
+      channelCurves: { r: [0.06, 0.0], g: [0.0, 0.02], b: [0.03, 0.02] },
+      dmax: 0.07,
       grainSize: 0.7,
       grainAmp: 0.5,
       grainChroma: 0.1,
@@ -589,7 +602,6 @@ export const CAMERA_STYLES: CameraStyle[] = [
       saturate: 0.92,
       brightness: 1.02,
       blur: 0.15,
-      fade: 0.06,
       halation: 0.18,
       tint: { color: '#f6d9e0', alpha: 0.1, blend: 'soft-light' },
     },

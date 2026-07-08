@@ -96,6 +96,13 @@ export interface StyleCharacter {
   grainChroma?: number
   /** how this camera's metering/AWB electronics respond to the scene */
   lens?: LensResponse
+  /** per-channel film dye transfer — each channel's [shadowShift, highlightShift]
+   *  in ~-0.3..0.3. Cross-process casts, teal-shadow dyes, a highlight channel
+   *  that clips before the others: a per-channel transfer no slider produces. */
+  channelCurves?: { r: [number, number]; g: [number, number]; b: [number, number] }
+  /** low print DMax (0..0.25): blacks clamp up to this floor — instant film and
+   *  cheap processes never reach true black. A chemistry limit, not a fade fill. */
+  dmax?: number
 }
 
 /**

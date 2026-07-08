@@ -124,6 +124,17 @@ const smoothstep = (a: number, b: number, x: number) => {
   return t * t * (3 - 2 * t)
 }
 
+/** per-channel film transfer: shift ONE dye layer's shadows (sh) and highlights
+ *  (hi) independently — cross-process casts, teal-shadow dyes, a highlight
+ *  channel that clips before the others. A per-channel transfer function no
+ *  single slider produces. Value + result on the 0..255 scale. */
+function shapeCh(v: number, sh: number, hi: number): number {
+  const t = v / 255
+  const ws = 1 - smoothstep(0, 0.5, t)
+  const wh = smoothstep(0.5, 1, t)
+  return clamp01(t + sh * ws * 0.4 + hi * wh * 0.4) * 255
+}
+
 /** integer white-noise hash → [0,1). The grain PRNG — deterministic per
  *  (x,y,seed) so the same develop is reproducible, and cheap enough to run
  *  per-pixel on a full frame. */
@@ -447,7 +458,13 @@ export function renderStyled(
     ctx.putImageData(img, 0, 0)
   }
 
-  if (curveAmt > 0.02 || splitAmt > 0.02 || mtx || hiDesat > 0.02 || doMeter || doWb || doVib || doSdn || doBands) {
+  // per-channel dye transfer (cross-process, teal dyes, cyan highlight clip) and
+  // the low print DMax floor (instant film never reaches true black) — real
+  // chemistry a global curve/fade can't do
+  const cc = ch.channelCurves
+  const chC = cc ? [cc.r[0] * s, cc.r[1] * s, cc.g[0] * s, cc.g[1] * s, cc.b[0] * s, cc.b[1] * s] : null
+  const dmaxV = (ch.dmax ?? 0) * s
+  if (curveAmt > 0.02 || splitAmt > 0.02 || mtx || hiDesat > 0.02 || doMeter || doWb || doVib || doSdn || doBands || chC || dmaxV > 0.002) {
     const img = ctx.getImageData(0, 0, w, h)
     const d = img.data
 
@@ -479,6 +496,12 @@ export function renderStyled(
       let r = doCurve ? lut[d[i]] : d[i]
       let g = doCurve ? lut[d[i + 1]] : d[i + 1]
       let b = doCurve ? lut[d[i + 2]] : d[i + 2]
+      // per-channel dye transfer runs on each layer before crosstalk mixes them
+      if (chC) {
+        r = shapeCh(r, chC[0], chC[1])
+        g = shapeCh(g, chC[2], chC[3])
+        b = shapeCh(b, chC[4], chC[5])
+      }
       // channel crosstalk — how film dyes contaminate neighbouring layers
       if (mAmt) {
         const nr = mtx![0] * r + mtx![1] * g + mtx![2] * b
@@ -574,6 +597,14 @@ export function renderStyled(
         r += dn
         g += dn
         b += dn
+      }
+      // low print DMax: instant film / cheap process never reaches true black —
+      // clamp the floor up, a chemistry limit rather than a lifted-fade fill
+      if (dmaxV > 0.002) {
+        const fl = dmaxV * 255
+        r = fl + (1 - dmaxV) * r
+        g = fl + (1 - dmaxV) * g
+        b = fl + (1 - dmaxV) * b
       }
       d[i] = r
       d[i + 1] = g
