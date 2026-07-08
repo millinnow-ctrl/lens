@@ -95,6 +95,10 @@ const DEFAULT_LENS: Required<LensResponse> = {
   flashSpecular: 0.4,
   flashCool: 0.25,
   flashSpread: 1.4,
+  keyVec: [0, 0],
+  keyHardness: 0.35,
+  fillCeiling: 0.86,
+  shadowFill: 0.55,
 }
 
 /* ------------------------------------------------------------- helpers */
@@ -1166,6 +1170,16 @@ export function renderStyled(
       const cool = lens.flashCool
       const glowStr = lens.skinGlow // R45: the dead field, now wired to a real skin glow
       const chiaro = (ch.chiaroscuro ?? 0) * s // noir directional-key sculpting
+      // R46 lighting personality: the flash is a modeled key, not a brightener.
+      // keyVec is the direction the key comes from in screen space (y down);
+      // [0,0] = flat frontal on-axis flash. No trig in the hot loop (Math.sin/cos
+      // aren't bit-identical across JS engines) — the direction ships as a vector.
+      const kv = lens.keyVec ?? [0, 0]
+      const kdx = kv[0]
+      const kdy = kv[1]
+      const keyHard = lens.keyHardness ?? 0.35 // how sharply lit/shadow sides diverge
+      const ceiling = lens.fillCeiling ?? 0.86 // the luma the fill can never exceed
+      const shadowFill = lens.shadowFill ?? 0.55 // how much of the key the shadow side keeps
       for (let y = 0; y < h; y++) {
         for (let x = 0; x < w; x++) {
           const idx = (y * w + x) * 4
@@ -1178,34 +1192,59 @@ export function renderStyled(
           const M = sampleMask(mask, mw, mh, (x + 0.5) / w, (y + 0.5) / h)
           const far = 1 - M
           const skin = isSkin(r, g, b) ? 1 : 0
-          // background falls off by distance² (the flash carves depth); the
-          // ambient sep term gives available-light stocks a gentle subject read
-          const darken = 1 - (sep * 0.5 + flash * 0.6) * far * far
-          // DIFFUSE: a real flash reflects by the surface's albedo — dark hair and
-          // clothes barely lift, mid-tones catch the most light, whites are held.
-          // This is directional light (contrast WITHIN the subject), not a wash.
-          const albedo = Lb
-          const reflect = albedo * (1.35 - 0.35 * albedo)
-          const diffuse = flash * M * reflect * 0.62
-          let gain = darken * (1 + diffuse)
-          r *= gain
-          g *= gain
-          b *= gain
-          // SPECULAR: a sharp positive detail spike above this person's skin tone
-          // is a shiny micro-highlight. Non-skin (jewelry, eyes, glass, metal)
-          // shines hard; skin shines softly and only where it's already oily.
+          // BACKGROUND: falls off by distance² — the flash REDISTRIBUTES light
+          // (subject forward, background back), it does not raise exposure.
+          const bg = 1 - (sep * 0.5 + flash * 0.6) * far * far
+          // FORM: read which way the surface turns from the low-freq shading
+          // gradient (∇Lb), and how much it faces the key. The lit side of the
+          // form catches the key; the shadow side keeps only shadowFill of it —
+          // modeled directional light, not a flat wash.
+          const xl = x > 0 ? idx - 4 : idx
+          const xr = x < w - 1 ? idx + 4 : idx
+          const yu = y > 0 ? idx - w * 4 : idx
+          const yd = y < h - 1 ? idx + w * 4 : idx
+          const lbL = (blur[xl] * 0.299 + blur[xl + 1] * 0.587 + blur[xl + 2] * 0.114) / 255
+          const lbR = (blur[xr] * 0.299 + blur[xr + 1] * 0.587 + blur[xr + 2] * 0.114) / 255
+          const lbU = (blur[yu] * 0.299 + blur[yu + 1] * 0.587 + blur[yu + 2] * 0.114) / 255
+          const lbD = (blur[yd] * 0.299 + blur[yd + 1] * 0.587 + blur[yd + 2] * 0.114) / 255
+          const gLx = lbR - lbL
+          const gLy = lbD - lbU
+          const gmag = Math.sqrt(gLx * gLx + gLy * gLy)
+          const dirDot = gmag > 0.0001 ? (gLx * kdx + gLy * kdy) / gmag : 0
+          const face = 0.5 + 0.5 * dirDot // 0 = shadow side, 1 = key side
+          const directional = shadowFill + (1 - shadowFill) * face
+          const keyModel = 1 + keyHard * (directional - 1) // flat at keyHard 0, modeled at 1
+          // FILL: add light ONLY into the headroom below this stock's ceiling, so
+          // dark/mid surfaces come up while already-bright ones barely move — the
+          // flash can never push the subject past the ceiling (no blinding white).
+          // Available-light stocks (no hard flash) still get a soft modeled key
+          // from their falloff term, so the lighting personality shapes them too.
+          const litSource = flash + sep * 0.28
+          const lightAmt = litSource * M * keyModel
+          const roomLeft = clamp01(ceiling - L)
+          const newL = L + roomLeft * lightAmt
+          const lift = L > 0.001 ? newL / L : 1
+          const s6 = bg * lift
+          r *= s6
+          g *= s6
+          b *= s6
+          // SPECULAR: shiny micro-highlights, scaled by remaining headroom so
+          // shine sparkles without blowing to white. Skin shines soft; metal hard.
           const shine = smoothstep(0.06, 0.2, detail) * smoothstep(skinRef * 0.7, skinRef * 1.15, L)
           const material = skin ? 0.4 : 1
-          const specular = (flash * 0.9 + sep * 0.3) * M * shine * material * spec * 255
-          // TEXTURE: re-add amplified high-frequency so the lit surface reads
-          // crisp — pores, fabric weave, hair — instead of a flat brightened tone
-          const tex = detail * (0.4 * flash * M) * 255
+          const roomSpec = clamp01(1 - L)
+          const specular = (flash * 0.9 + sep * 0.3) * M * shine * material * spec * roomSpec * 255
+          // TEXTURE: re-add high-frequency so the lit surface reads crisp — pores,
+          // fabric weave, hair — headroom-scaled so it never tips into white.
+          const tex = detail * (0.4 * flash * M) * roomSpec * 255
           r += specular + tex
           g += specular + tex
           b += specular + tex
           // SKIN SUBSURFACE: flash-lit skin glows soft and faintly warm (light
-          // scatters under the surface), so faces read luminous, not gray-white
-          const sub = skin * diffuse * 0.5
+          // scatters under the surface), so faces read luminous, not gray-white.
+          // Tied to the light the skin actually absorbed (roomLeft·lightAmt), not
+          // a flat brighten, so it follows the modeling.
+          const sub = skin * roomLeft * lightAmt * 0.7
           r += sub * 14
           b -= sub * 10
           // SKIN GLOW (R45, was a dead field): a soft luminous lift on face skin,

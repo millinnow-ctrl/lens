@@ -187,6 +187,21 @@ export interface LensResponse {
   /** capsule spread — how wide the subject mask reaches past the face over the
    *  torso (≈0.8 tight head-and-shoulders … ≈2.4 loose). Default 1.4. */
   flashSpread?: number
+  /** R46 LIGHTING PERSONALITY — the relight models light, it does not brighten.
+   *  keyVec: the direction the key light comes from in screen space (y down),
+   *  as a unit vector; [0,0] = flat frontal on-axis flash (no modeling).
+   *  e.g. upper-left = [-0.71,-0.71], side = [-1,0]. Default [0,0]. */
+  keyVec?: [number, number]
+  /** 0..1 — how sharply the lit side and shadow side diverge (modeling depth).
+   *  Direct flash ≈ 0.1 (flat); studio/noir ≈ 0.7 (sculpted). Default 0.35. */
+  keyHardness?: number
+  /** 0..1 (<1) — the luma the fill lifts TOWARD and can never exceed, so the
+   *  flash fills shadows without blowing highlights. Moody stocks lower (~0.7),
+   *  bright flash higher (~0.9). Default 0.86. */
+  fillCeiling?: number
+  /** 0..1 — how much of the key the shadow side keeps. Available-light stocks
+   *  fill more (~0.7); hard-key noir keeps little (~0.2). Default 0.55. */
+  shadowFill?: number
 }
 
 /* ------------------------------------------------------------- the stock */
