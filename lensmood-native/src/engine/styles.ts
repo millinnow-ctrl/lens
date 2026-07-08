@@ -476,7 +476,10 @@ export const CAMERA_STYLES: CameraStyle[] = [
       saturate: 0.92,
       brightness: 1,
       halation: 0.34,
-      tint: { color: '#f6d9e0', alpha: 0.1, blend: 'soft-light' },
+      // a persistent powder-pink cast so pastel keeps its own signature even in
+      // low light, where the palette snap has little colour to grab and it
+      // would otherwise converge with the other natural-film stocks
+      tint: { color: '#f6cdd9', alpha: 0.18, blend: 'soft-light' },
     },
     cardFilter: 'saturate(0.88) contrast(0.95) brightness(1.05) sepia(0.06) hue-rotate(-3deg)',
     gradient: 'linear-gradient(135deg,#ffd7e0,#b8e6d9)',
@@ -534,12 +537,15 @@ export const CAMERA_STYLES: CameraStyle[] = [
       grainChroma: 0,
       // warm silver-gelatin strip tone: selenium-warm highlights over a
       // warm-black, the signature of a chemical photo-strip, not neutral noir
-      splitTone: { shadows: '#151009', highlights: '#f3e4cd', amount: 0.34 },
+      splitTone: { shadows: '#181008', highlights: '#f0dcc0', amount: 0.5 },
+      // a warm sepia-selenium toner over the mono — the physical print warmth
+      // that separates a chemical booth strip from a cold digital B&W
+      tint: { color: '#caa877', alpha: 0.16, blend: 'soft-light' },
       optics: { ca: 0.1, cornerSoft: 0.35, distortion: 0.12, flareAniso: 0.15 },
       lens: { meterBias: 0.05, meterStrength: 0.9, faceWeight: 1, awb: 0, awbClamp: 0.3, toneMap: 0.15, shadowDenoise: 0.2, vibrance: 0, autoIso: 0.25, clarity: 0.35, dof: 0.2, skinGlow: 0.65, lightHalation: 0.3, flashStrength: 0.68, flashFalloff: 0.24, flashSpecular: 0.4, flashCool: 0.18, flashSpread: 1.7 },
       bwMix: [0.12, 0.55, 0.33],
     },
-    cardFilter: 'grayscale(1) contrast(1.32) brightness(1.06)',
+    cardFilter: 'grayscale(1) sepia(0.18) contrast(1.32) brightness(1.06)',
     gradient: 'linear-gradient(135deg,#ffffff,#3a3a42)',
   },
   {
