@@ -21,48 +21,59 @@ import { colors } from '@/theme/colors'
 
 type TabId = 'home' | 'styles' | 'create' | 'gallery' | 'account'
 
-/** the LM-1 — a dimensional DSLR, not the generic outline camera: graphite
- *  body with a top-light, pentaprism hump, grip, and a deep glass lens with
- *  a glint. Sits in the dock's dark FAB and reads like the real object. */
+/** the LM-1 — a 3D drawing of a Canon-class DSLR: inked outlines, graphite
+ *  body with a top-light, rounded EOS pentaprism hump, gripped right side,
+ *  and the signature red ring on the lens. Reads like the real object. */
 function DslrIcon() {
   return (
     <Svg width={32} height={32} viewBox="0 0 32 32">
       <Defs>
         <LinearGradient id="lmBody" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor="#8d9ca9" />
-          <Stop offset="0.28" stopColor="#5c6d7c" />
-          <Stop offset="1" stopColor="#232f3a" />
+          <Stop offset="0" stopColor="#95a4b1" />
+          <Stop offset="0.3" stopColor="#5f7080" />
+          <Stop offset="1" stopColor="#1e2933" />
         </LinearGradient>
         <LinearGradient id="lmPrism" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor="#6e7f8d" />
+          <Stop offset="0" stopColor="#7a8b99" />
           <Stop offset="1" stopColor="#2b3843" />
         </LinearGradient>
         <LinearGradient id="lmGrip" x1="0" y1="0" x2="1" y2="0">
-          <Stop offset="0" stopColor="#1c2833" />
-          <Stop offset="1" stopColor="#39485a" />
+          <Stop offset="0" stopColor="#161f28" />
+          <Stop offset="1" stopColor="#3d4c5e" />
         </LinearGradient>
         <RadialGradient id="lmGlass" cx="0.38" cy="0.34" r="0.85">
-          <Stop offset="0" stopColor="#3f7fae" />
-          <Stop offset="0.5" stopColor="#173a55" />
-          <Stop offset="1" stopColor="#081420" />
+          <Stop offset="0" stopColor="#4585b3" />
+          <Stop offset="0.5" stopColor="#143650" />
+          <Stop offset="1" stopColor="#07121d" />
         </RadialGradient>
       </Defs>
-      {/* pentaprism hump */}
-      <Path d="M11.4 8.2 12.8 5h6.4l1.4 3.2Z" fill="url(#lmPrism)" />
+      {/* pentaprism hump — the EOS silhouette, rounded */}
+      <Path
+        d="M11 8.4c0-2 1.6-3.6 3.4-3.6h3.2c1.8 0 3.4 1.6 3.4 3.6Z"
+        fill="url(#lmPrism)"
+        stroke="#0d151c"
+        strokeWidth="0.7"
+      />
       {/* shutter nub + mode dial */}
-      <Rect x="5.6" y="5.8" width="4" height="2.8" rx="1.3" fill={colors.accent} />
-      <Rect x="23" y="6" width="3.6" height="2.4" rx="1" fill="#4a5a68" />
-      {/* body */}
-      <Rect x="2.6" y="8.2" width="26.8" height="18" rx="3.6" fill="url(#lmBody)" />
-      {/* grip */}
-      <Rect x="25.2" y="9.6" width="4.2" height="15.2" rx="2" fill="url(#lmGrip)" />
+      <Rect x="5.4" y="5.9" width="4.2" height="2.9" rx="1.4" fill={colors.accent} stroke="#0d151c" strokeWidth="0.6" />
+      <Rect x="23" y="6.1" width="3.8" height="2.5" rx="1.1" fill="#4a5a68" stroke="#0d151c" strokeWidth="0.6" />
+      {/* body — inked outline reads as a drawing */}
+      <Rect x="2.4" y="8.2" width="27.2" height="18.2" rx="3.8" fill="url(#lmBody)" stroke="#0d151c" strokeWidth="0.9" />
+      {/* grip with finger notch */}
+      <Path
+        d="M25.4 9.6h2c1.1 0 2 .9 2 2v11.2c0 1.1-.9 2-2 2h-2c-.7 0-1.2-.7-1-1.4.8-2.4.8-9.9 0-12.4-.2-.7.3-1.4 1-1.4Z"
+        fill="url(#lmGrip)"
+        stroke="#0d151c"
+        strokeWidth="0.7"
+      />
       {/* lens barrel */}
-      <Circle cx="14.6" cy="17.2" r="7.4" fill="#0c141c" />
-      <Circle cx="14.6" cy="17.2" r="7.4" stroke="#9aa9b5" strokeWidth="0.9" fill="none" />
-      <Circle cx="14.6" cy="17.2" r="5.6" stroke="#45535f" strokeWidth="1" fill="none" />
+      <Circle cx="14.4" cy="17.3" r="7.6" fill="#0c141c" stroke="#0d151c" strokeWidth="0.9" />
+      {/* THE red ring */}
+      <Circle cx="14.4" cy="17.3" r="6.5" fill="none" stroke="#d92b2b" strokeWidth="1.5" />
+      <Circle cx="14.4" cy="17.3" r="5.2" fill="none" stroke="#45535f" strokeWidth="0.9" />
       {/* glass + glint */}
-      <Circle cx="14.6" cy="17.2" r="4.3" fill="url(#lmGlass)" />
-      <Ellipse cx="12.9" cy="15.4" rx="1.7" ry="1.1" fill="rgba(255,255,255,0.55)" />
+      <Circle cx="14.4" cy="17.3" r="4.2" fill="url(#lmGlass)" />
+      <Ellipse cx="12.8" cy="15.5" rx="1.7" ry="1.1" fill="rgba(255,255,255,0.6)" />
     </Svg>
   )
 }

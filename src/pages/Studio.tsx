@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import UploadArea from '../components/UploadArea'
+import TapeDeck from '../components/TapeDeck'
 import StyleCarousel from '../components/StyleCarousel'
 import AdjustmentPanel from '../components/AdjustmentPanel'
 import BeforeAfterSlider from '../components/BeforeAfterSlider'
@@ -281,17 +282,30 @@ export default function Studio() {
 
   /* ------------------------------------------------ empty state */
   if (!hasMedia) {
+    // the Camcorder card arrives with ?tape=1 — the deck, not the photo studio
+    const tapeMode = searchParams.get('tape') === '1'
     return (
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20 pb-28">
         <div className="mb-10">
-          <p className="text-[12px] font-bold tracking-[0.12em] uppercase grad-text mb-3">The Studio</p>
+          <p className="text-[12px] font-bold tracking-[0.12em] uppercase grad-text mb-3">
+            {tapeMode ? 'The Tape Deck' : 'The Studio'}
+          </p>
           <h1 className="type-display text-3xl sm:text-5xl">
-            Every photo has a mood.
-            <br className="hidden sm:block" /> Let’s find yours.
+            {tapeMode ? (
+              <>
+                Shoot it like 1994.
+                <br className="hidden sm:block" /> Press record.
+              </>
+            ) : (
+              <>
+                Every photo has a mood.
+                <br className="hidden sm:block" /> Let’s find yours.
+              </>
+            )}
           </h1>
         </div>
         <hr className="rule mb-10" />
-        <UploadArea />
+        {tapeMode ? <TapeDeck /> : <UploadArea />}
       </main>
     )
   }

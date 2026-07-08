@@ -24,6 +24,7 @@ import sampleFriends from '../assets/sample-friends.jpg'
 import sampleDog from '../assets/sample-dog.jpg'
 import samplePrints from '../assets/sample-prints.jpg'
 import sampleHandprint from '../assets/sample-handprint.jpg'
+import camcorderCover from '../assets/camcorder-cover.jpg'
 
 
 /* collection milestones — celebrated once each, positive framing only */
@@ -337,10 +338,10 @@ function HomeContent({
           <span className="flex-1 ml-3 h-px bg-ink/10 self-center" aria-hidden />
         </div>
         <ToolCard
-          to="/studio"
+          to="/studio?tape=1"
           title="Camcorder"
           sub="Shoot it like 1994 — counting timecode, tape grain"
-          image={STYLE_ART['camcorder-90s']}
+          image={camcorderCover}
           tag="Pro"
           ratio="aspect-[21/9]"
           film
