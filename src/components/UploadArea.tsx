@@ -257,10 +257,10 @@ export default function UploadArea() {
       <Modal open={videoUpsell} onClose={() => setVideoUpsell(false)}>
         <div className="p-8">
           <IconFilm size={32} className="text-ink mb-4" />
-          <h3 className="text-2xl font-semibold tracking-[-0.01em] mb-2">Video moods are a Pro thing</h3>
+          <h3 className="text-2xl font-semibold tracking-[-0.01em] mb-2">The camcorder is a Pro thing</h3>
           <p className="text-sm text-ink-soft leading-relaxed mb-6">
-            Restyle short clips frame-by-frame — camcorder timestamps, film grain that dances, the
-            works. Included with Pro and Studio.
+            Every clip develops like a 1994 tape — counting REC timecode, tape grain that dances,
+            scanlines. Included with Pro and Studio.
           </p>
           <Link
             to="/pricing"

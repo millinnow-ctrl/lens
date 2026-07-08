@@ -371,7 +371,7 @@ export function renderStyled(
      adaptation; undefined means analyze. */
   const scene =
     opts.scene !== undefined ? (opts.scene ?? NEUTRAL_SCENE) : analyzeScene(source, focal)
-  const lens = { ...DEFAULT_LENS, ...ch.lens }
+  const lens = { ...DEFAULT_LENS, ...ch.lens, ...opts.lensOverride }
   const keyEff =
     scene.faceLum != null ? lerp(scene.key, scene.faceLum, lens.faceWeight) : scene.key
   const meterTarget = (scene.faceLum != null ? 0.45 : 0.4) * Math.pow(2, lens.meterBias)

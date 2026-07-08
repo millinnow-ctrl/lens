@@ -137,6 +137,15 @@ export default function Studio() {
     if (!video) setVideoPoster(null)
   }, [video])
 
+  /* tapes are a camcorder thing: every video develops through the 90s
+     Camcorder — counting timecode, tape grain — no other stock applies */
+  useEffect(() => {
+    if (!video || styleId === 'camcorder-90s') return
+    const tape = getStyle('camcorder-90s')
+    if (tape) beginGeneration(tape, undefined, true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [video, styleId])
+
   const beginGeneration = useCallback(
     (s: CameraStyle, presetParams?: StyleParams, freeShot = false) => {
       if (!source && !video) return
@@ -553,12 +562,20 @@ export default function Studio() {
             <p className="text-[13px] text-fog mb-3">
               {style ? style.description : 'Pick a style — we’ll develop your photo in it.'}
             </p>
-            {carouselPreview && (
-              <StyleCarousel
-                previewSrc={carouselPreview}
-                selectedId={styleId}
-                onSelect={(s) => beginGeneration(s)}
-              />
+            {video ? (
+              <p className="rounded-xl bg-vf/5 border border-ink/10 px-4 py-3 text-[13px] text-fog">
+                <span className="font-semibold text-ink">Tapes are a camcorder thing.</span> Every
+                clip develops through the 90s Camcorder — counting REC timecode, tape grain, the
+                works.
+              </p>
+            ) : (
+              carouselPreview && (
+                <StyleCarousel
+                  previewSrc={carouselPreview}
+                  selectedId={styleId}
+                  onSelect={(s) => beginGeneration(s)}
+                />
+              )
             )}
           </section>
 

@@ -23,6 +23,8 @@ import artPhotobooth from '../assets/style-photobooth.jpg'
 import artTintype from '../assets/style-tintype.jpg'
 
 export const STYLE_ART: Record<string, string> = {
+  // LM-1 wears the Leica art until its own Higgsfield card is generated
+  'pro-body': artLeica,
   disposable: artDisposable,
   'iphone-flash': artIphoneFlash,
   'camcorder-90s': artCamcorder,

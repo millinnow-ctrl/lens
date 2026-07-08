@@ -6,11 +6,66 @@
 
 import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { router, usePathname } from 'expo-router'
-import Svg, { Path, Rect, Circle } from 'react-native-svg'
+import Svg, {
+  Path,
+  Rect,
+  Circle,
+  Defs,
+  LinearGradient,
+  RadialGradient,
+  Stop,
+  Ellipse,
+} from 'react-native-svg'
 import { haptics } from '@/store'
 import { colors } from '@/theme/colors'
 
 type TabId = 'home' | 'styles' | 'create' | 'gallery' | 'account'
+
+/** the LM-1 — a dimensional DSLR, not the generic outline camera: graphite
+ *  body with a top-light, pentaprism hump, grip, and a deep glass lens with
+ *  a glint. Sits in the dock's dark FAB and reads like the real object. */
+function DslrIcon() {
+  return (
+    <Svg width={32} height={32} viewBox="0 0 32 32">
+      <Defs>
+        <LinearGradient id="lmBody" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor="#8d9ca9" />
+          <Stop offset="0.28" stopColor="#5c6d7c" />
+          <Stop offset="1" stopColor="#232f3a" />
+        </LinearGradient>
+        <LinearGradient id="lmPrism" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor="#6e7f8d" />
+          <Stop offset="1" stopColor="#2b3843" />
+        </LinearGradient>
+        <LinearGradient id="lmGrip" x1="0" y1="0" x2="1" y2="0">
+          <Stop offset="0" stopColor="#1c2833" />
+          <Stop offset="1" stopColor="#39485a" />
+        </LinearGradient>
+        <RadialGradient id="lmGlass" cx="0.38" cy="0.34" r="0.85">
+          <Stop offset="0" stopColor="#3f7fae" />
+          <Stop offset="0.5" stopColor="#173a55" />
+          <Stop offset="1" stopColor="#081420" />
+        </RadialGradient>
+      </Defs>
+      {/* pentaprism hump */}
+      <Path d="M11.4 8.2 12.8 5h6.4l1.4 3.2Z" fill="url(#lmPrism)" />
+      {/* shutter nub + mode dial */}
+      <Rect x="5.6" y="5.8" width="4" height="2.8" rx="1.3" fill={colors.accent} />
+      <Rect x="23" y="6" width="3.6" height="2.4" rx="1" fill="#4a5a68" />
+      {/* body */}
+      <Rect x="2.6" y="8.2" width="26.8" height="18" rx="3.6" fill="url(#lmBody)" />
+      {/* grip */}
+      <Rect x="25.2" y="9.6" width="4.2" height="15.2" rx="2" fill="url(#lmGrip)" />
+      {/* lens barrel */}
+      <Circle cx="14.6" cy="17.2" r="7.4" fill="#0c141c" />
+      <Circle cx="14.6" cy="17.2" r="7.4" stroke="#9aa9b5" strokeWidth="0.9" fill="none" />
+      <Circle cx="14.6" cy="17.2" r="5.6" stroke="#45535f" strokeWidth="1" fill="none" />
+      {/* glass + glint */}
+      <Circle cx="14.6" cy="17.2" r="4.3" fill="url(#lmGlass)" />
+      <Ellipse cx="12.9" cy="15.4" rx="1.7" ry="1.1" fill="rgba(255,255,255,0.55)" />
+    </Svg>
+  )
+}
 
 const ICON = (id: TabId, color: string) => {
   const p = { stroke: color, strokeWidth: 1.8, fill: 'none' as const, strokeLinecap: 'round' as const }
@@ -54,7 +109,7 @@ const ICON = (id: TabId, color: string) => {
 const TABS: { id: TabId; label: string; to: string }[] = [
   { id: 'home', label: 'Home', to: '/' },
   { id: 'styles', label: 'Styles', to: '/develop' },
-  { id: 'create', label: 'Create', to: '/develop' },
+  { id: 'create', label: 'Camera', to: '/camera' },
   { id: 'gallery', label: 'Gallery', to: '/gallery' },
   { id: 'account', label: 'Account', to: '/account' },
 ]
@@ -79,12 +134,10 @@ export default function BottomDock({ bottomInset }: { bottomInset: number }) {
                 }}
                 style={styles.tab}
                 accessibilityRole="button"
-                accessibilityLabel="Create"
+                accessibilityLabel="Camera — shoot with the LM-1 pro body"
               >
                 <View style={styles.fab}>
-                  <Svg width={24} height={24} viewBox="0 0 24 24">
-                    <Path d="M12 5v14M5 12h14" stroke="#fbf9f4" strokeWidth={2.4} strokeLinecap="round" />
-                  </Svg>
+                  <DslrIcon />
                 </View>
                 <Text style={[styles.label, { color: colors.ink, fontWeight: '600' }]}>{t.label}</Text>
               </Pressable>

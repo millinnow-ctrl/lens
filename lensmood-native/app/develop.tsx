@@ -30,6 +30,7 @@ import * as MediaLibrary from 'expo-media-library'
 import { getStyle } from '@/engine/styles'
 import { analyzeScene, sceneLabel } from '@/engine/scene'
 import { detectFocal, type Focal } from '@/engine/focal'
+import { parseProDials, dialsToEngine } from '@/engine/proDials'
 import { develop as developImage, loadImageFromUri } from '@/engine/engine'
 import type { CameraStyle, StyleParams, SceneProfile, DevelopResult } from '@/engine/types'
 import type { SkImage } from '@shopify/react-native-skia'
@@ -57,7 +58,13 @@ const SAMPLES = [
 export default function Develop() {
   const insets = useSafeAreaInsets()
   const { width: screenW } = useWindowDimensions()
-  const { style: styleParam } = useLocalSearchParams<{ style?: string }>()
+  const {
+    style: styleParam,
+    shot,
+    w: shotW,
+    h: shotH,
+    pro,
+  } = useLocalSearchParams<{ style?: string; shot?: string; w?: string; h?: string; pro?: string }>()
   const { isPaid, spendCredit, addHistory, creditsLeft } = useApp()
 
   const [style, setStyle] = useState<CameraStyle | undefined>(() => getStyle(styleParam))
@@ -72,13 +79,15 @@ export default function Develop() {
   const [meter, setMeter] = useState<string | null>(null)
 
   const [libPerm, requestLibPerm] = ImagePicker.useMediaLibraryPermissions()
-  const [camPerm, requestCamPerm] = ImagePicker.useCameraPermissions()
   const [savePerm, requestSavePerm] = MediaLibrary.usePermissions()
 
   // decoded source + its meter reading + subject lock, cached per photo
   const sourceRef = useRef<SkImage | null>(null)
   const sceneRef = useRef<SceneProfile | null>(null)
   const focalRef = useRef<Focal | null>(null)
+  // the LM-1's dial settings for a shot that arrived from the Pro Camera —
+  // applied only while the pro-body stock is selected (they belong to it)
+  const proRef = useRef<ReturnType<typeof dialsToEngine> | null>(null)
   // which (photo, stock) pairings have already been paid for
   const chargedRef = useRef<Set<string>>(new Set())
   // bundled sample shots develop free — their uris bypass the credit gate
@@ -102,11 +111,15 @@ export default function Develop() {
       await new Promise((r) => setTimeout(r, 30))
       try {
         if (!sceneRef.current) sceneRef.current = analyzeScene(img, focalRef.current)
+        // the LM-1's dials only steer its own body
+        const lensOverride =
+          st.id === 'pro-body' && proRef.current ? proRef.current.lensOverride : undefined
         const developed = await developImage(img, st, p, {
           scene: sceneRef.current,
           maxSize: 1280,
           watermark: !isPaid,
           focal: focalRef.current,
+          lensOverride,
         })
         if (myRun !== runIdRef.current) return // superseded by a newer run
         setResult(developed)
@@ -116,6 +129,7 @@ export default function Develop() {
             maxSize: 1280,
             watermark: !isPaid,
             focal: focalRef.current,
+            lensOverride,
             frame: false,
           })
           if (myRun !== runIdRef.current) return
@@ -163,9 +177,10 @@ export default function Develop() {
     [spendCredit, runDevelop, isPaid],
   )
 
-  /** decode + meter a chosen photo, then develop — shared by the picker and samples */
+  /** decode + meter a chosen photo, then develop — shared by the picker,
+   *  samples, and shots arriving from the Pro Camera (paramsOverride) */
   const loadPicked = useCallback(
-    async (picked: Picked) => {
+    async (picked: Picked, paramsOverride?: StyleParams) => {
       haptics.medium()
       setPhoto(picked)
       setResult(null)
@@ -187,11 +202,29 @@ export default function Develop() {
       if (focalRef.current) bits.push('FACE LOCK')
       if (sceneRef.current.lights.length)
         bits.push(`${sceneRef.current.lights.length} LIGHT${sceneRef.current.lights.length > 1 ? 'S' : ''}`)
+      if (proRef.current && style?.id === 'pro-body') bits.push(proRef.current.readout)
       setMeter(bits.join(' · '))
-      if (style && params) developCharged(style, params, picked.uri)
+      const effective = paramsOverride ?? params
+      if (style && effective) developCharged(style, effective, picked.uri)
     },
     [style, params, developCharged],
   )
+
+  /* a shot arriving from the Pro Camera: apply its dials, then develop it */
+  const shotHandledRef = useRef(false)
+  useEffect(() => {
+    if (!shot || shotHandledRef.current || !style || !params) return
+    shotHandledRef.current = true
+    const dials = parseProDials(pro)
+    let effective = params
+    if (dials) {
+      proRef.current = dialsToEngine(dials)
+      effective = { ...params, grain: proRef.current.params.grain, warmth: proRef.current.params.warmth }
+      setParams(effective)
+    }
+    void loadPicked({ uri: shot, width: Number(shotW) || 0, height: Number(shotH) || 0 }, effective)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shot, style, params])
 
   const pickPhoto = useCallback(async () => {
     if (libPerm && !libPerm.granted && libPerm.canAskAgain) {
@@ -208,20 +241,11 @@ export default function Develop() {
     await loadPicked({ uri: a.uri, width: a.width ?? 0, height: a.height ?? 0 })
   }, [libPerm, requestLibPerm, loadPicked])
 
-  /** shoot with the iPhone camera, then develop through the chosen stock */
-  const shootPhoto = useCallback(async () => {
-    if (camPerm && !camPerm.granted) {
-      const req = await requestCamPerm()
-      if (!req.granted) {
-        Alert.alert('Permission needed', 'Allow camera access to shoot a photo to develop.')
-        return
-      }
-    }
-    const res = await ImagePicker.launchCameraAsync({ quality: 1, exif: false })
-    if (res.canceled || !res.assets?.length) return
-    const a = res.assets[0]
-    await loadPicked({ uri: a.uri, width: a.width ?? 0, height: a.height ?? 0 })
-  }, [camPerm, requestCamPerm, loadPicked])
+  /** shooting happens in the LM-1 Pro Camera — its shot routes back here */
+  const shootPhoto = useCallback(() => {
+    haptics.medium()
+    router.push('/camera')
+  }, [])
 
   const loadSample = useCallback(
     async (sample: (typeof SAMPLES)[number]) => {

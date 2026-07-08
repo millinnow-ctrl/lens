@@ -172,6 +172,7 @@ export function renderStyledVideo(opts: RenderVideoOptions): Promise<RenderedVid
             watermark,
             target: canvas,
             animateGrain: true,
+            time: video.currentTime,
           })
           if (duration > 0) onProgress?.(Math.min(0.99, video.currentTime / duration))
         }

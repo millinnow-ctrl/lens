@@ -88,8 +88,15 @@ sync to the in-app plan automatically.
   field-curvature corner softness, anisotropic per-light flare. Cheap glass
   (disposable/lomo/point-and-shoot) misbehaves; Leica/editorial glass barely
   does. This is the lens in front of the film's color science.
-- **Camera capture** — shoot straight from the develop screen
-  (ImagePicker.launchCameraAsync) alongside library picking.
+- **LM-1 Pro Camera** — the dock's center button opens a real in-app camera
+  (expo-camera, Expo Go-safe): iOS-style dark viewfinder with grid, flash,
+  zoom, flip, plus a flagship dial deck — ƒ, ISO, EV, WB. iPhones expose no
+  manual sensor controls to any app, so the dials do what makes them real:
+  they steer the engine's develop of the shot (ƒ→depth of field, ISO→grain +
+  denoise, EV→meter bias, WB→color), which lands in /develop through the
+  19th stock, `pro-body` ("LM-1 Pro Body" — max-compute AI relight profile,
+  perfect glass). Handling inspired by Canon & Nikon flagship bodies — not
+  affiliated, and the UI says so.
 
 ## Still to come
 

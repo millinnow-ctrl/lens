@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { IconUpload } from '../icons'
-import heroMatcha from '../../assets/hero-ambient.mp4'
-import heroPoster from '../../assets/hero-poster.jpg'
+import heroStill from '../../assets/sample-golden.jpg'
 
-/* one ambient clip — the matcha-hour loop — playing continuously. The
-   headline's warm word still morphs on its own beat so the frame keeps
-   breathing without ever cutting the picture. */
+/* one still frame — the golden-hour shot, developed by the engine's own
+   cameras — holds the header. The headline's warm word morphs on its own
+   beat so the frame keeps breathing without any footage doing laps. */
 const WORDS = ['mood.', 'look.', 'texture.', 'glow.']
 const WORD_HOLD = 3400
 
@@ -32,7 +31,7 @@ export default function LiveHero({ onUpload }: Props) {
       <div className="h-9 px-4 flex items-center justify-between gap-3 border-b border-white/[0.08]">
         <span className="flex items-center gap-2 font-mono font-semibold text-[10px] tracking-[0.14em] uppercase text-vf-chrome min-w-0">
           <span className="lm-live w-1.5 h-1.5 rounded-full bg-signal shrink-0" aria-hidden />
-          <span className="truncate">Matcha Hour</span>
+          <span className="truncate">Golden Hour</span>
         </span>
         <span className="font-mono text-[10px] tracking-[0.08em] uppercase text-vf-chrome tabular-nums shrink-0">
           ƒ1.4 · 50MM · WARM
@@ -40,20 +39,12 @@ export default function LiveHero({ onUpload }: Props) {
       </div>
 
       <div className="relative aspect-[4/3.6] vf-corners overflow-hidden">
-        {reduce.current ? (
-          <img src={heroPoster} alt="" className="absolute inset-0 w-full h-full object-cover" draggable={false} />
-        ) : (
-          <video
-            src={heroMatcha}
-            poster={heroPoster}
-            autoPlay
-            muted
-            loop
-            playsInline
-            aria-hidden
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-        )}
+        <img
+          src={heroStill}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+          draggable={false}
+        />
         {!reduce.current && (
           <div aria-hidden className="absolute inset-0 pointer-events-none">
             <div className="lm-print-bloom absolute inset-0" />

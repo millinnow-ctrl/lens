@@ -9,7 +9,7 @@ import { deliverFile, haptic } from '../lib/native'
 import { HASHTAGS, randomCaption } from '../lib/captions'
 import { dailyStyle, isDailyClaimed } from '../lib/lab'
 import type { Focal } from '../lib/focal'
-import { encodeParams, type CameraStyle, type StyleParams } from '../lib/styles'
+import { encodeParams, getStyle, type CameraStyle, type StyleParams } from '../lib/styles'
 import { useApp } from '../lib/store'
 
 interface Props {
@@ -77,9 +77,11 @@ export default function ExportPanel({
             return
           }
           abortRef.current = new AbortController()
+          // tapes always develop through the camcorder — last-line enforcement
+          const tape = getStyle('camcorder-90s') ?? style
           const out = await renderStyledVideo({
             sourceUrl: videoSrc,
-            style,
+            style: style.id === 'camcorder-90s' ? style : tape,
             params,
             watermark: !isPaid,
             maxSize: hd ? 1280 : 960,

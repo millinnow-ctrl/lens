@@ -17,6 +17,12 @@ export interface RenderOptions {
   /** draw the instant-film paper frame (default true); the compare view
    *  renders a frameless companion so the wipe stays pixel-aligned */
   frame?: boolean
+  /** per-shot dial overrides from the Pro Camera (ƒ→dof, EV→meterBias,
+   *  ISO→autoIso, WB→awb) — merged over the stock's lens response */
+  lensOverride?: Partial<LensResponse>
+  /** seconds into a tape — when set, timestamped stocks burn a counting
+   *  REC timecode instead of a static clock */
+  time?: number
 }
 
 /** how the glass responds to a scene when the stock doesn't say otherwise */
@@ -204,7 +210,7 @@ export function renderStyled(
      `scene: null` disables adaptation; undefined means analyze. */
   const scene =
     opts.scene !== undefined ? (opts.scene ?? NEUTRAL_SCENE) : analyzeScene(source, focal)
-  const lens = { ...DEFAULT_LENS, ...ch.lens }
+  const lens = { ...DEFAULT_LENS, ...ch.lens, ...opts.lensOverride }
   // face-priority metering: with a subject, expose for skin like a camera does
   const keyEff =
     scene.faceLum != null ? lerp(scene.key, scene.faceLum, lens.faceWeight) : scene.key
@@ -920,7 +926,13 @@ export function renderStyled(
     const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
     const hh = now.getHours() % 12 || 12
     const ampm = now.getHours() >= 12 ? 'PM' : 'AM'
-    const stamp = `${months[now.getMonth()]} ${now.getDate()} ${now.getFullYear()}  ${ampm} ${hh}:${String(now.getMinutes()).padStart(2, '0')}`
+    const tape = opts.time
+    // on a tape, the stamp carries a counting mm:ss timecode; stills keep the clock
+    const clock =
+      tape != null
+        ? `${Math.floor(tape / 60)}:${String(Math.floor(tape % 60)).padStart(2, '0')}`
+        : `${ampm} ${hh}:${String(now.getMinutes()).padStart(2, '0')}`
+    const stamp = `${months[now.getMonth()]} ${now.getDate()} ${now.getFullYear()}  ${clock}`
     ctx.save()
     ctx.font = `600 ${Math.round(26 * ref)}px ui-monospace, Menlo, monospace`
     ctx.textBaseline = 'bottom'
@@ -928,10 +940,13 @@ export function renderStyled(
     ctx.shadowBlur = 8 * ref
     ctx.fillStyle = 'rgba(255,196,64,0.95)'
     ctx.fillText(stamp, 22 * ref, h - 20 * ref)
-    ctx.fillStyle = 'rgba(255,80,64,0.95)'
-    ctx.shadowColor = 'rgba(255,80,64,0.9)'
-    ctx.font = `700 ${Math.round(24 * ref)}px ui-monospace, Menlo, monospace`
-    ctx.fillText('● REC', 22 * ref, 46 * ref)
+    // ● REC blinks with tape time (deterministic), steady on stills
+    if (tape == null || Math.floor(tape * 1.2) % 2 === 0) {
+      ctx.fillStyle = 'rgba(255,80,64,0.95)'
+      ctx.shadowColor = 'rgba(255,80,64,0.9)'
+      ctx.font = `700 ${Math.round(24 * ref)}px ui-monospace, Menlo, monospace`
+      ctx.fillText('● REC', 22 * ref, 46 * ref)
+    }
     ctx.restore()
   }
 

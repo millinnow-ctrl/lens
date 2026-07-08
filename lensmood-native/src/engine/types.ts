@@ -235,6 +235,12 @@ export interface RenderOptions {
   /** draw the instant-film paper frame (default true); the compare view
    *  renders a frameless companion so the wipe stays pixel-aligned */
   frame?: boolean
+  /** per-shot dial overrides from the Pro Camera (ƒ→dof, EV→meterBias,
+   *  ISO→autoIso, WB→awb) — merged over the stock's lens response */
+  lensOverride?: Partial<LensResponse>
+  /** seconds into a tape — when set, timestamped stocks burn a counting
+   *  REC timecode instead of a static clock (parity field; video is web) */
+  time?: number
 
   // NOTE — web-only field intentionally dropped in the native port:
   //   target?: HTMLCanvasElement  → the Skia engine allocates its own

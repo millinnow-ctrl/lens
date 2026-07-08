@@ -136,6 +136,40 @@ const P = (p: Partial<StyleParams>): StyleParams => ({
 
 export const CAMERA_STYLES: CameraStyle[] = [
   {
+    id: 'pro-body',
+    exif: 'LM-1 PRO \u00b7 45MP CLASS \u00b7 \u01921.2 GLASS',
+    name: 'LM-1 Pro Body',
+    tagline: 'Flagship clarity, AI relight',
+    description:
+      'Flagship rendering tuned after the Canon R5 / Nikon Z9 class \u2014 crystal clarity, AI relight, zero character. The shot, perfected.',
+    tier: 'free',
+    badge: 'new',
+    defaults: P({ grain: 0, contrast: 52, warmth: 50, flash: 0, shadows: 14 }),
+    character: {
+      // perfect glass: a flagship body corrects everything the cheap stocks flaunt
+      optics: { ca: 0.02, cornerSoft: 0.04, distortion: 0, flareAniso: 0.05 },
+      // max-compute profile: strongest metering/relight/denoise in the case
+      lens: {
+        meterStrength: 0.9,
+        faceWeight: 0.85,
+        awb: 0.85,
+        awbClamp: 0.4,
+        toneMap: 0.9,
+        clarity: 0.5,
+        vibrance: 0.6,
+        shadowDenoise: 0.9,
+        dof: 0.55,
+        skinGlow: 0.4,
+        autoIso: 0.35,
+        lightHalation: 0.25,
+      },
+      grainChroma: 0,
+      saturate: 1.01,
+    },
+    cardFilter: 'contrast(1.08) saturate(1.05) brightness(1.03)',
+    gradient: 'linear-gradient(135deg,#1c2833,#0e7487)',
+  },
+  {
     id: 'disposable',
     exif: 'F/11 · 400 FILM · FLASH',
     name: 'Disposable Camera',

@@ -28,11 +28,12 @@ import sampleHandprint from '../assets/sample-handprint.jpg'
 
 /* collection milestones — celebrated once each, positive framing only */
 const MILESTONE_KEY = 'lensmood.milestone.v1'
-const MILESTONES = [6, 12, 18] as const
+const CASE_SIZE = CAMERA_STYLES.length
+const MILESTONES = [6, 12, CASE_SIZE] as const
 const MILESTONE_COPY: Record<number, string> = {
-  6: '6 of 18 looks shot — a third of the case.',
-  12: '12 of 18 — the case is filling up.',
-  18: '18 of 18 — full case. Every look, shot.',
+  6: `6 of ${CASE_SIZE} looks shot — a solid start on the case.`,
+  12: `12 of ${CASE_SIZE} — the case is filling up.`,
+  [CASE_SIZE]: `${CASE_SIZE} of ${CASE_SIZE} — full case. Every look, shot.`,
 }
 
 const readMilestone = (): number => {
@@ -159,10 +160,10 @@ function HomeContent({
         <LiveHero onUpload={onUpload} />
       </motion.section>
 
-      {/* the case, in motion — a slow ticker of all 18 cameras filing past.
+      {/* the case, in motion — a slow ticker of every camera filing past.
           Tap a name to open that look; press-and-hold pauses the roll. */}
       <motion.section variants={childVariants} className="mt-5 border-y border-hairline">
-        <div className="lm-ticker py-2.5" aria-label="All 18 cameras">
+        <div className="lm-ticker py-2.5" aria-label={`All ${CAMERA_STYLES.length} cameras`}>
           {[0, 1].map((track) => (
             <div key={track} className="lm-ticker-track" aria-hidden={track === 1}>
               {CAMERA_STYLES.map((s) => (
@@ -184,7 +185,7 @@ function HomeContent({
       {/* camera styles — the deck */}
       <motion.section variants={childVariants} className="mt-8">
         <p className="px-5 font-mono font-semibold text-[10px] tracking-[0.18em] uppercase text-fog mb-1">
-          The case · 18 cameras
+          The case · {CAMERA_STYLES.length} cameras
         </p>
         <div className="flex items-center justify-between px-5">
           <h2 className="type-display text-[22px]">Explore looks</h2>
@@ -337,8 +338,8 @@ function HomeContent({
         </div>
         <ToolCard
           to="/studio"
-          title="Video"
-          sub="Restyle a clip, frame by frame"
+          title="Camcorder"
+          sub="Shoot it like 1994 — counting timecode, tape grain"
           image={STYLE_ART['camcorder-90s']}
           tag="Pro"
           ratio="aspect-[21/9]"

@@ -42,7 +42,12 @@ export default function VideoPreview({ src, style, params, className = '', onPos
       if (video.readyState >= 2 && video.videoWidth > 0) {
         const { style: s, params: p } = look.current
         if (s && p) {
-          renderStyled(video, s, p, { maxSize: 960, target: canvas, animateGrain: true })
+          renderStyled(video, s, p, {
+            maxSize: 960,
+            target: canvas,
+            animateGrain: true,
+            time: video.currentTime,
+          })
         } else {
           const scale = Math.min(1, 960 / Math.max(video.videoWidth, video.videoHeight))
           const w = Math.round(video.videoWidth * scale)
