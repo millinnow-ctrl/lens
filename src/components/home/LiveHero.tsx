@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { IconUpload } from '../icons'
-import heroStill from '../../assets/sample-golden.jpg'
+import heroLoopMp4 from '../../assets/hero-summer.mp4'
+import heroLoopWebm from '../../assets/hero-summer.webm'
+import heroPoster from '../../assets/hero-summer-poster.jpg'
 
-/* one still frame — the golden-hour shot, developed by the engine's own
-   cameras — holds the header. The headline's warm word morphs on its own
-   beat so the frame keeps breathing without any footage doing laps. */
+/* one ambient loop — a summer picnic shot through a Y2K digicam, girls
+   photographing each other — holds the header. The headline's warm word
+   morphs on its own beat over it. */
 const WORDS = ['mood.', 'look.', 'texture.', 'glow.']
 const WORD_HOLD = 3400
 
@@ -31,20 +33,36 @@ export default function LiveHero({ onUpload }: Props) {
       <div className="h-9 px-4 flex items-center justify-between gap-3 border-b border-white/[0.08]">
         <span className="flex items-center gap-2 font-mono font-semibold text-[10px] tracking-[0.14em] uppercase text-vf-chrome min-w-0">
           <span className="lm-live w-1.5 h-1.5 rounded-full bg-signal shrink-0" aria-hidden />
-          <span className="truncate">Golden Hour</span>
+          <span className="truncate">Summer Roll</span>
         </span>
         <span className="font-mono text-[10px] tracking-[0.08em] uppercase text-vf-chrome tabular-nums shrink-0">
-          ƒ1.4 · 50MM · WARM
+          Y2K DIGICAM · SUNNY
         </span>
       </div>
 
       <div className="relative aspect-[4/3.6] vf-corners overflow-hidden">
-        <img
-          src={heroStill}
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover"
-          draggable={false}
-        />
+        {reduce.current ? (
+          <img
+            src={heroPoster}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+            draggable={false}
+          />
+        ) : (
+          <video
+            poster={heroPoster}
+            autoPlay
+            muted
+            loop
+            playsInline
+            aria-hidden
+            className="absolute inset-0 w-full h-full object-cover"
+          >
+            {/* webm first (Chrome/Android/Firefox), mp4 for Safari/iOS */}
+            <source src={heroLoopWebm} type="video/webm" />
+            <source src={heroLoopMp4} type="video/mp4" />
+          </video>
+        )}
         {!reduce.current && (
           <div aria-hidden className="absolute inset-0 pointer-events-none">
             <div className="lm-print-bloom absolute inset-0" />
