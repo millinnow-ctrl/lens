@@ -138,6 +138,22 @@ export interface LensResponse {
    *  existing facial highlights catch the light and a soft catchlight
    *  blooms — light interacting with skin, not a white overlay. */
   skinGlow?: number
+  /** 0..1 — RELIGHT: how hard the on-camera flash lifts the subject along its
+   *  real silhouette (not a disc). Driven together with the flash dial. */
+  flashStrength?: number
+  /** 0..1 — how fast the background falls to black by distance from the
+   *  subject (inverse-square-ish); the depth the flash carves. Runs at low
+   *  level for available-light stocks so the subject still reads. */
+  flashFalloff?: number
+  /** 0..1 — reflective specular pop on the lit subject: skin, jewelry and
+   *  oily highlights catch the flash the way real reflectance does. */
+  flashSpecular?: number
+  /** 0..1 — flash white balance: how much the lit subject is pulled toward
+   *  neutral-cool (~5500K) while the background keeps its ambient cast. */
+  flashCool?: number
+  /** capsule spread — how wide the subject mask reaches past the face over the
+   *  torso (≈0.8 tight head-and-shoulders … ≈2.4 loose). Default 1.4. */
+  flashSpread?: number
 }
 
 /* ------------------------------------------------------------- the stock */

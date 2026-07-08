@@ -104,6 +104,22 @@ export interface LensResponse {
    *  light and a soft catchlight blooms — light interacting with skin,
    *  not a white overlay. On-camera-flash stocks run this hot. */
   skinGlow?: number
+  /** 0..1 — RELIGHT: how hard the on-camera flash lifts the subject along its
+   *  real silhouette (not a disc). Driven together with the flash dial. */
+  flashStrength?: number
+  /** 0..1 — how fast the background falls to black by distance from the
+   *  subject (inverse-square-ish); the depth the flash carves. Runs at low
+   *  level for available-light stocks so the subject still reads. */
+  flashFalloff?: number
+  /** 0..1 — reflective specular pop on the lit subject: skin, jewelry and
+   *  oily highlights catch the flash the way real reflectance does. */
+  flashSpecular?: number
+  /** 0..1 — flash white balance: how much the lit subject is pulled toward
+   *  neutral-cool (~5500K) while the background keeps its ambient cast. */
+  flashCool?: number
+  /** capsule spread — how wide the subject mask reaches past the face over the
+   *  torso (≈0.8 tight head-and-shoulders … ≈2.4 loose). Default 1.4. */
+  flashSpread?: number
 }
 
 export interface CameraStyle {
@@ -148,13 +164,13 @@ export const CAMERA_STYLES: CameraStyle[] = [
       // Kodak FunSaver party flash: vivid Gold-800 reds and yellows, hard flash on skin, chunky grain, corner vignette — punchy color, never a sepia wash.
       optics: { ca: 0.5, cornerSoft: 0.45, distortion: 0.5, flareAniso: 0.5 },
       bands: { sat: [0.3, 0.22, 0.05, -0.08, 0.08, 0.12], lum: [0.04, 0.06, 0, -0.04, -0.08, -0.02] },
-      lens: { meterBias: 0.5, meterStrength: 0.85, faceWeight: 0.85, awb: 0.15, awbClamp: 0.2, lightHalation: 0.75, toneMap: 0.2, dof: 0.2, autoIso: 0.8, clarity: 0.15, vibrance: 0.5, shadowDenoise: 0.25, skinGlow: 0.9 },
+      lens: { meterBias: 0.5, meterStrength: 0.85, faceWeight: 0.85, awb: 0.15, awbClamp: 0.2, lightHalation: 0.75, toneMap: 0.2, dof: 0.2, autoIso: 0.8, clarity: 0.15, vibrance: 0.5, shadowDenoise: 0.25, skinGlow: 0.9, flashStrength: 0.8, flashFalloff: 0.5, flashSpecular: 0.55, flashCool: 0.08, flashSpread: 1.4 },
       grainSize: 1.25,
       grainAmp: 1.3,
       grainChroma: 0.55,
       colorMatrix: [1.12, 0.02, -0.14, 0.02, 1.04, -0.06, -0.04, 0.06, 0.98],
       curve: 0.45,
-      leak: 0.35,
+      leak: 0.2,
       sepia: 0.08,
       saturate: 1.22,
       brightness: 1.03,
@@ -179,7 +195,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
       // Modern computational night flash: correctly exposed subject, neutral-warm True Tone color, mild HDR shadow recovery, clinically crisp.
       optics: { ca: 0.03, cornerSoft: 0.02, distortion: 0.02, flareAniso: 0.04 },
       bands: { sat: [0.05, 0.02, 0.06, 0.08, 0.1, 0.04], lum: [0.02, 0.03, 0, 0.02, -0.03, 0] },
-      lens: { meterBias: 0, meterStrength: 0.85, faceWeight: 0.95, awb: 0.9, awbClamp: 0.4, lightHalation: 0.1, toneMap: 0.25, dof: 0.3, autoIso: 0.15, clarity: 0.4, vibrance: 0.6, shadowDenoise: 0.9, skinGlow: 0.85 },
+      lens: { meterBias: 0, meterStrength: 0.85, faceWeight: 0.95, awb: 0.9, awbClamp: 0.4, lightHalation: 0.1, toneMap: 0.25, dof: 0.3, autoIso: 0.15, clarity: 0.4, vibrance: 0.6, shadowDenoise: 0.9, skinGlow: 0.85, flashStrength: 0.55, flashFalloff: 0.35, flashSpecular: 0.35, flashCool: 0.45, flashSpread: 1.5 },
       curve: 0.4,
       saturate: 1.08,
       brightness: 1,
@@ -207,7 +223,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
       // Gained-up 90s VHS tape: real but slightly muted color, blooming smeary highlights, chroma-bleed fringing and tape noise over smoky-but-dark shadows.
       optics: { ca: 0.7, cornerSoft: 0.35, distortion: 0.25, flareAniso: 0.7 },
       bands: { sat: [-0.08, -0.05, 0.05, 0.1, 0.05, -0.12], lum: [0, 0.02, 0, 0.03, -0.04, -0.05] },
-      lens: { meterBias: 0, meterStrength: 0.6, faceWeight: 0.55, awb: 0.3, awbClamp: 0.25, lightHalation: 0.45, toneMap: 0.2, dof: 0.1, autoIso: 0.9, clarity: 0, vibrance: 0.25, shadowDenoise: 0.15, skinGlow: 0.2 },
+      lens: { meterBias: 0, meterStrength: 0.6, faceWeight: 0.55, awb: 0.3, awbClamp: 0.25, lightHalation: 0.45, toneMap: 0.2, dof: 0.1, autoIso: 0.9, clarity: 0, vibrance: 0.25, shadowDenoise: 0.15, skinGlow: 0.2, flashStrength: 0, flashFalloff: 0.2, flashSpecular: 0.2, flashCool: 0.1, flashSpread: 1.5 },
       colorMatrix: [0.92, 0.1, -0.02, 0.03, 1, -0.03, 0.02, 0.1, 0.88],
       splitTone: { shadows: '#233c34', highlights: '#f5e3ee', amount: 0.4 },
       tint: { color: '#54685a', alpha: 0.07, blend: 'soft-light' },
@@ -239,7 +255,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
       // Honest reportage — Portra skin over Tri-X bones: true blacks, crisp micro-contrast, quiet grain, nothing showing off.
       optics: { ca: 0.02, cornerSoft: 0.05, distortion: 0.01, flareAniso: 0.06 },
       bands: { sat: [0.08, 0.05, -0.08, -0.05, 0.03, -0.08], lum: [0.02, 0.03, -0.04, -0.02, -0.05, -0.03] },
-      lens: { meterBias: -0.15, meterStrength: 0.55, faceWeight: 0.7, awb: 0.75, awbClamp: 0.35, lightHalation: 0.15, toneMap: 0.25, dof: 0.35, autoIso: 0.45, clarity: 0.55, vibrance: 0.2, shadowDenoise: 0.3, skinGlow: 0.1 },
+      lens: { meterBias: -0.15, meterStrength: 0.55, faceWeight: 0.7, awb: 0.75, awbClamp: 0.35, lightHalation: 0.15, toneMap: 0.25, dof: 0.35, autoIso: 0.45, clarity: 0.55, vibrance: 0.2, shadowDenoise: 0.3, skinGlow: 0.1, flashStrength: 0, flashFalloff: 0.22, flashSpecular: 0.3, flashCool: 0.1, flashSpread: 1.4 },
       colorMatrix: [1.02, 0.02, -0.04, 0.01, 1, -0.01, -0.02, 0.02, 1],
       curve: 0.55,
       saturate: 0.96,
@@ -266,7 +282,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
       // Newsstand strobe polish — bronze-gold skin with luminous warmth, espresso shadows that stay deep, glossy and grainless.
       optics: { ca: 0.03, cornerSoft: 0.04, distortion: 0, flareAniso: 0.06 },
       bands: { sat: [0.12, 0.08, -0.22, -0.12, -0.08, -0.02], lum: [0.04, 0.07, -0.06, -0.05, -0.08, -0.04] },
-      lens: { meterBias: 0.1, meterStrength: 0.85, faceWeight: 0.95, awb: 0.8, awbClamp: 0.4, lightHalation: 0.25, toneMap: 0.3, dof: 0.75, autoIso: 0.05, clarity: 0.35, vibrance: 0.3, shadowDenoise: 0.7, skinGlow: 0.7 },
+      lens: { meterBias: 0.1, meterStrength: 0.85, faceWeight: 0.95, awb: 0.8, awbClamp: 0.4, lightHalation: 0.25, toneMap: 0.3, dof: 0.75, autoIso: 0.05, clarity: 0.35, vibrance: 0.3, shadowDenoise: 0.7, skinGlow: 0.7, flashStrength: 0.18, flashFalloff: 0.38, flashSpecular: 0.3, flashCool: 0.18, flashSpread: 1.3 },
       colorMatrix: [1.06, 0.03, -0.09, 0.02, 1, -0.02, -0.03, 0.05, 0.94],
       curve: 0.45,
       saturate: 1.04,
@@ -295,7 +311,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
       // Quiet melancholia — teal-leaning shadows that stay shadows, intentionally muted palette with living skin, a gentle matte instead of milk.
       optics: { ca: 0.06, cornerSoft: 0.15, distortion: 0.02, flareAniso: 0.25 },
       bands: { sat: [-0.08, -0.15, -0.06, 0.08, 0.04, -0.22], lum: [0, 0.02, -0.02, 0.03, -0.03, -0.04] },
-      lens: { meterBias: -0.2, meterStrength: 0.5, faceWeight: 0.65, awb: 0.5, awbClamp: 0.3, lightHalation: 0.4, toneMap: 0.35, dof: 0.5, autoIso: 0.55, clarity: 0.12, vibrance: 0.1, shadowDenoise: 0.2, skinGlow: 0.05 },
+      lens: { meterBias: -0.2, meterStrength: 0.5, faceWeight: 0.65, awb: 0.5, awbClamp: 0.3, lightHalation: 0.4, toneMap: 0.35, dof: 0.5, autoIso: 0.55, clarity: 0.12, vibrance: 0.1, shadowDenoise: 0.2, skinGlow: 0.05, flashStrength: 0, flashFalloff: 0.1, flashSpecular: 0.1, flashCool: 0.05, flashSpread: 1.5 },
       colorMatrix: [0.94, 0.05, 0.01, 0.02, 0.98, 0, 0.03, 0.06, 0.91],
       curve: 0.3,
       saturate: 0.84,
@@ -331,7 +347,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
       grainChroma: 0,
       splitTone: { shadows: '#0a0d14', highlights: '#f6f4ec', amount: 0.18 },
       optics: { ca: 0.06, cornerSoft: 0.45, distortion: 0.04, flareAniso: 0.5 },
-      lens: { meterBias: -0.5, meterStrength: 0.85, faceWeight: 0.85, awb: 0, awbClamp: 0.3, toneMap: 0, shadowDenoise: 0, vibrance: 0, autoIso: 0.7, clarity: 0.55, dof: 0.5, skinGlow: 0.4, lightHalation: 0.7 },
+      lens: { meterBias: -0.5, meterStrength: 0.85, faceWeight: 0.85, awb: 0, awbClamp: 0.3, toneMap: 0, shadowDenoise: 0, vibrance: 0, autoIso: 0.7, clarity: 0.55, dof: 0.5, skinGlow: 0.4, lightHalation: 0.7, flashStrength: 0, flashFalloff: 0.3, flashSpecular: 0.28, flashCool: 0.1, flashSpread: 1.35 },
     },
     cardFilter: 'grayscale(1) contrast(1.45) brightness(0.92)',
     gradient: 'linear-gradient(135deg,#f2f2f2,#101014)',
@@ -349,7 +365,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
       // Early-2000s CCD: whites clip fast and drift cyan, purple fringing at edges, oversharpened JPEG bite, saturated color, noise rising in the dark.
       optics: { ca: 0.6, cornerSoft: 0.25, distortion: 0.35, flareAniso: 0.4 },
       bands: { sat: [0.18, 0.1, 0.2, 0.25, 0.22, 0.25], lum: [0.03, 0.04, 0, 0.06, -0.02, 0.02] },
-      lens: { meterBias: 0.1, meterStrength: 0.7, faceWeight: 0.75, awb: 0.35, awbClamp: 0.25, lightHalation: 0.35, toneMap: 0.05, dof: 0.05, autoIso: 0.85, clarity: 0.65, vibrance: 0.7, shadowDenoise: 0.15, skinGlow: 0.5 },
+      lens: { meterBias: 0.1, meterStrength: 0.7, faceWeight: 0.75, awb: 0.35, awbClamp: 0.25, lightHalation: 0.35, toneMap: 0.05, dof: 0.05, autoIso: 0.85, clarity: 0.65, vibrance: 0.7, shadowDenoise: 0.15, skinGlow: 0.5, flashStrength: 0.78, flashFalloff: 0.55, flashSpecular: 0.72, flashCool: 0.3, flashSpread: 1.4 },
       curve: 0.35,
       hue: -4,
       saturate: 1.22,
@@ -379,7 +395,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
       // Real Polaroid 600: warm-neutral color with a gentle teal drift in the shadows, creamy highlights that hold, clean medium-low contrast and a soft flash glow.
       optics: { ca: 0.18, cornerSoft: 0.55, distortion: 0.08, flareAniso: 0.2 },
       bands: { sat: [-0.05, 0.06, -0.1, 0.1, 0.02, -0.05], lum: [0.05, 0.06, 0, 0.02, 0.02, 0.02] },
-      lens: { meterBias: 0.15, meterStrength: 0.7, faceWeight: 0.8, awb: 0.4, awbClamp: 0.25, lightHalation: 0.8, toneMap: 0.25, dof: 0.3, autoIso: 0.3, clarity: 0, vibrance: 0.15, shadowDenoise: 0.3, skinGlow: 0.7 },
+      lens: { meterBias: 0.15, meterStrength: 0.7, faceWeight: 0.8, awb: 0.4, awbClamp: 0.25, lightHalation: 0.8, toneMap: 0.25, dof: 0.3, autoIso: 0.3, clarity: 0, vibrance: 0.15, shadowDenoise: 0.3, skinGlow: 0.7, flashStrength: 0.42, flashFalloff: 0.22, flashSpecular: 0.22, flashCool: 0.12, flashSpread: 1.7 },
       colorMatrix: [1.06, 0.03, -0.09, 0.02, 1, -0.02, -0.03, 0.05, 0.94],
       splitTone: { shadows: '#1e6f6f', highlights: '#ffeacc', amount: 0.45 },
       tint: { color: '#ffe2b8', alpha: 0.1, blend: 'soft-light' },
@@ -410,7 +426,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
       // Kodachrome 40 home movie: dense warm amber, saturated reds and oranges over deep shadows, dark soft corners, big gentle grain — dim-rich, never washed.
       optics: { ca: 0.45, cornerSoft: 0.8, distortion: 0.2, flareAniso: 0.5 },
       bands: { sat: [0.28, 0.2, -0.05, -0.15, -0.1, 0.05], lum: [0.02, 0.05, -0.04, -0.08, -0.1, -0.05] },
-      lens: { meterBias: -0.3, meterStrength: 0.55, faceWeight: 0.55, awb: 0.1, awbClamp: 0.18, lightHalation: 0.6, toneMap: 0.05, dof: 0.2, autoIso: 0.8, clarity: 0, vibrance: 0.15, shadowDenoise: 0.15, skinGlow: 0.35 },
+      lens: { meterBias: -0.3, meterStrength: 0.55, faceWeight: 0.55, awb: 0.1, awbClamp: 0.18, lightHalation: 0.6, toneMap: 0.05, dof: 0.2, autoIso: 0.8, clarity: 0, vibrance: 0.15, shadowDenoise: 0.15, skinGlow: 0.35, flashStrength: 0, flashFalloff: 0.25, flashSpecular: 0.2, flashCool: 0.05, flashSpread: 1.5 },
       grainSize: 1.6,
       grainAmp: 1.5,
       grainChroma: 0.3,
@@ -442,7 +458,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
       // LC-A cross-processed slide: heavy black vignette, crushed cyan-green shadows, hot reds and magentas, high contrast — toxic but gorgeous.
       optics: { ca: 0.7, cornerSoft: 0.9, distortion: 0.7, flareAniso: 0.55 },
       bands: { sat: [0.3, 0.15, 0.35, 0.3, 0.2, 0.35], lum: [0.04, 0, -0.08, -0.05, -0.1, 0.04] },
-      lens: { meterBias: -0.15, meterStrength: 0.35, faceWeight: 0.5, awb: 0.15, awbClamp: 0.18, lightHalation: 0.55, toneMap: 0, dof: 0.3, autoIso: 0.65, clarity: 0.3, vibrance: 0.8, shadowDenoise: 0, skinGlow: 0.35 },
+      lens: { meterBias: -0.15, meterStrength: 0.35, faceWeight: 0.5, awb: 0.15, awbClamp: 0.18, lightHalation: 0.55, toneMap: 0, dof: 0.3, autoIso: 0.65, clarity: 0.3, vibrance: 0.8, shadowDenoise: 0, skinGlow: 0.35, flashStrength: 0, flashFalloff: 0.32, flashSpecular: 0.3, flashCool: 0.1, flashSpread: 1.3 },
       grainSize: 1.1,
       grainAmp: 1.2,
       grainChroma: 0.6,
@@ -473,7 +489,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
       // K64 slide density: wine-dark reds, cyan skies, inky clean shadows, biting micro-contrast, fine grain — never bright, never pastel.
       optics: { ca: 0.08, cornerSoft: 0.1, distortion: 0.03, flareAniso: 0.12 },
       bands: { sat: [0.32, 0.14, 0.06, 0.1, 0.12, 0.18], lum: [-0.1, -0.04, -0.08, -0.02, -0.1, -0.08] },
-      lens: { meterBias: -0.35, meterStrength: 0.75, faceWeight: 0.55, awb: 0.3, awbClamp: 0.2, lightHalation: 0.15, toneMap: 0.08, dof: 0.4, autoIso: 0.1, clarity: 0.5, vibrance: 0.2, shadowDenoise: 0.15, skinGlow: 0.3 },
+      lens: { meterBias: -0.35, meterStrength: 0.75, faceWeight: 0.55, awb: 0.3, awbClamp: 0.2, lightHalation: 0.15, toneMap: 0.08, dof: 0.4, autoIso: 0.1, clarity: 0.5, vibrance: 0.2, shadowDenoise: 0.15, skinGlow: 0.3, flashStrength: 0, flashFalloff: 0.3, flashSpecular: 0.35, flashCool: 0.1, flashSpread: 1.4 },
       grainSize: 0.65,
       grainAmp: 0.6,
       grainChroma: 0.15,
@@ -501,7 +517,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
       // Gained-up CCTV: harsh green-grey near-mono, hard gamma with hot brights and dead shadows, heavy luminance noise through cheap vignetted glass.
       optics: { ca: 0.25, cornerSoft: 0.55, distortion: 0.7, flareAniso: 0.15 },
       bands: { sat: [-0.3, -0.2, 0, -0.1, -0.3, -0.35], lum: [0, 0.02, 0.04, 0, -0.06, -0.06] },
-      lens: { meterBias: 0.15, meterStrength: 0.85, faceWeight: 0.45, awb: 0.9, awbClamp: 0.45, lightHalation: 0.85, toneMap: 0, dof: 0, autoIso: 1, clarity: 0.45, vibrance: 0, shadowDenoise: 0.6, skinGlow: 0.6 },
+      lens: { meterBias: 0.15, meterStrength: 0.85, faceWeight: 0.45, awb: 0.9, awbClamp: 0.45, lightHalation: 0.85, toneMap: 0, dof: 0, autoIso: 1, clarity: 0.45, vibrance: 0, shadowDenoise: 0.6, skinGlow: 0.6, flashStrength: 0, flashFalloff: 0.22, flashSpecular: 0.12, flashCool: 0.1, flashSpread: 1.4 },
       colorMatrix: [0.35, 0.55, 0.1, 0.15, 0.75, 0.1, 0.15, 0.55, 0.3],
       splitTone: { shadows: '#0a120c', highlights: '#e8f5e0', amount: 0.4 },
       tint: { color: '#46543f', alpha: 0.08, blend: 'soft-light' },
@@ -534,7 +550,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
       // Indie-sleaze compact: hard direct flash on a bright sharp subject, punchy saturated color, slightly cool whites, background crushed to true black.
       optics: { ca: 0.35, cornerSoft: 0.18, distortion: 0.28, flareAniso: 0.35 },
       bands: { sat: [0.15, 0.05, 0.08, 0.12, 0.18, 0.12], lum: [0.02, 0, -0.04, 0, -0.06, -0.08] },
-      lens: { meterBias: -0.15, meterStrength: 0.6, faceWeight: 0.95, awb: 0.5, awbClamp: 0.3, lightHalation: 0.35, toneMap: 0, dof: 0.08, autoIso: 0.35, clarity: 0.7, vibrance: 0.55, shadowDenoise: 0.4, skinGlow: 0.8 },
+      lens: { meterBias: -0.15, meterStrength: 0.6, faceWeight: 0.95, awb: 0.5, awbClamp: 0.3, lightHalation: 0.35, toneMap: 0, dof: 0.08, autoIso: 0.35, clarity: 0.7, vibrance: 0.55, shadowDenoise: 0.4, skinGlow: 0.8, flashStrength: 0.88, flashFalloff: 0.7, flashSpecular: 0.6, flashCool: 0.5, flashSpread: 1.25 },
       curve: 0.55,
       saturate: 1.18,
       brightness: 1,
@@ -563,7 +579,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
       // Anderson pastel: powder pink/mint/cream lives in the palette bands, gentle-but-real contrast, creamy skin, airy highlights, soft mauve blacks that still exist.
       optics: { ca: 0.05, cornerSoft: 0.22, distortion: 0, flareAniso: 0.15 },
       bands: { sat: [-0.12, -0.06, -0.1, -0.04, -0.08, 0.04], lum: [0.08, 0.12, 0.06, 0.08, 0.04, 0.12] },
-      lens: { meterBias: 0.1, meterStrength: 0.8, faceWeight: 0.8, awb: 0.7, awbClamp: 0.35, lightHalation: 0.25, toneMap: 0.3, dof: 0.45, autoIso: 0.05, clarity: 0.12, vibrance: 0.25, shadowDenoise: 0.5, skinGlow: 0.5 },
+      lens: { meterBias: 0.1, meterStrength: 0.8, faceWeight: 0.8, awb: 0.7, awbClamp: 0.35, lightHalation: 0.25, toneMap: 0.3, dof: 0.45, autoIso: 0.05, clarity: 0.12, vibrance: 0.25, shadowDenoise: 0.5, skinGlow: 0.5, flashStrength: 0, flashFalloff: 0.1, flashSpecular: 0.15, flashCool: 0.1, flashSpread: 1.6 },
       grainSize: 0.7,
       grainAmp: 0.5,
       grainChroma: 0.1,
@@ -593,7 +609,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
       // CineStill 800T at 2 a.m.: tungsten teal ambient, inky greens, red halation blooming off every lamp, deep blacks, neon saturated where the light lives.
       optics: { ca: 0.35, cornerSoft: 0.18, distortion: 0.06, flareAniso: 0.7 },
       bands: { sat: [0.18, -0.1, -0.12, 0.3, 0.25, 0.32], lum: [0.04, -0.06, -0.1, 0.06, -0.04, 0.06] },
-      lens: { meterBias: -0.5, meterStrength: 0.85, faceWeight: 0.45, awb: 0.1, awbClamp: 0.15, lightHalation: 0.65, toneMap: 0, dof: 0.45, autoIso: 0.8, clarity: 0.3, vibrance: 0.4, shadowDenoise: 0, skinGlow: 0.25 },
+      lens: { meterBias: -0.5, meterStrength: 0.85, faceWeight: 0.45, awb: 0.1, awbClamp: 0.15, lightHalation: 0.65, toneMap: 0, dof: 0.45, autoIso: 0.8, clarity: 0.3, vibrance: 0.4, shadowDenoise: 0, skinGlow: 0.25, flashStrength: 0, flashFalloff: 0.28, flashSpecular: 0.35, flashCool: 0.18, flashSpread: 1.4 },
       grainSize: 1.05,
       grainAmp: 1.05,
       grainChroma: 0.5,
@@ -634,7 +650,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
       grainChroma: 0,
       splitTone: { shadows: '#101014', highlights: '#f7f3ea', amount: 0.15 },
       optics: { ca: 0.1, cornerSoft: 0.35, distortion: 0.12, flareAniso: 0.15 },
-      lens: { meterBias: 0.05, meterStrength: 0.9, faceWeight: 1, awb: 0, awbClamp: 0.3, toneMap: 0.15, shadowDenoise: 0.2, vibrance: 0, autoIso: 0.25, clarity: 0.25, dof: 0.2, skinGlow: 0.65, lightHalation: 0.3 },
+      lens: { meterBias: 0.05, meterStrength: 0.9, faceWeight: 1, awb: 0, awbClamp: 0.3, toneMap: 0.15, shadowDenoise: 0.2, vibrance: 0, autoIso: 0.25, clarity: 0.25, dof: 0.2, skinGlow: 0.65, lightHalation: 0.3, flashStrength: 0.68, flashFalloff: 0.24, flashSpecular: 0.4, flashCool: 0.18, flashSpread: 1.7 },
     },
     cardFilter: 'grayscale(1) contrast(1.32) brightness(1.06)',
     gradient: 'linear-gradient(135deg,#ffffff,#3a3a42)',
@@ -664,7 +680,7 @@ export const CAMERA_STYLES: CameraStyle[] = [
       splitTone: { shadows: '#10161d', highlights: '#e9eef2', amount: 0.45 },
       tint: { color: '#2c3640', alpha: 0.08, blend: 'multiply' },
       optics: { ca: 0.05, cornerSoft: 0.95, distortion: 0.02, flareAniso: 0.3 },
-      lens: { meterBias: 0.1, meterStrength: 0.55, faceWeight: 0.85, awb: 0.3, awbClamp: 0.25, toneMap: 0.05, shadowDenoise: 0.1, vibrance: 0, autoIso: 0.2, clarity: 0.35, dof: 0.65, skinGlow: 0.45, lightHalation: 0.7 },
+      lens: { meterBias: 0.1, meterStrength: 0.55, faceWeight: 0.85, awb: 0.3, awbClamp: 0.25, toneMap: 0.05, shadowDenoise: 0.1, vibrance: 0, autoIso: 0.2, clarity: 0.35, dof: 0.65, skinGlow: 0.45, lightHalation: 0.7, flashStrength: 0.2, flashFalloff: 0.35, flashSpecular: 0.3, flashCool: 0.1, flashSpread: 1.4 },
     },
     cardFilter: 'grayscale(1) sepia(0.35) hue-rotate(175deg) saturate(0.5) contrast(1.32) brightness(0.95)',
     gradient: 'linear-gradient(135deg,#c9a05c,#4a321b)',

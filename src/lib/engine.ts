@@ -40,6 +40,11 @@ const DEFAULT_LENS: Required<LensResponse> = {
   vibrance: 0.45,
   shadowDenoise: 0.6,
   skinGlow: 0.3,
+  flashStrength: 0,
+  flashFalloff: 0.18,
+  flashSpecular: 0.4,
+  flashCool: 0.25,
+  flashSpread: 1.4,
 }
 
 type Source = HTMLImageElement | HTMLCanvasElement | ImageBitmap | HTMLVideoElement
@@ -134,6 +139,97 @@ function nHash(x: number, y: number, seed: number): number {
  *  noise a naive overlay produces. */
 function grainSample(x: number, y: number, seed: number): number {
   return (nHash(x, y, seed) + nHash(x, y, seed + 9173) + nHash(x, y, seed + 51287)) / 3 - 0.5
+}
+
+/* --------------------------------------------------------------- relight
+ * The flash is real light on the subject, not a stamped disc. These build a
+ * soft subject mask (the person's actual silhouette) that drives a per-pixel
+ * relight: subject lifts, background falls to black by distance, reflective
+ * highlights catch the light. Mirrored byte-for-byte in the native engine.
+ */
+
+/** classic skin predicate (RGB ∪ YCbCr), identical to the on-device subject
+ *  finder — grows the relight mask onto real skin instead of a circle. */
+function isSkin(r: number, g: number, b: number): boolean {
+  const mx = Math.max(r, g, b)
+  const mn = Math.min(r, g, b)
+  if (mx > 250 || mx < 30) return false
+  const rgb = r > 95 && g > 40 && b > 20 && mx - mn > 15 && Math.abs(r - g) > 15 && r > g && r > b
+  const cb = 128 - 0.168736 * r - 0.331264 * g + 0.5 * b
+  const cr = 128 + 0.5 * r - 0.418688 * g - 0.081312 * b
+  const ycc = cb >= 77 && cb <= 127 && cr >= 133 && cr <= 173
+  return rgb || ycc
+}
+
+/** separable 3-tap box blur over a Float mask — feathers the subject edge so
+ *  the relight falls off smoothly instead of cutting a hard shape. */
+function featherMask(a: Float32Array, mw: number, mh: number, passes: number): Float32Array {
+  const b = new Float32Array(mw * mh)
+  for (let p = 0; p < passes; p++) {
+    for (let y = 0; y < mh; y++)
+      for (let x = 0; x < mw; x++) {
+        const i = y * mw + x
+        const l = x > 0 ? a[i - 1] : a[i]
+        const r = x < mw - 1 ? a[i + 1] : a[i]
+        b[i] = (l + a[i] + r) / 3
+      }
+    for (let y = 0; y < mh; y++)
+      for (let x = 0; x < mw; x++) {
+        const i = y * mw + x
+        const u = y > 0 ? b[i - mw] : b[i]
+        const dn = y < mh - 1 ? b[i + mw] : b[i]
+        a[i] = (u + b[i] + dn) / 3
+      }
+  }
+  return a
+}
+
+/** build a soft subject mask (0..1) on a small grid from the UNGRADED source:
+ *  a face-locked capsule (face → torso) grown onto nearby real skin, feathered.
+ *  This is what turns the flash from a disc into light on the real silhouette. */
+function buildSubjectMask(
+  px: Uint8ClampedArray | Uint8Array,
+  mw: number,
+  mh: number,
+  focal: { x: number; y: number; r: number } | null,
+  spread: number,
+): Float32Array {
+  const n = mw * mh
+  const raw = new Float32Array(n)
+  const fx = focal ? focal.x : 0.5
+  const fy = focal ? focal.y : 0.46
+  const fr = focal ? Math.max(focal.r, 0.06) : 0.6
+  const sx = fr * spread * 1.35
+  const sy = fr * spread * 2.4
+  for (let my = 0; my < mh; my++)
+    for (let mx = 0; mx < mw; mx++) {
+      const i = my * mw + mx
+      const nx = (mx + 0.5) / mw
+      const ny = (my + 0.5) / mh
+      const dx = (nx - fx) / sx
+      const dy = (ny - (fy + fr * 0.7)) / sy
+      const cap = clamp01(1 - (dx * dx + dy * dy))
+      const p = i * 4
+      const skin = isSkin(px[p], px[p + 1], px[p + 2]) ? 1 : 0
+      const gate = clamp01(1.4 - Math.sqrt(dx * dx + dy * dy))
+      raw[i] = clamp01(Math.max(cap, skin * gate * 0.85))
+    }
+  return featherMask(raw, mw, mh, 2)
+}
+
+/** bilinear sample of the small mask at a normalized (u,v) */
+function sampleMask(m: Float32Array, mw: number, mh: number, u: number, v: number): number {
+  const gx = clamp01(u) * mw - 0.5
+  const gy = clamp01(v) * mh - 0.5
+  const x0 = Math.max(0, Math.min(mw - 1, Math.floor(gx)))
+  const y0 = Math.max(0, Math.min(mh - 1, Math.floor(gy)))
+  const x1 = Math.min(mw - 1, x0 + 1)
+  const y1 = Math.min(mh - 1, y0 + 1)
+  const fxp = clamp01(gx - x0)
+  const fyp = clamp01(gy - y0)
+  const top = m[y0 * mw + x0] + (m[y0 * mw + x1] - m[y0 * mw + x0]) * fxp
+  const bot = m[y1 * mw + x0] + (m[y1 * mw + x1] - m[y1 * mw + x0]) * fxp
+  return top + (bot - top) * fyp
 }
 
 /**
@@ -713,87 +809,72 @@ export function renderStyled(
     ctx.restore()
   }
 
-  /* 6 — flash: hot center + darkened surroundings. The face lock
-     puts the hotspot on the subject the way a real on-camera flash
-     reads a face, instead of assuming center-frame. */
-  const flash = (params.flash / 100) * s
-  if (flash > 0.02) {
-    const cx = (focal ? focal.x : 0.5) * w
-    const cy = (focal ? focal.y : 0.42) * h
-    const r = Math.max(w, h) * (focal ? Math.max(0.5, focal.r * 4.5) : 0.72)
-    ctx.save()
-    ctx.globalCompositeOperation = 'screen'
-    const hot = ctx.createRadialGradient(cx, cy, 0, cx, cy, r)
-    hot.addColorStop(0, `rgba(255,250,240,${(flash * 0.55).toFixed(3)})`)
-    hot.addColorStop(0.45, `rgba(255,244,228,${(flash * 0.22).toFixed(3)})`)
-    hot.addColorStop(1, 'rgba(255,244,228,0)')
-    ctx.fillStyle = hot
-    ctx.fillRect(0, 0, w, h)
-    ctx.restore()
+  /* 6 — relight: the flash is real light on the subject, not a stamped disc.
+     A soft subject mask (face → torso, grown onto skin from the ungraded
+     source) drives a per-pixel relight — the subject lifts along its true
+     silhouette, the background falls to black by distance², reflective
+     highlights on skin/jewelry catch the light, and the lit subject shifts
+     toward the flash's neutral-cool white. The flash dial and the stock's
+     flashStrength drive the hard flash; flashFalloff gives available-light
+     stocks a gentle subject/background separation with no flash at all. */
+  const flDial = params.flash / 100
+  const flash = lens.flashStrength * flDial * s
+  const sep = lens.flashFalloff * s
+  if ((flash > 0.004 || sep > 0.004) && !animateGrain) {
+    const mmax = 128
+    const mscale = mmax / Math.max(w, h)
+    const mw = Math.max(2, Math.round(w * mscale))
+    const mh = Math.max(2, Math.round(h * mscale))
+    const mc = document.createElement('canvas')
+    mc.width = mw
+    mc.height = mh
+    const mctx = mc.getContext('2d')!
+    mctx.drawImage(source, 0, 0, mw, mh)
+    const mpx = mctx.getImageData(0, 0, mw, mh).data
+    const mask = buildSubjectMask(mpx, mw, mh, focal, lens.flashSpread)
 
-    ctx.save()
-    ctx.globalCompositeOperation = 'multiply'
-    const dark = ctx.createRadialGradient(cx, cy, r * 0.45, cx, cy, r * 1.15)
-    dark.addColorStop(0, 'rgba(255,255,255,1)')
-    const dk = Math.round(255 - flash * 110)
-    dark.addColorStop(1, `rgb(${dk},${dk},${Math.round(dk * 1.02)})`)
-    ctx.fillStyle = dark
-    ctx.fillRect(0, 0, w, h)
-    ctx.restore()
-
-    /* 6.5 — skin relight: the flash CATCHES on the subject. Inside the face
-       ellipse, existing facial highlights (nose bridge, cheekbones — wherever
-       skin already turns toward the light) brighten with a specular curve, so
-       the flash reads as light striking skin, not a white disc. Plus a soft
-       catchlight bloom just above face center. Only fires with a face lock. */
-    const skinGlow = lens.skinGlow * flash
-    if (focal && skinGlow > 0.02 && !animateGrain) {
-      const fx2 = focal.x * w
-      const fy2 = focal.y * h
-      const fr2 = Math.max(focal.r * Math.max(w, h), 24)
-      const rx = fr2 * 1.05
-      const ry = fr2 * 1.35
-      const x0 = Math.max(0, Math.floor(fx2 - rx))
-      const x1 = Math.min(w - 1, Math.ceil(fx2 + rx))
-      const y0 = Math.max(0, Math.floor(fy2 - ry))
-      const y1 = Math.min(h - 1, Math.ceil(fy2 + ry))
-      if (x1 > x0 && y1 > y0) {
-        const face = ctx.getImageData(x0, y0, x1 - x0 + 1, y1 - y0 + 1)
-        const fd = face.data
-        const fw = x1 - x0 + 1
-        const amp = skinGlow * 0.55
-        for (let yy = y0; yy <= y1; yy++) {
-          const dy = (yy - fy2) / ry
-          for (let xx = x0; xx <= x1; xx++) {
-            const dx = (xx - fx2) / rx
-            const d2 = dx * dx + dy * dy
-            if (d2 > 1) continue
-            const idx = ((yy - y0) * fw + (xx - x0)) * 4
-            const L = (fd[idx] * 0.299 + fd[idx + 1] * 0.587 + fd[idx + 2] * 0.114) / 255
-            // specular curve: brightens what already turns toward the light,
-            // eases off before clipping, feathers at the ellipse edge
-            const spec = smoothstep(0.5, 0.92, L) * (1 - smoothstep(0.92, 1, L))
-            const boost = 1 + amp * spec * (1 - d2 * d2)
-            if (boost > 1.003) {
-              fd[idx] *= boost
-              fd[idx + 1] *= boost
-              fd[idx + 2] *= boost * 0.985 // flash speculars lean faintly warm
-            }
-          }
+    const spec = lens.flashSpecular
+    const cool = lens.flashCool
+    const img = ctx.getImageData(0, 0, w, h)
+    const d = img.data
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const idx = (y * w + x) * 4
+        let r = d[idx]
+        let g = d[idx + 1]
+        let b = d[idx + 2]
+        const L = (r * 0.299 + g * 0.587 + b * 0.114) / 255
+        const M = sampleMask(mask, mw, mh, (x + 0.5) / w, (y + 0.5) / h)
+        const far = 1 - M
+        // background falls off by distance² (the flash carves depth); the
+        // ambient sep term gives available-light stocks a gentle subject read
+        const darken = 1 - (sep * 0.5 + flash * 0.6) * far * far
+        // the flash lifts the subject, strongest where the mask is densest —
+        // but rolled off in the highlights so an already-bright near object
+        // (a hand reaching for the lens) keeps its detail instead of clipping
+        const hi = 1 - smoothstep(0.72, 1, L)
+        const lift = 1 + flash * (0.4 + 0.6 * M) * M * hi
+        let gain = darken * lift
+        // reflective specular: mid-highlights on skin/jewelry pop, rolled off
+        // before pure white so speculars read as reflectance, not blown discs
+        const sp = smoothstep(0.55, 0.85, L) * (1 - smoothstep(0.88, 1, L)) * M
+        gain *= 1 + spec * (flash * 1.3 + sep * 0.4) * sp
+        r *= gain
+        g *= gain
+        b *= gain
+        // flash white balance: the lit subject cools toward ~5500K while the
+        // background keeps whatever ambient cast the scene had
+        const pull = cool * flash * M
+        if (pull > 0.002) {
+          r = r * (1 - pull * 0.06)
+          b = b * (1 + pull * 0.05)
         }
-        ctx.putImageData(face, x0, y0)
-        // catchlight — a soft bloom where the flash meets the upper face
-        ctx.save()
-        ctx.globalCompositeOperation = 'screen'
-        const catchR = fr2 * 0.95
-        const cl2 = ctx.createRadialGradient(fx2, fy2 - fr2 * 0.18, 0, fx2, fy2 - fr2 * 0.18, catchR)
-        cl2.addColorStop(0, `rgba(255,249,238,${(skinGlow * 0.2).toFixed(3)})`)
-        cl2.addColorStop(1, 'rgba(255,249,238,0)')
-        ctx.fillStyle = cl2
-        ctx.fillRect(0, 0, w, h)
-        ctx.restore()
+        d[idx] = r
+        d[idx + 1] = g
+        d[idx + 2] = b
       }
     }
+    ctx.putImageData(img, 0, 0)
   }
 
   /* 7 — faded blacks (film lift) */
