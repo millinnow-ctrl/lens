@@ -116,6 +116,40 @@ function shapeCh(v: number, sh: number, hi: number): number {
   return clamp01(t + sh * ws * 0.4 + hi * wh * 0.4) * 255
 }
 
+/** RGB (0..255) → HSV; h in degrees 0..360, s/v in 0..1 */
+function rgb2hsv(r: number, g: number, b: number): [number, number, number] {
+  const mx = Math.max(r, g, b)
+  const mn = Math.min(r, g, b)
+  const c = mx - mn
+  let h = 0
+  if (c !== 0) {
+    if (mx === r) h = ((g - b) / c) % 6
+    else if (mx === g) h = (b - r) / c + 2
+    else h = (r - g) / c + 4
+    h *= 60
+    if (h < 0) h += 360
+  }
+  return [h, mx === 0 ? 0 : c / mx, mx / 255]
+}
+
+/** HSV (deg, 0..1, 0..1) → RGB 0..255 */
+function hsv2rgb(h: number, s: number, v: number): [number, number, number] {
+  h = ((h % 360) + 360) % 360
+  const c = v * s
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1))
+  const m = v - c
+  let r = 0
+  let g = 0
+  let bl = 0
+  if (h < 60) { r = c; g = x } else if (h < 120) { r = x; g = c } else if (h < 180) { g = c; bl = x } else if (h < 240) { g = x; bl = c } else if (h < 300) { r = x; bl = c } else { r = c; bl = x }
+  return [(r + m) * 255, (g + m) * 255, (bl + m) * 255]
+}
+
+/** shortest signed angular delta a→b in degrees, in [-180, 180] */
+function angDelta(a: number, b: number): number {
+  return ((((b - a) % 360) + 540) % 360) - 180
+}
+
 /** round + clamp to a byte — replaces the auto-clamp of Uint8ClampedArray */
 const cl = (v: number) => (v <= 0 ? 0 : v >= 255 ? 255 : Math.round(v))
 const b255 = (v: number) => (v <= 0 ? 0 : v >= 255 ? 255 : Math.round(v))
@@ -544,7 +578,7 @@ export function renderStyled(
   {
     const contrastAmt = 0.72 + (params.contrast / 100) * 0.62 // 0.72..1.34
     let mat = IDENTITY
-    if (ch.bw) mat = composeMat(grayscaleMat(Math.min(1, s * 1.25)), mat)
+    if (ch.bw && !ch.bwMix) mat = composeMat(grayscaleMat(Math.min(1, s * 1.25)), mat)
     if (ch.sepia) mat = composeMat(sepiaMat(ch.sepia * s), mat)
     if (ch.hue) mat = composeMat(hueRotateMat(ch.hue * s), mat)
     mat = composeMat(saturateMat(lerp(1, ch.saturate ?? 1, s)), mat)
@@ -625,6 +659,27 @@ export function renderStyled(
           if (kDist > 0.0015) d[px + 1] = tap(cx + dx * sb, cy + dy * sb, 1)
           d[px + 2] = tap(cx + dx * sB, cy + dy * sB, 2)
         }
+      }
+      setCur(imageFromRGBA(d, w, h))
+    }
+  }
+
+  /* 1.45 — spectral B&W: a channel-weighted mono where reds render DARK
+     (orthochromatic / silver-gelatin sensitivity) so lips, skin flush and warm
+     fabric separate tonally — a saturation-blind grayscale cannot. Runs before
+     the film response so the split-tone still tones the plate. */
+  if (ch.bwMix) {
+    const A = Math.min(1, s * 1.25)
+    const wr = ch.bwMix[0]
+    const wg = ch.bwMix[1]
+    const wb = ch.bwMix[2]
+    const d = readRGBA(cur)
+    if (d) {
+      for (let i = 0; i < d.length; i += 4) {
+        const mono = wr * d[i] + wg * d[i + 1] + wb * d[i + 2]
+        d[i] = cl(lerp(d[i], mono, A))
+        d[i + 1] = cl(lerp(d[i + 1], mono, A))
+        d[i + 2] = cl(lerp(d[i + 2], mono, A))
       }
       setCur(imageFromRGBA(d, w, h))
     }
@@ -767,6 +822,52 @@ export function renderStyled(
         d[i] = cl(r)
         d[i + 1] = cl(g)
         d[i + 2] = cl(b)
+      }
+      setCur(imageFromRGBA(d, w, h))
+    }
+  }
+
+  /* 1.55 — palette / motivated colour: a colourist's move, not a slider. Either
+     STEER every hue toward a coordinated set of anchors (storybook pastel snaps
+     the world to powder pink / mint / cream) or PROTECT one hue and crush the
+     chroma of all others (motivated separation — the teal survives, the rest
+     drains) — with skin exempt so faces stay alive. */
+  const pal = ch.palette
+  if (pal && (((pal.snap ?? 0) > 0 && pal.anchors) || ((pal.crush ?? 0) > 0 && pal.keepHue != null))) {
+    const snap = (pal.snap ?? 0) * s
+    const crush = (pal.crush ?? 0) * s
+    const anchors = pal.anchors ?? null
+    const keepHue = pal.keepHue
+    const kw = pal.keepWidth ?? 40
+    const d = readRGBA(cur)
+    if (d) {
+      for (let i = 0; i < d.length; i += 4) {
+        const [hue, sat, val] = rgb2hsv(d[i], d[i + 1], d[i + 2])
+        if (sat < 0.04) continue // greys carry no hue to steer
+        const skin = isSkin(d[i], d[i + 1], d[i + 2])
+        let nh = hue
+        let ns = sat
+        if (anchors && snap > 0.001 && !skin) {
+          let best = anchors[0]
+          let bd = Math.abs(angDelta(hue, anchors[0]))
+          for (let k = 1; k < anchors.length; k++) {
+            const dd = Math.abs(angDelta(hue, anchors[k]))
+            if (dd < bd) {
+              bd = dd
+              best = anchors[k]
+            }
+          }
+          nh = hue + angDelta(hue, best) * snap
+        }
+        if (keepHue != null && crush > 0.001 && !skin) {
+          const dist = Math.abs(angDelta(hue, keepHue))
+          const outside = smoothstep(kw, kw * 1.8, dist) // 0 inside the kept band → 1 far outside
+          ns = sat * (1 - crush * outside)
+        }
+        const [nr, ng, nb] = hsv2rgb(nh, ns, val)
+        d[i] = cl(nr)
+        d[i + 1] = cl(ng)
+        d[i + 2] = cl(nb)
       }
       setCur(imageFromRGBA(d, w, h))
     }
@@ -1224,6 +1325,65 @@ export function renderStyled(
         }
       }
       setCur(imageFromRGBA(dd, w, h))
+    }
+  }
+
+  /* 9.6 — analog video: chroma bleeds sideways because tape/broadcast gives
+     color a fraction of luma's horizontal bandwidth (a one-pole running filter
+     over Cb/Cr only — the color drags past edges while brightness stays sharp),
+     plus interlace field-comb and bright tape dropout. A signal-domain artifact
+     no slider can make. */
+  if (ch.video) {
+    const bleed = clamp01((ch.video.bleed ?? 0) * s)
+    const drop = (ch.video.dropout ?? 0) * s
+    const inter = (ch.video.interlace ?? 0) * s
+    const d = readRGBA(cur)
+    if (d) {
+      const a = lerp(1, 0.09, bleed) // one-pole coeff: heavier bleed = longer chroma tail
+      const vseed = hash32(style.id) ^ 0x5bd1e995
+      const runLen = Math.round(w * 0.12)
+      for (let y = 0; y < h; y++) {
+        const row = y * w * 4
+        // interlace: odd fields sampled sideways → comb teeth on vertical edges
+        const shift = inter > 0.01 && (y & 1) ? Math.round(1 + inter * 4) : 0
+        let cb = 128
+        let cr = 128
+        let seeded = false
+        const rowH = nHash(0, y, vseed)
+        const dropRow = drop > 0.02 && rowH < drop * 0.06
+        const dseg0 = Math.floor(rowH * w)
+        for (let x = 0; x < w; x++) {
+          const i = row + x * 4
+          const sx = x + shift >= w ? w - 1 : x + shift
+          const si = row + sx * 4
+          const r0 = d[si]
+          const g0 = d[si + 1]
+          const b0 = d[si + 2]
+          const Y = 0.299 * r0 + 0.587 * g0 + 0.114 * b0
+          const pcb = -0.168736 * r0 - 0.331264 * g0 + 0.5 * b0 + 128
+          const pcr = 0.5 * r0 - 0.418688 * g0 - 0.081312 * b0 + 128
+          if (!seeded) {
+            cb = pcb
+            cr = pcr
+            seeded = true
+          }
+          cb += (pcb - cb) * a
+          cr += (pcr - cr) * a
+          const yout = shift ? Y * (1 - inter * 0.12) : Y // odd field runs slightly dim
+          let r = yout + 1.402 * (cr - 128)
+          let g = yout - 0.344136 * (cb - 128) - 0.714136 * (cr - 128)
+          let b = yout + 1.772 * (cb - 128)
+          if (dropRow && x >= dseg0 && x < dseg0 + runLen) {
+            r = lerp(r, 235, 0.7)
+            g = lerp(g, 238, 0.7)
+            b = lerp(b, 235, 0.7)
+          }
+          d[i] = cl(r)
+          d[i + 1] = cl(g)
+          d[i + 2] = cl(b)
+        }
+      }
+      setCur(imageFromRGBA(d, w, h))
     }
   }
 

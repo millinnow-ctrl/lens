@@ -103,6 +103,19 @@ export interface StyleCharacter {
   /** low print DMax (0..0.25): blacks clamp up to this floor — instant film and
    *  cheap processes never reach true black. A chemistry limit, not a fade fill. */
   dmax?: number
+  /** analog-video signal artifacts — a signal-domain look no slider produces.
+   *  bleed: horizontal chroma smear (VHS color bandwidth, color drags sideways
+   *  past edges while luma stays sharp). dropout: bright tape-dropout streaks.
+   *  interlace: even/odd field comb offset (CCTV / interlaced video). */
+  video?: { bleed?: number; dropout?: number; interlace?: number }
+  /** palette / motivated colour — a colourist move, not a slider. anchors+snap
+   *  steers every hue toward a coordinated set (pastel); keepHue+keepWidth+crush
+   *  protects one hue at full chroma and drains the rest. Skin is always exempt. */
+  palette?: { anchors?: number[]; snap?: number; keepHue?: number; keepWidth?: number; crush?: number }
+  /** spectral black & white — channel weights [wr,wg,wb] for the mono mix, so a
+   *  red-blind (orthochromatic/silver-gelatin) response can render reds dark and
+   *  separate skin/lips tonally. Overrides the flat luma grayscale. */
+  bwMix?: [number, number, number]
 }
 
 /**
