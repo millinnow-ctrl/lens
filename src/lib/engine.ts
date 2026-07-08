@@ -998,6 +998,8 @@ export function renderStyled(
 
     const spec = lens.flashSpecular
     const cool = lens.flashCool
+    const glowStr = lens.skinGlow // R45: the dead field, now wired to a real skin glow
+    const chiaro = (ch.chiaroscuro ?? 0) * s // noir directional-key sculpting
     const img = ctx.getImageData(0, 0, w, h)
     const d = img.data
     for (let y = 0; y < h; y++) {
@@ -1042,6 +1044,29 @@ export function renderStyled(
         const sub = skin * diffuse * 0.5
         r += sub * 14
         b -= sub * 10
+        // SKIN GLOW (the lens's skin-flatter, R45 — was a dead field): a soft
+        // luminous lift on face skin, strongest under flash but with a gentle
+        // ambient floor when a face is locked so portrait stocks read creamy.
+        // Highlights are protected so it lifts mids, never blows the face.
+        const glowAmt = skin * M * glowStr * ((focal ? 0.12 : 0) + flash * 0.6)
+        if (glowAmt > 0.002) {
+          const glowLift = glowAmt * (1 - smoothstep(0.6, 0.95, L)) * 24
+          r += glowLift
+          g += glowLift * 0.82
+          b += glowLift * 0.64
+        }
+        // CHIAROSCURO (noir): deepen the shadow-side modeling already on the
+        // subject (push where the low-freq shading is dark, hold where it's lit)
+        // and crush true blacks only OFF-subject, so the figure stays sculpted
+        // by light instead of flat-crushed. A modeled key a contrast slider lacks.
+        if (chiaro > 0.001) {
+          const model = 1 - chiaro * M * (1 - smoothstep(0.28, 0.62, Lb)) * 0.7
+          const bgCrush = 1 - chiaro * far * 0.4
+          const cg = model * bgCrush
+          r *= cg
+          g *= cg
+          b *= cg
+        }
         // flash white balance: the lit subject cools toward ~5500K while the
         // background keeps whatever ambient cast the scene had
         const pull = cool * flash * M
@@ -1114,6 +1139,44 @@ export function renderStyled(
     ctx.fillStyle = band
     ctx.fillRect(0, 0, w, h)
     ctx.restore()
+  }
+
+  /* 8.6 — highlight shoulder (film rolloff). The flash relight, halation and
+     specular all pile light into the brightest zones; with no shoulder they
+     clip to a flat, identical, BLINDING white and every stock looks the same
+     up top — a filter that amplified the whites, not a lens. A real emulsion
+     has a SHOULDER: the top of the curve compresses (blown areas keep their
+     texture) and the highlights carry the film's OWN colour. So we compress
+     the top end and pull the recovered headroom toward THIS stock's highlight
+     tone — which is precisely what makes each lens read individual where it is
+     brightest, instead of a shared sheet of white. */
+  const guard = clamp01((ch.highlightGuard ?? 0.62) * s)
+  if (guard > 0.004) {
+    const [hr, hg, hb] = ch.splitTone ? hexRgb(ch.splitTone.highlights) : [255, 249, 242]
+    const knee = 200
+    const comp = 1 - guard * 0.52 // blown excess above the knee kept at 48–100%
+    const img = ctx.getImageData(0, 0, w, h)
+    const d = img.data
+    for (let i = 0; i < d.length; i += 4) {
+      const r = d[i]
+      const g = d[i + 1]
+      const b = d[i + 2]
+      const L = 0.299 * r + 0.587 * g + 0.114 * b
+      if (L <= knee) continue
+      const tL = knee + (L - knee) * comp // compressed luma ceiling
+      const sc = tL / L
+      let nr = r * sc
+      let ng = g * sc
+      let nb = b * sc
+      const t = smoothstep(knee, 255, L) * guard * 0.42 // tone rises into the blowout
+      nr += (hr - nr) * t
+      ng += (hg - ng) * t
+      nb += (hb - nb) * t
+      d[i] = nr
+      d[i + 1] = ng
+      d[i + 2] = nb
+    }
+    ctx.putImageData(img, 0, 0)
   }
 
   /* 9 — grain: size follows the stock. Wet plates and 8mm clump big;
@@ -1222,6 +1285,60 @@ export function renderStyled(
           r = lerp(r, 235, 0.7)
           g = lerp(g, 238, 0.7)
           b = lerp(b, 235, 0.7)
+        }
+        d[i] = r
+        d[i + 1] = g
+        d[i + 2] = b
+      }
+    }
+    ctx.putImageData(img, 0, 0)
+  }
+
+  /* 9.7 — CCD colour crosstalk (y2k digicam): violet/green fringing blooms into
+     the DARK side of high-gradient edges. Unlike optical lateral CA this is fixed
+     in image space — interior edges fringe exactly as hard as the frame corners,
+     the demosaic error early sensors made that no radius-based CA or clarity
+     slider can reproduce. Plus light chroma quantisation that bands smooth
+     gradients the way a cheap sensor's 8-bit JPEG chroma channel does. */
+  if (ch.edgeFringe) {
+    const fringe = clamp01((ch.edgeFringe.fringe ?? 0) * s)
+    const block = clamp01((ch.edgeFringe.block ?? 0) * s)
+    const img = ctx.getImageData(0, 0, w, h)
+    const d = img.data
+    const src = new Uint8Array(d) // read gradients from the untouched source
+    const levels = block > 0.02 ? Math.max(6, Math.round(lerp(64, 9, block))) : 0
+    const qstep = levels ? 255 / levels : 0
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const i = (y * w + x) * 4
+        let r = src[i]
+        let g = src[i + 1]
+        let b = src[i + 2]
+        if (fringe > 0.01) {
+          const il = x > 0 ? i - 4 : i
+          const ir = x < w - 1 ? i + 4 : i
+          const iu = y > 0 ? i - w * 4 : i
+          const idn = y < h - 1 ? i + w * 4 : i
+          const gx =
+            0.299 * src[ir] + 0.587 * src[ir + 1] + 0.114 * src[ir + 2] - (0.299 * src[il] + 0.587 * src[il + 1] + 0.114 * src[il + 2])
+          const gy =
+            0.299 * src[idn] + 0.587 * src[idn + 1] + 0.114 * src[idn + 2] - (0.299 * src[iu] + 0.587 * src[iu + 1] + 0.114 * src[iu + 2])
+          const mag = Math.sqrt(gx * gx + gy * gy)
+          const L = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+          const fr = fringe * smoothstep(24, 82, mag) * (1 - smoothstep(0.32, 0.68, L)) * 48
+          r += fr * 0.85
+          b += fr * 1.3
+          g -= fr * 0.5
+        }
+        if (levels) {
+          // quantise chroma only (Y kept full-res) → banded colour, sharp luma
+          const Y = 0.299 * r + 0.587 * g + 0.114 * b
+          const rq = Y + Math.round((r - Y) / qstep) * qstep
+          const bq = Y + Math.round((b - Y) / qstep) * qstep
+          const gq = (Y - 0.299 * rq - 0.114 * bq) / 0.587
+          r = lerp(r, rq, block * 0.7)
+          g = lerp(g, gq, block * 0.7)
+          b = lerp(b, bq, block * 0.7)
         }
         d[i] = r
         d[i + 1] = g

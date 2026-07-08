@@ -116,6 +116,19 @@ export interface StyleCharacter {
    *  red-blind (orthochromatic/silver-gelatin) response can render reds dark and
    *  separate skin/lips tonally. Overrides the flat luma grayscale. */
   bwMix?: [number, number, number]
+  /** subject chiaroscuro — synthesize a directional key across the subject mask
+   *  using the low-freq luma: deepen the shadow side, hold the key side, and
+   *  crush true blacks only OFF-subject. Models the figure by light (0..~0.7). */
+  chiaroscuro?: number
+  /** edge-local chromatic fringing — bloom violet/green into the dark side of
+   *  high-gradient edges (CCD colour crosstalk), independent of image radius,
+   *  plus light block quantisation. { fringe, block } each 0..1. */
+  edgeFringe?: { fringe?: number; block?: number }
+  /** highlight shoulder — film rolloff on the brightest zones so flash/halation
+   *  don't clip to blinding white; compresses the top end and tints the
+   *  recovered headroom toward this stock's highlight tone. Defaults ~0.62;
+   *  set 0 to opt a stock out (e.g. a stark surveillance blowout). 0..1. */
+  highlightGuard?: number
 }
 
 /**
