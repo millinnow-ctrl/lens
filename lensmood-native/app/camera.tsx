@@ -1,11 +1,11 @@
 /**
- * The LM-1 Pro Camera — LensMood's in-app camera. iOS-camera-style dark UI
- * over a live CameraView, plus the dial deck of a flagship body: ƒ, ISO, EV,
- * WB. iPhones expose none of those to ANY app (aperture is physically
- * fixed), so the dials do what makes them real here: they drive the LM-1
- * engine's develop of the shot — ƒ sets depth-of-field, ISO sets grain/
- * denoise, EV biases the meter, WB sets color — and the whole shot then
- * develops through the pro-body stock's AI relight profile.
+ * The LensMood Camera — the app's own in-app camera. iOS-camera-style dark
+ * UI over a live CameraView, plus a manual dial deck: ƒ, ISO, EV, WB.
+ * iPhones expose none of those to ANY app (aperture is physically fixed),
+ * so the dials do what makes them real here: they ride along with the shot
+ * into the develop screen — ƒ sets depth-of-field, ISO sets grain/denoise,
+ * EV biases the meter, WB sets color — applied by the engine through
+ * whichever of the 18 stocks develops it.
  */
 
 import { useCallback, useMemo, useRef, useState } from 'react'
@@ -97,7 +97,6 @@ export default function ProCamera() {
       router.replace({
         pathname: '/develop',
         params: {
-          style: 'pro-body',
           shot: pic.uri,
           w: String(pic.width ?? 0),
           h: String(pic.height ?? 0),
@@ -118,9 +117,9 @@ export default function ProCamera() {
       <View style={[s.root, s.permWrap, { paddingTop: insets.top }]}>
         <Stack.Screen options={{ headerShown: false }} />
         <StatusBar style="light" />
-        <Text style={s.permTitle}>The LM-1 needs the lens.</Text>
+        <Text style={s.permTitle}>The camera needs the lens.</Text>
         <Text style={s.permSub}>
-          Allow camera access to shoot through the pro body. Photos never leave your phone.
+          Allow camera access to shoot in-app. Photos never leave your phone.
         </Text>
         <Pressable
           onPress={() => (perm.canAskAgain ? requestPerm() : null)}
@@ -160,7 +159,7 @@ export default function ProCamera() {
           </Text>
         </Pressable>
         <View style={s.badge}>
-          <Text style={s.badgeText}>LM-1 PRO BODY</Text>
+          <Text style={s.badgeText}>LENSMOOD CAMERA</Text>
         </View>
         <Pressable
           onPress={() => {
@@ -250,8 +249,8 @@ export default function ProCamera() {
         </Pressable>
         <View style={s.shutterSide}>
           <Text style={s.credit}>
-            Dials develop through the LM-1 engine. Handling inspired by Canon & Nikon flagship
-            bodies — not affiliated.
+            The dials are developed into your shot by the LensMood engine — ƒ sets depth,
+            ISO sets grain, EV sets exposure, WB sets color.
           </Text>
         </View>
       </View>

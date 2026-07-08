@@ -85,8 +85,8 @@ export default function Develop() {
   const sourceRef = useRef<SkImage | null>(null)
   const sceneRef = useRef<SceneProfile | null>(null)
   const focalRef = useRef<Focal | null>(null)
-  // the LM-1's dial settings for a shot that arrived from the Pro Camera —
-  // applied only while the pro-body stock is selected (they belong to it)
+  // dial settings for a shot that arrived from the in-app camera —
+  // they ride on top of whichever stock is selected
   const proRef = useRef<ReturnType<typeof dialsToEngine> | null>(null)
   // which (photo, stock) pairings have already been paid for
   const chargedRef = useRef<Set<string>>(new Set())
@@ -111,9 +111,8 @@ export default function Develop() {
       await new Promise((r) => setTimeout(r, 30))
       try {
         if (!sceneRef.current) sceneRef.current = analyzeScene(img, focalRef.current)
-        // the LM-1's dials only steer its own body
-        const lensOverride =
-          st.id === 'pro-body' && proRef.current ? proRef.current.lensOverride : undefined
+        // the camera's dials ride along with its shot, whatever stock develops it
+        const lensOverride = proRef.current?.lensOverride
         const developed = await developImage(img, st, p, {
           scene: sceneRef.current,
           maxSize: 1280,
@@ -202,7 +201,7 @@ export default function Develop() {
       if (focalRef.current) bits.push('FACE LOCK')
       if (sceneRef.current.lights.length)
         bits.push(`${sceneRef.current.lights.length} LIGHT${sceneRef.current.lights.length > 1 ? 'S' : ''}`)
-      if (proRef.current && style?.id === 'pro-body') bits.push(proRef.current.readout)
+      if (proRef.current) bits.push(proRef.current.readout)
       setMeter(bits.join(' · '))
       const effective = paramsOverride ?? params
       if (style && effective) developCharged(style, effective, picked.uri)
@@ -241,7 +240,7 @@ export default function Develop() {
     await loadPicked({ uri: a.uri, width: a.width ?? 0, height: a.height ?? 0 })
   }, [libPerm, requestLibPerm, loadPicked])
 
-  /** shooting happens in the LM-1 Pro Camera — its shot routes back here */
+  /** shooting happens in the in-app LensMood Camera — its shot routes back here */
   const shootPhoto = useCallback(() => {
     haptics.medium()
     router.push('/camera')

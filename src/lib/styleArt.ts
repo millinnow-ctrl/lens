@@ -21,10 +21,8 @@ import artPastel from '../assets/style-pastel-cinema.jpg'
 import artTokyoNeon from '../assets/style-tokyo-neon.jpg'
 import artPhotobooth from '../assets/style-photobooth.jpg'
 import artTintype from '../assets/style-tintype.jpg'
-import artProBody from '../assets/style-pro-body.jpg'
 
 export const STYLE_ART: Record<string, string> = {
-  'pro-body': artProBody,
   disposable: artDisposable,
   'iphone-flash': artIphoneFlash,
   'camcorder-90s': artCamcorder,

@@ -1,8 +1,8 @@
 /**
- * The LM-1's dial deck — the contract between the Pro Camera's controls and
- * the engine. iPhones expose no manual aperture/ISO/EV to any app (aperture
- * is physically fixed), so the dials do what makes them real here: they set
- * how the LM-1 engine develops the shot.
+ * The camera's dial deck — the contract between the in-app camera's controls
+ * and the engine. iPhones expose no manual aperture/ISO/EV to any app
+ * (aperture is physically fixed), so the dials do what makes them real here:
+ * they set how the LensMood engine develops the shot.
  */
 
 import type { LensResponse } from '@/engine/types'

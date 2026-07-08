@@ -145,7 +145,7 @@ export default function BottomDock({ bottomInset }: { bottomInset: number }) {
                 }}
                 style={styles.tab}
                 accessibilityRole="button"
-                accessibilityLabel="Camera — shoot with the LM-1 pro body"
+                accessibilityLabel="Camera — shoot with the LensMood camera"
               >
                 <View style={styles.fab}>
                   <DslrIcon />

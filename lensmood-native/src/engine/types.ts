@@ -26,6 +26,7 @@ export type CompositeOperation =
   | 'multiply'
   | 'screen'
   | 'overlay'
+  | 'soft-light'
   | 'lighten'
   | 'darken'
   | 'destination-out'

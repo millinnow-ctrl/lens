@@ -150,6 +150,8 @@ function blendOf(op: CompositeOperation): BlendMode {
       return BlendMode.Screen
     case 'overlay':
       return BlendMode.Overlay
+    case 'soft-light':
+      return BlendMode.SoftLight
     case 'lighten':
       return BlendMode.Lighten
     case 'darken':
