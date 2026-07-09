@@ -789,6 +789,26 @@ input[type='range'].lm-slider::-moz-range-thumb {
   will-change: filter, opacity, transform;
 }
 
+/* Print Room — the staged print developing in: dark undeveloped chemistry
+   clearing to the finished photo (drives the composite reveal) */
+@keyframes lm-print-develop {
+  0% {
+    filter: saturate(0.06) contrast(0.6) brightness(0.42) blur(4px);
+  }
+  30% {
+    filter: saturate(0.2) contrast(0.74) brightness(0.66) blur(2.4px);
+  }
+  60% {
+    filter: saturate(0.55) contrast(0.9) brightness(0.9) blur(1px);
+  }
+  85% {
+    filter: saturate(0.92) contrast(1.01) brightness(1.01) blur(0.2px);
+  }
+  100% {
+    filter: none;
+  }
+}
+
 /* wet-sheen highlight sweeping diagonally across the surface, once */
 @keyframes lm-print-sheen {
   0% {

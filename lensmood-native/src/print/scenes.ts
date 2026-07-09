@@ -25,7 +25,7 @@ export interface ScenePreset {
 export const SCENES: ScenePreset[] = [
   {
     id: 'wood',
-    label: 'Kitchen table',
+    label: 'Wooden chair',
     plate: require('../../assets/scenes/wood.jpg'),
     x: 0.5,
     y: 0.52,

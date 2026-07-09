@@ -7,8 +7,8 @@ import {
   IconImage,
   IconImageFill,
   IconPlusCircle,
-  IconStyles,
-  IconStylesFill,
+  IconPrint,
+  IconPrintFill,
   IconUser,
   IconUserFill,
 } from '../icons'
@@ -16,7 +16,7 @@ import { haptic } from '../../lib/native'
 
 const TABS = [
   { id: 'home', label: 'Home', icon: IconHome, iconFill: IconHomeFill, to: '/home' },
-  { id: 'styles', label: 'Styles', icon: IconStyles, iconFill: IconStylesFill, to: '/studio' },
+  { id: 'prints', label: 'Prints', icon: IconPrint, iconFill: IconPrintFill, to: '/print' },
   { id: 'create', label: 'Camera', icon: IconPlusCircle, iconFill: undefined, to: '#create' },
   { id: 'gallery', label: 'Gallery', icon: IconImage, iconFill: IconImageFill, to: '/dashboard' },
   { id: 'account', label: 'Account', icon: IconUser, iconFill: IconUserFill, to: '#account' },
@@ -36,7 +36,7 @@ export default function BottomNav({ variant = 'fixed', onAccount, onCreate, clas
 
   const activeId = (() => {
     if (pathname === '/home' || pathname === '/') return 'home'
-    if (pathname === '/studio') return 'styles'
+    if (pathname === '/print') return 'prints'
     if (pathname === '/dashboard') return 'gallery'
     return ''
   })()

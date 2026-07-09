@@ -166,6 +166,21 @@ export const IconStylesFill = (p: P) => (
   </svg>
 )
 
+/** an instant print — framed photo with the deep bottom lip, the Prints tab */
+export const IconPrint = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="5" y="3.5" width="14" height="17" rx="1.8" />
+    <rect x="7.4" y="5.9" width="9.2" height="9" rx="0.9" />
+    <path d="M8 17.7h5" />
+  </svg>
+)
+
+export const IconPrintFill = (p: P) => (
+  <svg {...baseFill(p)}>
+    <path d="M6 3a2.4 2.4 0 0 0-2.4 2.4v13.2A2.4 2.4 0 0 0 6 21h12a2.4 2.4 0 0 0 2.4-2.4V5.4A2.4 2.4 0 0 0 18 3Zm1.4 3h9.2a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7.4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Zm.6 11.2h5a.75.75 0 0 1 0 1.5H8a.75.75 0 0 1 0-1.5Z" />
+  </svg>
+)
+
 export const IconUser = (p: P) => (
   <svg {...base(p)}>
     <circle cx="12" cy="8.3" r="3.95" />

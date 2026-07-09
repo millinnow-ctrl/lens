@@ -19,7 +19,7 @@ import Svg, {
 import { haptics } from '@/store'
 import { colors } from '@/theme/colors'
 
-type TabId = 'home' | 'styles' | 'create' | 'gallery' | 'account'
+type TabId = 'home' | 'prints' | 'create' | 'gallery' | 'account'
 
 /** the LM-1 — a 3D drawing of a Canon-class DSLR: inked outlines, graphite
  *  body with a top-light, rounded EOS pentaprism hump, gripped right side,
@@ -88,13 +88,13 @@ const ICON = (id: TabId, color: string) => {
           <Path d="M6.5 10.5V20h11v-9.5" {...p} />
         </Svg>
       )
-    case 'styles':
+    case 'prints':
+      // an instant print: framed photo with the signature deep bottom lip
       return (
         <Svg width={22} height={22} viewBox="0 0 24 24">
-          <Rect x="4" y="4" width="7" height="7" rx="2" {...p} />
-          <Rect x="13" y="4" width="7" height="7" rx="2" {...p} />
-          <Rect x="4" y="13" width="7" height="7" rx="2" {...p} />
-          <Rect x="13" y="13" width="7" height="7" rx="2" {...p} />
+          <Rect x="5" y="3.5" width="14" height="17" rx="1.6" {...p} />
+          <Rect x="7.2" y="5.7" width="9.6" height="9.2" rx="0.8" {...p} />
+          <Path d="M8 17.6h5" {...p} />
         </Svg>
       )
     case 'gallery':
@@ -119,7 +119,7 @@ const ICON = (id: TabId, color: string) => {
 
 const TABS: { id: TabId; label: string; to: string }[] = [
   { id: 'home', label: 'Home', to: '/' },
-  { id: 'styles', label: 'Styles', to: '/develop' },
+  { id: 'prints', label: 'Prints', to: '/print' },
   { id: 'create', label: 'Camera', to: '/camera' },
   { id: 'gallery', label: 'Gallery', to: '/gallery' },
   { id: 'account', label: 'Account', to: '/account' },
@@ -128,7 +128,7 @@ const TABS: { id: TabId; label: string; to: string }[] = [
 export default function BottomDock({ bottomInset }: { bottomInset: number }) {
   const pathname = usePathname()
   const activeId: TabId | '' =
-    pathname === '/' ? 'home' : pathname.startsWith('/develop') ? 'styles' : pathname.startsWith('/gallery') ? 'gallery' : ''
+    pathname === '/' ? 'home' : pathname.startsWith('/print') ? 'prints' : pathname.startsWith('/gallery') ? 'gallery' : ''
 
   return (
     <View style={[styles.wrap, { bottom: bottomInset + 10 }]} pointerEvents="box-none">

@@ -11,6 +11,7 @@ import UploadModal from './components/home/UploadModal'
 import LandingPage from './pages/LandingPage'
 import Home from './pages/Home'
 import Studio from './pages/Studio'
+import PrintRoom from './pages/PrintRoom'
 import PricingPage from './pages/PricingPage'
 import Dashboard from './pages/Dashboard'
 import { PrivacyPage, TermsPage } from './pages/LegalPage'
@@ -82,6 +83,7 @@ export default function App() {
               <Route path="/" element={<RootRoute />} />
               <Route path="/home" element={<Home />} />
               <Route path="/studio" element={<Studio />} />
+              <Route path="/print" element={<PrintRoom />} />
               <Route path="/pricing" element={<PricingPage />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/privacy" element={<PrivacyPage />} />

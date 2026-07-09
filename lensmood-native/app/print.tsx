@@ -1,12 +1,14 @@
 /**
- * Print Lab — the polaroid becomes a physical object. Flash + shutter click,
- * the print ejects from a slot black and undeveloped, chemistry clears it
- * over ~2.7s while it settles onto a staged surface (wood / sand / linen /
- * marble / grass) with a real contact shadow. Share/Save export a Skia
- * composite of the scene — an "iPhone photo of the finished polaroid".
+ * Print Room — the polaroid becomes a physical object you can post. Opened
+ * from the dock it's a shelf of your developed shots; pick one, hit PRINT:
+ * flash + shutter click, a real film clip of the printer ejecting the black
+ * undeveloped print, then YOUR print develops (~2.7s chemistry) and settles
+ * onto a staged surface (wood / sand / linen / marble / grass) with a real
+ * contact shadow. Share/Save export a Skia composite — an "iPhone photo of
+ * the finished polaroid".
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   View,
   Text,
@@ -35,12 +37,52 @@ import Animated, {
 } from 'react-native-reanimated'
 import * as Sharing from 'expo-sharing'
 import * as MediaLibrary from 'expo-media-library'
+import { VideoView, useVideoPlayer } from 'expo-video'
 import DevelopingPrint from '@/print/DevelopingPrint'
 import { composeScenePrint } from '@/print/compose'
 import { SCENES, type ScenePreset } from '@/print/scenes'
 import { usePrintSounds } from '@/print/sounds'
-import { haptics } from '@/store'
+import { useApp, haptics } from '@/store'
 import { colors } from '@/theme/colors'
+
+/** the printer clip — a real film of the black undeveloped print ejecting.
+ *  Generic on purpose: the SAME clip plays for every photo (the machine is
+ *  the constant; your photo is what develops after). */
+const EJECT_CLIP = require('../assets/print/eject.mp4')
+const EJECT_MS = 3000 // hard fallback if playback stalls
+
+/** the fullscreen printing clip that opens the ceremony */
+function EjectClip({ onDone }: { onDone: () => void }) {
+  const done = useRef(false)
+  const finish = useCallback(() => {
+    if (done.current) return
+    done.current = true
+    onDone()
+  }, [onDone])
+  const player = useVideoPlayer(EJECT_CLIP, (p) => {
+    p.loop = false
+    p.muted = true
+    p.play()
+  })
+  useEffect(() => {
+    const sub = player.addListener('playToEnd', finish)
+    const t = setTimeout(finish, EJECT_MS + 800)
+    return () => {
+      sub.remove()
+      clearTimeout(t)
+    }
+  }, [player, finish])
+  return (
+    <View style={StyleSheet.absoluteFill}>
+      <VideoView
+        player={player}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+        nativeControls={false}
+      />
+    </View>
+  )
+}
 
 const MONO = Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' })
 
@@ -157,13 +199,22 @@ function PrintRun({
   )
 }
 
-export default function PrintLab() {
+type Picked = { uri: string; w: number; h: number }
+type Phase = 'idle' | 'clip' | 'run'
+
+export default function PrintRoom() {
   const insets = useSafeAreaInsets()
   const { width: screenW, height: screenH } = useWindowDimensions()
   const params = useLocalSearchParams<{ uri?: string; w?: string; h?: string }>()
-  const uri = typeof params.uri === 'string' ? params.uri : ''
-  const printW = Number(params.w) || 0
-  const printH = Number(params.h) || 0
+  const fromDevelop =
+    typeof params.uri === 'string' && Number(params.w) > 0 && Number(params.h) > 0
+  const { history } = useApp()
+
+  // opened from the dock: a shelf of your developed shots; from Develop: preloaded
+  const [pick, setPick] = useState<Picked | null>(() =>
+    fromDevelop ? { uri: params.uri as string, w: Number(params.w), h: Number(params.h) } : null,
+  )
+  const [phase, setPhase] = useState<Phase>('idle')
 
   const sounds = usePrintSounds()
   const [scene, setScene] = useState<ScenePreset>(SCENES[0])
@@ -173,30 +224,55 @@ export default function PrintLab() {
   const [savePerm, requestSavePerm] = MediaLibrary.usePermissions()
   const flash = useSharedValue(0)
 
-  // invalid deep-link / missing params → straight back
-  useEffect(() => {
-    if (!uri || !printW || !printH) router.back()
-  }, [uri, printW, printH])
+  const uri = pick?.uri ?? ''
+  const printW = pick?.w ?? 0
+  const printH = pick?.h ?? 0
 
   const stageW = screenW
   const stageH = Math.min(screenH * 0.62, stageW * 1.32)
 
+  /** PRINT: snap-flash + shutter click, then the printer clip, then the run */
   const firePrint = useCallback(() => {
     setSettled(false)
     haptics.heavy()
     sounds.shutter()
     flash.value = 1
     flash.value = withTiming(0, { duration: 260, easing: Easing.out(Easing.quad) })
-    setTimeout(() => sounds.motor(), 150)
-    setTimeout(() => haptics.light(), 1100)
+    setPhase('clip')
+    setTimeout(() => sounds.motor(), 250)
   }, [sounds, flash])
 
-  // the ceremony auto-fires on arrival, and re-fires on every "Print again"
-  useEffect(() => {
-    if (!uri) return
-    firePrint()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [runKey])
+  const onClipDone = useCallback(() => {
+    setPhase('run')
+    setRunKey((k) => k + 1)
+    setTimeout(() => haptics.light(), 500)
+  }, [])
+
+  /** pick a shot from the shelf — read its true pixel size, then arm the stage */
+  const pickShot = useCallback((thumb: string) => {
+    haptics.selection()
+    Image.getSize(
+      thumb,
+      (w, h) => {
+        setSettled(false)
+        setPhase('idle')
+        setPick({ uri: thumb, w, h })
+      },
+      () => Alert.alert('Print error', 'That shot could not be read.'),
+    )
+  }, [])
+
+  const goBack = useCallback(() => {
+    if (pick && !fromDevelop) {
+      // back to the shelf, not out of the room
+      setPick(null)
+      setPhase('idle')
+      setSettled(false)
+      return
+    }
+    if (router.canGoBack()) router.back()
+    else router.replace('/')
+  }, [pick, fromDevelop])
 
   const onSettled = useCallback(() => {
     setSettled(true)
@@ -257,7 +333,69 @@ export default function PrintLab() {
   const flashStyle = useAnimatedStyle(() => ({ opacity: flash.value }))
   const sceneIndex = useMemo(() => SCENES.findIndex((s) => s.id === scene.id), [scene])
 
-  if (!uri) return null
+  /* ---- the shelf: pick which shot to print (dock entry, nothing picked) ---- */
+  if (!pick) {
+    return (
+      <View style={[styles.root, { paddingTop: insets.top }]}>
+        <Stack.Screen options={{ headerShown: false, animation: 'fade_from_bottom' }} />
+        <StatusBar style="light" />
+        <View style={styles.topbar}>
+          <Pressable
+            onPress={goBack}
+            hitSlop={12}
+            style={({ pressed }) => [styles.back, pressed && { opacity: 0.5 }]}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+          >
+            <Text style={styles.backText}>‹ Back</Text>
+          </Pressable>
+          <Text style={styles.title}>PRINT ROOM</Text>
+          <View style={styles.back} />
+        </View>
+        {history.length === 0 ? (
+          <View style={styles.emptyWrap}>
+            <Text style={styles.emptyTitle}>Nothing to print yet</Text>
+            <Text style={styles.emptyBody}>
+              Develop a shot with any lens, then bring it here to print it and stage it on a real
+              surface.
+            </Text>
+            <Pressable
+              onPress={() => router.push('/')}
+              style={({ pressed }) => [styles.btn, styles.btnPrimary, styles.emptyBtn, pressed && { opacity: 0.9 }]}
+            >
+              <Text style={styles.btnPrimaryText}>Pick a lens</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ paddingBottom: insets.bottom + 96 }}
+            showsVerticalScrollIndicator={false}
+          >
+            <Text style={styles.sectionLabel}>YOUR SHOTS — TAP ONE TO PRINT</Text>
+            <View style={styles.shelf}>
+              {history.map((h) => (
+                <Pressable
+                  key={h.id}
+                  onPress={() => pickShot(h.thumb)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Print your ${h.styleName} shot`}
+                  style={({ pressed }) => [styles.shelfCard, pressed && { opacity: 0.85 }]}
+                >
+                  <View style={styles.shelfPaper}>
+                    <Image source={{ uri: h.thumb }} style={styles.shelfImg} resizeMode="cover" />
+                    <Text numberOfLines={1} style={styles.shelfCaption}>
+                      {h.styleName}
+                    </Text>
+                  </View>
+                </Pressable>
+              ))}
+            </View>
+          </ScrollView>
+        )}
+      </View>
+    )
+  }
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -267,7 +405,7 @@ export default function PrintLab() {
       {/* top bar */}
       <View style={styles.topbar}>
         <Pressable
-          onPress={() => router.back()}
+          onPress={goBack}
           hitSlop={12}
           style={({ pressed }) => [styles.back, pressed && { opacity: 0.5 }]}
           accessibilityRole="button"
@@ -275,7 +413,7 @@ export default function PrintLab() {
         >
           <Text style={styles.backText}>‹ Back</Text>
         </Pressable>
-        <Text style={styles.title}>PRINT LAB</Text>
+        <Text style={styles.title}>PRINT ROOM</Text>
         <View style={styles.back} />
       </View>
 
@@ -294,16 +432,33 @@ export default function PrintLab() {
           />
           {/* eject slot */}
           <View style={styles.slot} />
-          <PrintRun
-            key={`run-${runKey}`}
-            uri={uri}
-            printW={printW}
-            printH={printH}
-            scene={scene}
-            stageW={stageW}
-            stageH={stageH}
-            onSettled={onSettled}
-          />
+          {phase === 'run' && (
+            <PrintRun
+              key={`run-${runKey}`}
+              uri={uri}
+              printW={printW}
+              printH={printH}
+              scene={scene}
+              stageW={stageW}
+              stageH={stageH}
+              onSettled={onSettled}
+            />
+          )}
+          {/* the printer film clip — the black print ejects, same for every shot */}
+          {phase === 'clip' && <EjectClip onDone={onClipDone} />}
+          {/* armed: the big PRINT moment */}
+          {phase === 'idle' && (
+            <View style={styles.armWrap}>
+              <Pressable
+                onPress={firePrint}
+                accessibilityRole="button"
+                accessibilityLabel="Print this shot"
+                style={({ pressed }) => [styles.printBtn, pressed && { transform: [{ scale: 0.97 }] }]}
+              >
+                <Text style={styles.printBtnText}>PRINT</Text>
+              </Pressable>
+            </View>
+          )}
           {/* shutter flash */}
           <Animated.View pointerEvents="none" style={[styles.flash, flashStyle]} />
         </View>
@@ -337,12 +492,20 @@ export default function PrintLab() {
 
         {/* actions */}
         <View style={styles.actions}>
-          <Pressable
-            onPress={() => setRunKey((k) => k + 1)}
-            style={({ pressed }) => [styles.btn, styles.btnGhost, pressed && { opacity: 0.85 }]}
-          >
-            <Text style={styles.btnGhostText}>Print again</Text>
-          </Pressable>
+          {phase !== 'idle' && (
+            <Pressable
+              onPress={firePrint}
+              disabled={phase === 'clip'}
+              style={({ pressed }) => [
+                styles.btn,
+                styles.btnGhost,
+                phase === 'clip' && { opacity: 0.5 },
+                pressed && { opacity: 0.85 },
+              ]}
+            >
+              <Text style={styles.btnGhostText}>Print again</Text>
+            </Pressable>
+          )}
           <View style={styles.exportRow}>
             <Pressable
               onPress={saveToPhotos}
@@ -378,7 +541,11 @@ export default function PrintLab() {
           <Text style={styles.hint}>
             {settled
               ? `Scene ${sceneIndex + 1} of ${SCENES.length} — exports look like a photo you took of the print.`
-              : 'developing…'}
+              : phase === 'idle'
+                ? 'press PRINT — flash, eject, and watch it develop.'
+                : phase === 'clip'
+                  ? 'printing…'
+                  : 'developing…'}
           </Text>
         </View>
       </ScrollView>
@@ -462,4 +629,64 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: 4,
   },
+
+  /* the armed PRINT moment */
+  armWrap: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingBottom: 108,
+  },
+  printBtn: {
+    paddingHorizontal: 44,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#02070a',
+    shadowOpacity: 0.45,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+  },
+  printBtnText: {
+    color: '#fff',
+    fontSize: 17,
+    fontWeight: '800',
+    letterSpacing: 3,
+    fontFamily: MONO,
+  },
+
+  /* the shelf — your developed shots as small paper prints */
+  shelf: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 14,
+    gap: 12,
+  },
+  shelfCard: { width: '30.5%' },
+  shelfPaper: {
+    backgroundColor: '#fdfcf8',
+    borderRadius: 4,
+    padding: 5,
+    paddingBottom: 4,
+    shadowColor: '#02070a',
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  shelfImg: { width: '100%', aspectRatio: 3 / 4, borderRadius: 2, backgroundColor: '#111' },
+  shelfCaption: {
+    color: '#3a3f45',
+    fontSize: 9,
+    fontFamily: MONO,
+    textAlign: 'center',
+    paddingTop: 4,
+  },
+  emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 36, gap: 10 },
+  emptyTitle: { color: 'rgba(255,255,255,0.95)', fontSize: 20, fontWeight: '800' },
+  emptyBody: { color: 'rgba(255,255,255,0.55)', fontSize: 14, textAlign: 'center', lineHeight: 20 },
+  emptyBtn: { alignSelf: 'stretch', marginTop: 10 },
 })

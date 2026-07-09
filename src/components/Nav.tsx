@@ -18,7 +18,7 @@ export default function Nav() {
           <nav className="hidden md:flex items-center gap-1 text-[13px] font-medium">
             {[
               { to: '/studio', label: 'Studio' },
-              { to: '/#styles', label: 'Camera moods' },
+              { to: '/print', label: 'Print Room' },
               { to: '/pricing', label: 'Pricing' },
               { to: '/dashboard', label: 'Library' },
             ].map((l) => {
