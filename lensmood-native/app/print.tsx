@@ -121,7 +121,6 @@ function PrintRun({
   const ty = useSharedValue(SCENE_POSE.cy)
   const tscale = useSharedValue(SCENE_POSE.scale / BASE)
   const trotZ = useSharedValue(SCENE_POSE.rollDeg)
-  const trotX = useSharedValue(SCENE_POSE.previewTiltDeg)
   const tshadow = useSharedValue(scene.shadowOpacity)
 
   useEffect(() => {
@@ -154,7 +153,6 @@ function PrintRun({
     ty.value = withSpring(SCENE_POSE.cy, spring)
     tscale.value = withSpring(SCENE_POSE.scale / BASE, spring)
     trotZ.value = withSpring(SCENE_POSE.rollDeg, spring)
-    trotX.value = withSpring(SCENE_POSE.previewTiltDeg, spring)
     tshadow.value = withSpring(scene.shadowOpacity, spring)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scene])
@@ -171,8 +169,6 @@ function PrintRun({
       left: interpolate(t, [0, 1], [ejectX, sceneX]),
       top: interpolate(t, [0, 1], [ejectY, sceneY]),
       transform: [
-        { perspective: 800 },
-        { rotateX: `${trotX.value * t}deg` },
         { rotateZ: `${wobble.value + trotZ.value * t}deg` },
         { scale: interpolate(t, [0, 1], [1, tscale.value]) },
       ],

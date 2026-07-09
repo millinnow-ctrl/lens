@@ -10,14 +10,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { renderStyled, loadImage } from '../lib/engine'
 import { CAMERA_STYLES } from '../lib/styles'
-import { projectCardQuad, warpImage, type Pt } from '../lib/perspective'
 import ejectClipMp4 from '../assets/print/eject.mp4'
 import ejectClipWebm from '../assets/print/eject.webm'
 import plateWood from '../assets/print/wood.jpg'
-import plateSand from '../assets/print/sand.jpg'
 import plateLinen from '../assets/print/linen.jpg'
 import plateMarble from '../assets/print/marble.jpg'
-import plateGrass from '../assets/print/grass.jpg'
+import plateConcrete from '../assets/print/concrete.jpg'
 import sampleGolden from '../assets/sample-golden.jpg'
 import sampleBrunch from '../assets/sample-brunch.jpg'
 import sampleFriends from '../assets/sample-friends.jpg'
@@ -34,23 +32,22 @@ interface Surface {
 }
 
 const SURFACES: Surface[] = [
-  { id: 'wood', label: 'Warm oak', plate: plateWood, shadowAlpha: 0.34, warmth: 0.06 },
-  { id: 'sand', label: 'Beach sand', plate: plateSand, shadowAlpha: 0.22, warmth: 0.05 },
+  { id: 'wood', label: 'Warm oak', plate: plateWood, shadowAlpha: 0.3, warmth: 0.06 },
   { id: 'linen', label: 'Linen', plate: plateLinen, shadowAlpha: 0.2, warmth: 0.02 },
-  { id: 'marble', label: 'Café marble', plate: plateMarble, shadowAlpha: 0.3, warmth: 0.0 },
-  { id: 'grass', label: 'Summer grass', plate: plateGrass, shadowAlpha: 0.24, warmth: 0.01 },
+  { id: 'marble', label: 'Marble', plate: plateMarble, shadowAlpha: 0.26, warmth: 0.0 },
+  { id: 'concrete', label: 'Plaster', plate: plateConcrete, shadowAlpha: 0.24, warmth: 0.02 },
 ]
 
 /**
- * The ONE camera pose, shared by every surface — a phone held above the table
- * at a fixed downward tilt with a natural casual roll. Only the printed image
- * (and the table under it) changes; the geometry, focal length and shadow are
- * constant. This is what makes the feature feel like the same physical Polaroid
- * restaged, not a fresh mock-up each time.
+ * The template pose — a phone held STRAIGHT DOWN over the surface (bird's-eye),
+ * the Polaroid lying flat with only a small casual rotation. Because it's shot
+ * from directly overhead there's no perspective: the print keeps its true
+ * proportions and the uploaded photo simply drops into the fixed window. Same
+ * geometry for every surface, so it always reads as the same physical print.
  */
-const POSE = { cx: 0.5, cy: 0.55, size: 0.7, tiltDeg: 52, rollDeg: -8 } as const
+const POSE = { cx: 0.5, cy: 0.52, cardWidthFrac: 0.66, rotDeg: -4 } as const
 const CARD_W = 1000
-const CARD_H = 1140
+const CARD_H = 1180 // classic instant-film proportions (square window + wide chin)
 const CARD_ASPECT = CARD_W / CARD_H
 
 const SAMPLES = [
@@ -158,21 +155,12 @@ function buildPolaroidCard(photo: HTMLCanvasElement): HTMLCanvasElement {
   return card
 }
 
-/** fill a quad path */
-function quadPath(x: CanvasRenderingContext2D, q: Pt[]) {
-  x.beginPath()
-  x.moveTo(q[0][0], q[0][1])
-  x.lineTo(q[1][0], q[1][1])
-  x.lineTo(q[2][0], q[2][1])
-  x.lineTo(q[3][0], q[3][1])
-  x.closePath()
-}
-
 /**
- * Photograph the card on the surface: cover-fit the (defocused) plate, lay a
- * soft contact shadow under the card, extrude a visible paper edge, then warp
- * the card into the fixed camera quad. The result looks like a phone photo of a
- * real Polaroid — the same pose every time, only the picture and table change.
+ * Photograph the card on the surface from directly overhead (bird's-eye): the
+ * surface fills the frame flat, the Polaroid lies on it with a small casual
+ * rotation and a soft drop shadow. No perspective — straight down keeps the
+ * print's true proportions, so the uploaded photo sits exactly where the
+ * template's window is. Same geometry for every surface.
  */
 async function composeOnSurface(card: HTMLCanvasElement, surface: Surface): Promise<HTMLCanvasElement> {
   const W = 1080
@@ -182,97 +170,61 @@ async function composeOnSurface(card: HTMLCanvasElement, surface: Surface): Prom
   out.height = H
   const x = out.getContext('2d')!
 
-  // 1 — surface, cover-fit and softly out of focus (shallow DOF, print is the subject)
+  // 1 — surface, cover-fit, flat and evenly lit (bird's-eye: all in focus)
   const plate = await loadImage(surface.plate)
   const pw = plate.width
   const ph = plate.height
   const sc = Math.max(W / pw, H / ph)
   x.save()
-  x.filter = 'blur(7px) saturate(1.04) brightness(1.02)'
-  x.drawImage(plate, (W - pw * sc) / 2 - 14, (H - ph * sc) / 2 - 14, pw * sc + 28, ph * sc + 28)
+  x.filter = 'saturate(1.03) brightness(1.01)'
+  x.drawImage(plate, (W - pw * sc) / 2, (H - ph * sc) / 2, pw * sc, ph * sc)
   x.restore()
 
-  // the fixed pose quad (TL,TR,BR,BL), shared by every surface
-  const quad = projectCardQuad({
-    W,
-    H,
-    cardAspect: CARD_ASPECT,
-    cx: POSE.cx,
-    cy: POSE.cy,
-    size: POSE.size,
-    tiltDeg: POSE.tiltDeg,
-    rollDeg: POSE.rollDeg,
-  })
+  const cardW = POSE.cardWidthFrac * W
+  const cardH = cardW / CARD_ASPECT
+  const cx = POSE.cx * W
+  const cy = POSE.cy * H
+  const rot = (POSE.rotDeg * Math.PI) / 180
 
-  // 2 — soft contact shadow: the card's silhouette, pushed down/back and blurred
-  const shadowShift = 22
-  const shadowQuad: Pt[] = quad.map(([px, py], i) => {
-    // grow slightly outward from the card centre so the penumbra spills past the edges
-    const cxq = (quad[0][0] + quad[1][0] + quad[2][0] + quad[3][0]) / 4
-    const cyq = (quad[0][1] + quad[1][1] + quad[2][1] + quad[3][1]) / 4
-    const gx = (px - cxq) * 0.04
-    const gy = (py - cyq) * 0.04
-    // near edge (bottom, i=2,3) casts a longer, softer shadow
-    const far = i >= 2 ? shadowShift : shadowShift * 0.5
-    return [px + gx, py + gy + far]
-  })
+  // 2 — soft drop shadow beneath the print (overhead light → shadow sits close
+  //     under the card, offset a touch down for a believable lift off the table)
   x.save()
-  x.filter = 'blur(18px)'
-  x.globalAlpha = surface.shadowAlpha
-  x.fillStyle = 'rgb(18,16,14)'
-  quadPath(x, shadowQuad)
-  x.fill()
-  x.restore()
-  // a tighter, darker contact line right under the near edge
-  x.save()
-  x.filter = 'blur(6px)'
-  x.globalAlpha = surface.shadowAlpha * 0.9
-  x.fillStyle = 'rgb(12,10,8)'
-  const contact: Pt[] = [
-    quad[3],
-    quad[2],
-    [quad[2][0], quad[2][1] + 10],
-    [quad[3][0], quad[3][1] + 10],
-  ]
-  quadPath(x, contact)
-  x.fill()
+  x.translate(cx, cy)
+  x.rotate(rot)
+  x.shadowColor = `rgba(12,10,8,${surface.shadowAlpha})`
+  x.shadowBlur = 34
+  x.shadowOffsetX = 0
+  x.shadowOffsetY = 22
+  x.fillStyle = '#fbfaf6'
+  // a rounded-ish card silhouette so the shadow is soft, not a hard slab
+  x.fillRect(-cardW / 2, -cardH / 2, cardW, cardH)
   x.restore()
 
-  // 3 — visible paper thickness: a cream edge extruded beneath the card
-  const edge = 7
-  const edgeQuad: Pt[] = quad.map(([px, py]) => [px, py + edge])
+  // 3 — the card itself, flat with the casual rotation
   x.save()
-  x.fillStyle = '#d9d3c4'
-  quadPath(x, edgeQuad)
-  x.fill()
-  x.restore()
+  x.translate(cx, cy)
+  x.rotate(rot)
+  x.drawImage(card, -cardW / 2, -cardH / 2, cardW, cardH)
 
-  // 4 — the card itself, warped into the fixed pose
-  warpImage(x, card, quad, 20)
-
-  // 5 — reflected surface warmth + gentle top-key sheen on the print
-  x.save()
-  quadPath(x, quad)
-  x.clip()
+  // 4 — reflected surface warmth + a gentle diffuse sheen across the paper
   if (surface.warmth > 0) {
     x.globalCompositeOperation = 'soft-light'
     x.fillStyle = `rgba(255,196,120,${surface.warmth})`
-    x.fillRect(0, 0, W, H)
+    x.fillRect(-cardW / 2, -cardH / 2, cardW, cardH)
+    x.globalCompositeOperation = 'source-over'
   }
-  // a soft diffuse key falling from top-left, believable ambient light
-  x.globalCompositeOperation = 'source-over'
-  const key = x.createLinearGradient(quad[0][0], quad[0][1], quad[2][0], quad[2][1])
-  key.addColorStop(0, 'rgba(255,255,255,0.10)')
-  key.addColorStop(0.35, 'rgba(255,255,255,0)')
-  key.addColorStop(1, 'rgba(20,18,26,0.06)')
-  x.fillStyle = key
-  x.fillRect(0, 0, W, H)
+  const sheen = x.createLinearGradient(-cardW / 2, -cardH / 2, cardW / 2, cardH / 2)
+  sheen.addColorStop(0, 'rgba(255,255,255,0.08)')
+  sheen.addColorStop(0.4, 'rgba(255,255,255,0)')
+  sheen.addColorStop(1, 'rgba(18,16,22,0.05)')
+  x.fillStyle = sheen
+  x.fillRect(-cardW / 2, -cardH / 2, cardW, cardH)
   x.restore()
 
-  // 6 — phone-photo finish: gentle vignette + fine grain over everything
-  const vg = x.createRadialGradient(W / 2, H * 0.46, H * 0.32, W / 2, H * 0.5, H * 0.82)
+  // 5 — phone-photo finish: gentle vignette + fine grain over everything
+  const vg = x.createRadialGradient(W / 2, H * 0.48, H * 0.34, W / 2, H * 0.5, H * 0.82)
   vg.addColorStop(0, 'rgba(0,0,0,0)')
-  vg.addColorStop(1, 'rgba(0,0,0,0.18)')
+  vg.addColorStop(1, 'rgba(0,0,0,0.16)')
   x.fillStyle = vg
   x.fillRect(0, 0, W, H)
   const fin = x.getImageData(0, 0, W, H)
@@ -407,7 +359,48 @@ export default function PrintRoom() {
 
       {phase === 'pick' && (
         <section>
-          <h2 className="mb-3 text-[17px] font-bold tracking-tight">Choose a shot to print</h2>
+          {/* the real reason you're here: print YOUR photo. Big, glowing, first. */}
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={busy}
+            className="lm-print-cta group relative w-full overflow-hidden rounded-2xl px-6 py-7 text-left disabled:opacity-70"
+          >
+            <span className="relative z-10 flex items-center gap-4">
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <rect x="3" y="6" width="18" height="14" rx="2.5" stroke="white" strokeWidth="1.8" />
+                  <circle cx="12" cy="13" r="3.6" stroke="white" strokeWidth="1.8" />
+                  <path d="M8.5 6l1.2-2.2h4.6L15.5 6" stroke="white" strokeWidth="1.8" strokeLinejoin="round" />
+                </svg>
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[19px] font-extrabold leading-tight text-white">
+                  {busy ? 'Developing…' : 'Print your own photo'}
+                </span>
+                <span className="mt-0.5 block text-[13.5px] leading-snug text-white/85">
+                  Pick a shot from your camera roll — this is the one you'll want to hold.
+                </span>
+              </span>
+              <svg className="ml-auto shrink-0 text-white/90" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => onUpload(e.target.files?.[0])}
+          />
+
+          {/* or try one of ours */}
+          <div className="mt-7 mb-3 flex items-center gap-3">
+            <span className="h-px flex-1 bg-black/10" />
+            <span className="text-[12.5px] font-medium text-[var(--fog,#5c6b76)]">or try a sample</span>
+            <span className="h-px flex-1 bg-black/10" />
+          </div>
           <div className="grid grid-cols-2 gap-3">
             {SAMPLES.map((s) => (
               <button
@@ -422,21 +415,6 @@ export default function PrintRoom() {
               </button>
             ))}
           </div>
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            disabled={busy}
-            className="btn btn-primary mt-4 w-full disabled:opacity-60"
-          >
-            {busy ? 'Developing…' : 'Use your own photo'}
-          </button>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => onUpload(e.target.files?.[0])}
-          />
         </section>
       )}
 

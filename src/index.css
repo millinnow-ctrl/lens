@@ -791,6 +791,57 @@ input[type='range'].lm-slider::-moz-range-thumb {
 
 /* Print Room — the staged print developing in: dark undeveloped chemistry
    clearing to the finished photo (drives the composite reveal) */
+/* the hero "print your own photo" CTA — a warm accent gradient with a slow
+   breathing glow so it reads as the primary, alive action on the pick screen */
+.lm-print-cta {
+  background: linear-gradient(135deg, var(--accent, #0e7490), #0f8fa3 55%, #12a08a);
+  box-shadow:
+    0 10px 30px -8px color-mix(in srgb, var(--accent, #0e7490) 55%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  animation: lm-cta-glow 3.2s ease-in-out infinite;
+  transition: transform 0.15s ease;
+}
+.lm-print-cta:active {
+  transform: scale(0.985);
+}
+/* a soft light sweep drifting across the CTA */
+.lm-print-cta::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.18) 48%, transparent 62%);
+  transform: translateX(-120%);
+  animation: lm-cta-sweep 3.6s ease-in-out infinite;
+}
+@keyframes lm-cta-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 10px 30px -8px color-mix(in srgb, var(--accent, #0e7490) 45%, transparent),
+      inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  }
+  50% {
+    box-shadow:
+      0 16px 42px -6px color-mix(in srgb, var(--accent, #0e7490) 72%, transparent),
+      inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  }
+}
+@keyframes lm-cta-sweep {
+  0% {
+    transform: translateX(-120%);
+  }
+  55%,
+  100% {
+    transform: translateX(120%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lm-print-cta,
+  .lm-print-cta::after {
+    animation: none;
+  }
+}
+
 @keyframes lm-print-develop {
   0% {
     filter: saturate(0.06) contrast(0.6) brightness(0.42) blur(4px);
