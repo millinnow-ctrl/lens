@@ -414,10 +414,10 @@ export default function Develop() {
                 <View style={styles.empty}>
                   <Text style={styles.emptyText}>Load a photo</Text>
                   <Text style={styles.emptySub}>
-                    It develops on-device through {style?.name ?? 'your chosen stock'} — nothing is
-                    uploaded, the darkroom is your phone.
+                    It develops right here on your phone through {style?.name ?? 'your chosen look'}.
+                    Nothing gets uploaded.
                   </Text>
-                  <Text style={styles.sampleLabel}>OR TRY A SAMPLE SHOT — FREE</Text>
+                  <Text style={styles.sampleLabel}>Or try a sample — it's free</Text>
                   <View style={styles.sampleRow}>
                     {SAMPLES.map((s) => (
                       <Pressable
@@ -478,7 +478,7 @@ export default function Develop() {
 
         {/* stock rail */}
         <View style={styles.railWrap}>
-          <Text style={styles.sectionLabel}>CAMERA MOOD</Text>
+          <Text style={styles.sectionLabel}>Camera mood</Text>
           <StyleRail activeId={style?.id ?? null} onSelect={onSelectStyle} />
         </View>
 
@@ -578,8 +578,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
-  back: { width: 64 },
-  backText: { color: colors.accent, fontSize: 16, fontWeight: '600' },
+  back: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 40,
+    paddingLeft: 12,
+    paddingRight: 18,
+    borderRadius: 999,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(23,36,45,0.12)',
+    shadowColor: colors.ink,
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  backText: { color: colors.ink, fontSize: 16, fontWeight: '700' },
   titleWrap: { flex: 1, alignItems: 'center' },
   title: { color: colors.ink, fontSize: 16, fontWeight: '700', letterSpacing: -0.2 },
   exif: { color: colors.fog, fontSize: 10.5, letterSpacing: 0.3, fontFamily: MONO, marginTop: 2 },
@@ -598,10 +612,8 @@ const styles = StyleSheet.create({
   emptyText: { color: 'rgba(255,255,255,0.9)', fontSize: 16, fontWeight: '700' },
   emptySub: { color: 'rgba(255,255,255,0.55)', fontSize: 13, textAlign: 'center', lineHeight: 18 },
   sampleLabel: {
-    color: 'rgba(255,255,255,0.45)',
-    fontSize: 10,
-    letterSpacing: 1.6,
-    fontFamily: MONO,
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 13.5,
     fontWeight: '600',
     marginTop: 12,
   },
@@ -643,11 +655,10 @@ const styles = StyleSheet.create({
 
   railWrap: { marginTop: 16, gap: 6 },
   sectionLabel: {
-    color: colors.fog,
-    fontSize: 10,
-    letterSpacing: 1.6,
-    fontFamily: MONO,
-    fontWeight: '600',
+    color: colors.inkSoft,
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: -0.2,
     paddingHorizontal: 18,
   },
 

@@ -3,9 +3,9 @@
  * from the dock it's a shelf of your developed shots; pick one, hit PRINT:
  * flash + shutter click, a real film clip of the printer ejecting the black
  * undeveloped print, then YOUR print develops (~2.7s chemistry) and settles
- * onto a staged surface (wood / sand / linen / marble / grass) with a real
- * contact shadow. Share/Save export a Skia composite — an "iPhone photo of
- * the finished polaroid".
+ * onto a staged surface (wood / linen / marble / plaster), shot straight
+ * down. Share/Save export a Skia composite — an "iPhone photo of the
+ * finished polaroid".
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -37,7 +37,11 @@ import Animated, {
 } from 'react-native-reanimated'
 import * as Sharing from 'expo-sharing'
 import * as MediaLibrary from 'expo-media-library'
+import * as ImagePicker from 'expo-image-picker'
 import { VideoView, useVideoPlayer } from 'expo-video'
+import { getStyle } from '@/engine/styles'
+import { analyzeScene } from '@/engine/scene'
+import { develop as developImage, loadImageFromUri } from '@/engine/engine'
 import DevelopingPrint from '@/print/DevelopingPrint'
 import { composeScenePrint } from '@/print/compose'
 import { SCENES, SCENE_POSE, type ScenePreset } from '@/print/scenes'
@@ -206,13 +210,47 @@ export default function PrintRoom() {
   const params = useLocalSearchParams<{ uri?: string; w?: string; h?: string }>()
   const fromDevelop =
     typeof params.uri === 'string' && Number(params.w) > 0 && Number(params.h) > 0
-  const { history } = useApp()
+  const { history, isPaid } = useApp()
 
   // opened from the dock: a shelf of your developed shots; from Develop: preloaded
   const [pick, setPick] = useState<Picked | null>(() =>
     fromDevelop ? { uri: params.uri as string, w: Number(params.w), h: Number(params.h) } : null,
   )
   const [phase, setPhase] = useState<Phase>('idle')
+  const [pickingOwn, setPickingOwn] = useState(false)
+
+  /** Print your OWN photo: pick from the library, develop it through the
+   *  Polaroid stock (instant-film look + frame), then arm the stage. */
+  const printOwnPhoto = useCallback(async () => {
+    if (pickingOwn) return
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync()
+      if (!perm.granted) {
+        Alert.alert('Photos access needed', 'Allow photo access to print your own shot.')
+        return
+      }
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 1,
+      })
+      if (res.canceled || !res.assets?.[0]) return
+      setPickingOwn(true)
+      const img = await loadImageFromUri(res.assets[0].uri)
+      if (!img) throw new Error('That photo could not be opened.')
+      const polaroid = getStyle('polaroid')
+      if (!polaroid) throw new Error('Polaroid stock unavailable.')
+      const developed = await developImage(img, polaroid, polaroid.defaults, {
+        scene: analyzeScene(img, null),
+        maxSize: 1280,
+        watermark: !isPaid,
+      })
+      setPick({ uri: developed.uri, w: developed.width, h: developed.height })
+    } catch (e) {
+      Alert.alert('Could not develop', e instanceof Error ? e.message : 'Something went wrong.')
+    } finally {
+      setPickingOwn(false)
+    }
+  }, [pickingOwn, isPaid])
 
   const sounds = usePrintSounds()
   const [scene, setScene] = useState<ScenePreset>(SCENES[0])
@@ -347,50 +385,68 @@ export default function PrintRoom() {
           >
             <Text style={styles.backText}>‹ Back</Text>
           </Pressable>
-          <Text style={styles.title}>PRINT ROOM</Text>
+          <Text style={styles.title}>Print Room</Text>
           <View style={styles.back} />
         </View>
-        {history.length === 0 ? (
-          <View style={styles.emptyWrap}>
-            <Text style={styles.emptyTitle}>Nothing to print yet</Text>
-            <Text style={styles.emptyBody}>
-              Develop a shot with any lens, then bring it here to print it and stage it on a real
-              surface.
-            </Text>
-            <Pressable
-              onPress={() => router.push('/')}
-              style={({ pressed }) => [styles.btn, styles.btnPrimary, styles.emptyBtn, pressed && { opacity: 0.9 }]}
-            >
-              <Text style={styles.btnPrimaryText}>Pick a lens</Text>
-            </Pressable>
-          </View>
-        ) : (
-          <ScrollView
-            style={{ flex: 1 }}
-            contentContainerStyle={{ paddingBottom: insets.bottom + 96 }}
-            showsVerticalScrollIndicator={false}
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 96, paddingHorizontal: 16 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* the real reason you're here: print YOUR photo. Big, glowing, first. */}
+          <Pressable
+            onPress={printOwnPhoto}
+            disabled={pickingOwn}
+            accessibilityRole="button"
+            accessibilityLabel="Print your own photo"
+            style={({ pressed }) => [styles.ownCta, pressed && { opacity: 0.92 }]}
           >
-            <Text style={styles.sectionLabel}>YOUR SHOTS — TAP ONE TO PRINT</Text>
-            <View style={styles.shelf}>
-              {history.map((h) => (
-                <Pressable
-                  key={h.id}
-                  onPress={() => pickShot(h.thumb)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Print your ${h.styleName} shot`}
-                  style={({ pressed }) => [styles.shelfCard, pressed && { opacity: 0.85 }]}
-                >
-                  <View style={styles.shelfPaper}>
-                    <Image source={{ uri: h.thumb }} style={styles.shelfImg} resizeMode="cover" />
-                    <Text numberOfLines={1} style={styles.shelfCaption}>
-                      {h.styleName}
-                    </Text>
-                  </View>
-                </Pressable>
-              ))}
+            <View style={styles.ownIcon}>
+              {pickingOwn ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.ownIconGlyph}>+</Text>
+              )}
             </View>
-          </ScrollView>
-        )}
+            <View style={{ flex: 1 }}>
+              <Text style={styles.ownTitle}>
+                {pickingOwn ? 'Developing…' : 'Print your own photo'}
+              </Text>
+              <Text style={styles.ownSub}>
+                Pick any shot from your camera roll — this is the one you'll want to hold.
+              </Text>
+            </View>
+            <Text style={styles.ownChevron}>›</Text>
+          </Pressable>
+
+          {history.length > 0 && (
+            <>
+              <View style={styles.orRow}>
+                <View style={styles.orLine} />
+                <Text style={styles.orText}>or reprint one of yours</Text>
+                <View style={styles.orLine} />
+              </View>
+              <View style={styles.shelf}>
+                {history.map((h) => (
+                  <Pressable
+                    key={h.id}
+                    onPress={() => pickShot(h.thumb)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Print your ${h.styleName} shot`}
+                    style={({ pressed }) => [styles.shelfCard, pressed && { opacity: 0.85 }]}
+                  >
+                    <View style={styles.shelfPaper}>
+                      <Image source={{ uri: h.thumb }} style={styles.shelfImg} resizeMode="cover" />
+                      <Text numberOfLines={1} style={styles.shelfCaption}>
+                        {h.styleName}
+                      </Text>
+                    </View>
+                  </Pressable>
+                ))}
+              </View>
+            </>
+          )}
+        </ScrollView>
       </View>
     )
   }
@@ -462,7 +518,7 @@ export default function PrintRoom() {
         </View>
 
         {/* scene chips */}
-        <Text style={styles.sectionLabel}>SET THE SCENE</Text>
+        <Text style={styles.sectionLabel}>Set the surface</Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -559,17 +615,50 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
-  back: { width: 64 },
-  backText: { color: '#9fdceb', fontSize: 16, fontWeight: '600' },
+  back: { width: 72 },
+  backText: { color: '#eaf6fb', fontSize: 16, fontWeight: '700' },
   title: {
     flex: 1,
     textAlign: 'center',
-    color: 'rgba(255,255,255,0.92)',
-    fontSize: 12,
-    letterSpacing: 2.2,
-    fontFamily: MONO,
-    fontWeight: '600',
+    color: 'rgba(255,255,255,0.95)',
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: -0.3,
   },
+
+  // the big glowing "print your own photo" call to action
+  ownCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginTop: 8,
+    padding: 18,
+    borderRadius: 22,
+    backgroundColor: colors.accent,
+    shadowColor: colors.accent,
+    shadowOpacity: 0.55,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 10,
+  },
+  ownIcon: {
+    width: 54,
+    height: 54,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.28)',
+  },
+  ownIconGlyph: { color: '#fff', fontSize: 30, fontWeight: '300', lineHeight: 34 },
+  ownTitle: { color: '#fff', fontSize: 18, fontWeight: '800', letterSpacing: -0.2 },
+  ownSub: { color: 'rgba(255,255,255,0.9)', fontSize: 13, lineHeight: 17, marginTop: 2 },
+  ownChevron: { color: 'rgba(255,255,255,0.9)', fontSize: 26, fontWeight: '300' },
+
+  orRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 26, marginBottom: 12 },
+  orLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.18)' },
+  orText: { color: 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: '500' },
 
   stage: { overflow: 'hidden', backgroundColor: '#0b0f12' },
   slot: {
@@ -586,11 +675,10 @@ const styles = StyleSheet.create({
   flash: { ...StyleSheet.absoluteFillObject, backgroundColor: '#fff' },
 
   sectionLabel: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 10,
-    letterSpacing: 1.6,
-    fontFamily: MONO,
-    fontWeight: '600',
+    color: 'rgba(255,255,255,0.92)',
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: -0.2,
     paddingHorizontal: 18,
     marginTop: 16,
     marginBottom: 8,
@@ -660,7 +748,6 @@ const styles = StyleSheet.create({
   shelf: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 14,
     gap: 12,
   },
   shelfCard: { width: '30.5%' },

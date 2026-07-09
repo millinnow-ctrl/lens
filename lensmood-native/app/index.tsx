@@ -10,7 +10,6 @@ import {
   FlatList,
   Pressable,
   StyleSheet,
-  Platform,
   useWindowDimensions,
   type ListRenderItemInfo,
 } from 'react-native'
@@ -24,9 +23,7 @@ import StyleCard from '@/components/StyleCard'
 import HeroCard from '@/components/HeroCard'
 import BottomDock from '@/components/BottomDock'
 
-const MONO = Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' })
-
-/** which looks belong to which shelf — ported from the web CategoryChips */
+/** which looks belong to which shelf */
 const CATEGORIES = [
   { id: 'all', label: 'All' },
   { id: 'film', label: 'Film' },
@@ -89,8 +86,8 @@ export default function Home() {
 
       {/* the case */}
       <View style={s.caseHead}>
-        <Text style={s.eyebrow}>THE CASE · {CAMERA_STYLES.length} CAMERAS</Text>
         <Text style={s.h2}>Explore looks</Text>
+        <Text style={s.h2sub}>{CAMERA_STYLES.length} cameras, one tap each</Text>
       </View>
       <FlatList
         horizontal
@@ -150,9 +147,9 @@ const s = StyleSheet.create({
   },
   proText: { color: colors.ink, fontSize: 15, fontWeight: '700' },
 
-  caseHead: { marginTop: 22, gap: 4, paddingHorizontal: 2 },
-  eyebrow: { color: colors.fog, fontSize: 10, letterSpacing: 1.8, fontFamily: MONO, fontWeight: '600' },
+  caseHead: { marginTop: 22, gap: 2, paddingHorizontal: 2 },
   h2: { color: colors.ink, fontSize: 26, fontWeight: '800', letterSpacing: -0.4 },
+  h2sub: { color: colors.fog, fontSize: 14, fontWeight: '500' },
 
   chips: { gap: 8, paddingVertical: 12, paddingHorizontal: 2 },
   chip: {

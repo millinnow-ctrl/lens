@@ -1,16 +1,19 @@
 name: TestFlight
 
-# Builds the iOS app on a cloud Mac and uploads it to TestFlight.
-# No local Mac required. Uses Apple's cloud-managed signing, so you never
-# handle certificates or provisioning profiles by hand.
+# Builds the native Expo (React Native + Skia) app on EAS and submits it to
+# TestFlight. The build runs on Expo's cloud infrastructure, so no Mac runner
+# is required. The app lives in lensmood-native/.
 #
-# Required repository secrets (Settings → Secrets and variables → Actions):
-#   ASC_KEY_ID      App Store Connect API key ID           (e.g. 2X9R4HXF34)
-#   ASC_ISSUER_ID   App Store Connect API issuer ID        (a UUID)
-#   ASC_API_KEY_P8  Full contents of the AuthKey_XXXX.p8 file
-#   APPLE_TEAM_ID   Your 10-character Apple Developer Team ID
+# One-time setup (from your machine, inside lensmood-native/):
+#   npm i -g eas-cli
+#   eas login
+#   eas init            # links the project, writes extra.eas.projectId into app.json
 #
-# Full setup walkthrough: docs/TESTFLIGHT.md
+# Required repository secret (Settings → Secrets and variables → Actions):
+#   EXPO_TOKEN   An Expo access token (expo.dev → Account → Access tokens)
+#
+# App Store Connect submit credentials are managed by EAS (eas submit reads
+# them). See docs/TESTFLIGHT.md for the full walkthrough.
 
 on:
   workflow_dispatch: # run it from the Actions tab whenever you want a new beta
@@ -19,95 +22,24 @@ on:
 
 jobs:
   beta:
-    runs-on: macos-15
-    timeout-minutes: 45
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: lensmood-native
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
 
-      - name: Build web app
-        run: |
-          npm ci
-          npm run build
-
-      - name: Sync Capacitor iOS shell
-        run: npx cap sync ios
-
-      - name: Install App Store Connect API key
-        env:
-          ASC_API_KEY_P8: ${{ secrets.ASC_API_KEY_P8 }}
-        run: |
-          mkdir -p ~/private_keys
-          printf '%s' "$ASC_API_KEY_P8" > ~/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
-
-      - name: Archive (cloud-managed signing)
-        run: |
-          xcodebuild archive \
-            -project ios/App/App.xcodeproj \
-            -scheme App \
-            -configuration Release \
-            -destination 'generic/platform=iOS' \
-            -archivePath build/App.xcarchive \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath ~/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8 \
-            -authenticationKeyID '${{ secrets.ASC_KEY_ID }}' \
-            -authenticationKeyIssuerID '${{ secrets.ASC_ISSUER_ID }}' \
-            DEVELOPMENT_TEAM='${{ secrets.APPLE_TEAM_ID }}' \
-            CODE_SIGN_STYLE=Automatic \
-            CURRENT_PROJECT_VERSION=${{ github.run_number }}
-
-      - name: Write export options
-        run: |
-          cat > build/ExportOptions.plist <<EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key>
-            <string>app-store-connect</string>
-            <key>signingStyle</key>
-            <string>automatic</string>
-            <key>teamID</key>
-            <string>${{ secrets.APPLE_TEAM_ID }}</string>
-            <key>uploadSymbols</key>
-            <true/>
-          </dict>
-          </plist>
-          EOF
-
-      - name: Export .ipa
-        run: |
-          xcodebuild -exportArchive \
-            -archivePath build/App.xcarchive \
-            -exportPath build \
-            -exportOptionsPlist build/ExportOptions.plist \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath ~/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8 \
-            -authenticationKeyID '${{ secrets.ASC_KEY_ID }}' \
-            -authenticationKeyIssuerID '${{ secrets.ASC_ISSUER_ID }}'
-
-      - name: Upload to TestFlight
-        env:
-          ASC_API_KEY_P8: ${{ secrets.ASC_API_KEY_P8 }}
-        run: |
-          jq -n \
-            --arg key_id '${{ secrets.ASC_KEY_ID }}' \
-            --arg issuer_id '${{ secrets.ASC_ISSUER_ID }}' \
-            --arg key "$ASC_API_KEY_P8" \
-            '{key_id: $key_id, issuer_id: $issuer_id, key: $key, in_house: false}' \
-            > build/api_key.json
-          fastlane pilot upload \
-            --api_key_path build/api_key.json \
-            --ipa "$(ls build/*.ipa | head -1)" \
-            --skip_waiting_for_build_processing true
-
-      - name: Keep .ipa as workflow artifact
-        uses: actions/upload-artifact@v4
+      - uses: expo/expo-github-action@v8
         with:
-          name: LensMood-ipa
-          path: build/*.ipa
-          retention-days: 14
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build & submit to TestFlight (EAS)
+        run: eas build --platform ios --profile production --non-interactive --auto-submit
