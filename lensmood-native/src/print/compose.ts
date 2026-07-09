@@ -17,7 +17,7 @@ import { File, Paths } from 'expo-file-system'
 import { Asset } from 'expo-asset'
 import { loadImageFromUri } from '@/engine/engine'
 import type { DevelopResult } from '@/engine/types'
-import type { ScenePreset } from './scenes'
+import { SCENE_POSE, type ScenePreset } from './scenes'
 
 const OUT_W = 1242
 const OUT_H = 1656
@@ -64,31 +64,34 @@ export async function composeScenePrint(
   if (!surface) throw new Error('Could not allocate the composite surface.')
   const canvas = surface.getCanvas()
 
-  /* 1 — scene plate, cover-fit */
+  /* 1 — scene plate, cover-fit, softly out of focus (shallow DOF: the print is
+     the subject, the table falls away). One blurred draw. */
   const pw = plate.width()
   const ph = plate.height()
   const cover = Math.max(OUT_W / pw, OUT_H / ph)
   const cw = OUT_W / cover
   const chh = OUT_H / cover
   const basePaint = Skia.Paint()
+  basePaint.setImageFilter(Skia.ImageFilter.MakeBlur(9, 9, TileMode.Clamp, null))
   canvas.drawImageRect(
     plate,
     Skia.XYWHRect((pw - cw) / 2, (ph - chh) / 2, cw, chh),
-    Skia.XYWHRect(0, 0, OUT_W, OUT_H),
+    Skia.XYWHRect(-16, -16, OUT_W + 32, OUT_H + 32),
     basePaint,
   )
 
-  /* 2 — the print, posed with true mild perspective + contact shadow */
-  const cx = scene.x * OUT_W
-  const cy = scene.y * OUT_H
-  const k = (scene.scale * OUT_W) / printW
+  /* 2 — the print, posed with the SHARED camera template (same angle/roll for
+     every surface) + a soft contact shadow. Only the plate above changes. */
+  const cx = SCENE_POSE.cx * OUT_W
+  const cy = SCENE_POSE.cy * OUT_H
+  const k = (SCENE_POSE.scale * OUT_W) / printW
   canvas.save()
   canvas.concat(
     processTransform3d([
       { translate: [cx, cy] as const },
-      { perspective: 1200 },
-      { rotateX: rad(scene.rotateX ?? 0) },
-      { rotateZ: rad(scene.rotateZ) },
+      { perspective: 1000 },
+      { rotateX: rad(SCENE_POSE.tiltDeg) },
+      { rotateZ: rad(SCENE_POSE.rollDeg) },
       { scale: k },
       { translate: [-printW / 2, -printH / 2] as const },
     ]),
@@ -98,10 +101,10 @@ export async function composeScenePrint(
   printPaint.setImageFilter(
     Skia.ImageFilter.MakeDropShadow(
       0,
-      (scene.shadow.offset.height * 2.2) / k,
-      (scene.shadow.radius * 2.2) / k,
-      (scene.shadow.radius * 2.2) / k,
-      Skia.Color(`rgba(8,10,12,${Math.min(1, scene.shadow.opacity + 0.16)})`),
+      (SCENE_POSE.shadowDrop * 2.2) / k,
+      (scene.shadowRadius * 2.4) / k,
+      (scene.shadowRadius * 2.4) / k,
+      Skia.Color(`rgba(8,10,12,${Math.min(1, scene.shadowOpacity + 0.16)})`),
       null,
     ),
   )

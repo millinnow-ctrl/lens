@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import UploadArea from '../components/UploadArea'
 import TapeDeck from '../components/TapeDeck'
@@ -48,6 +48,7 @@ export default function Studio() {
     setPendingPreset,
   } = useApp()
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
 
   const [source, setSource] = useState<HTMLImageElement | null>(null)
   const [phase, setPhase] = useState<Phase>('idle')
@@ -316,6 +317,19 @@ export default function Studio() {
   /* ------------------------------------------------ editor */
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10 pb-[calc(env(safe-area-inset-bottom)+132px)] md:pb-16">
+      {/* back to home — the app surface has no top chrome on mobile, so the
+          lens view needs its own escape hatch, top-left */}
+      <button
+        type="button"
+        onClick={() => navigate('/home')}
+        aria-label="Back"
+        className="md:hidden mb-4 -ml-1 inline-flex items-center gap-1.5 h-9 pl-2 pr-3.5 rounded-full bg-ink/[0.05] text-ink font-semibold text-[14px] active:scale-95 transition-transform"
+      >
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        Back
+      </button>
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_400px] gap-6 lg:gap-8 items-start">
         {/* ---------- preview column ---------- */}
         <div className="lg:sticky lg:top-20 min-w-0">

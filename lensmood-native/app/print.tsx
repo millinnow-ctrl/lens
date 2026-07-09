@@ -40,7 +40,7 @@ import * as MediaLibrary from 'expo-media-library'
 import { VideoView, useVideoPlayer } from 'expo-video'
 import DevelopingPrint from '@/print/DevelopingPrint'
 import { composeScenePrint } from '@/print/compose'
-import { SCENES, type ScenePreset } from '@/print/scenes'
+import { SCENES, SCENE_POSE, type ScenePreset } from '@/print/scenes'
 import { usePrintSounds } from '@/print/sounds'
 import { useApp, haptics } from '@/store'
 import { colors } from '@/theme/colors'
@@ -115,13 +115,14 @@ function PrintRun({
   const settle = useSharedValue(0) // 0 = eject pose, 1 = scene pose
   const wobble = useSharedValue(0) // deg
   const progress = useSharedValue(0) // chemistry
-  // target pose — springs to a new preset when the scene chips change
-  const tx = useSharedValue(scene.x)
-  const ty = useSharedValue(scene.y)
-  const tscale = useSharedValue(scene.scale / BASE)
-  const trotZ = useSharedValue(scene.rotateZ)
-  const trotX = useSharedValue(scene.rotateX ?? 0)
-  const tshadow = useSharedValue(scene.shadow.opacity)
+  // pose is the SHARED camera template — every scene lands in the same spot, so
+  // switching surfaces only swaps the plate + shadow tone (not the geometry)
+  const tx = useSharedValue(SCENE_POSE.cx)
+  const ty = useSharedValue(SCENE_POSE.cy)
+  const tscale = useSharedValue(SCENE_POSE.scale / BASE)
+  const trotZ = useSharedValue(SCENE_POSE.rollDeg)
+  const trotX = useSharedValue(SCENE_POSE.previewTiltDeg)
+  const tshadow = useSharedValue(scene.shadowOpacity)
 
   useEffect(() => {
     eject.value = withDelay(150, withTiming(1, { duration: 900, easing: Easing.out(Easing.cubic) }))
@@ -148,12 +149,13 @@ function PrintRun({
     // scene switch: the settled print glides to the new spot — chemistry
     // does NOT replay (only "Print again" restarts the ceremony)
     const spring = { damping: 16, stiffness: 120 }
-    tx.value = withSpring(scene.x, spring)
-    ty.value = withSpring(scene.y, spring)
-    tscale.value = withSpring(scene.scale / BASE, spring)
-    trotZ.value = withSpring(scene.rotateZ, spring)
-    trotX.value = withSpring(scene.rotateX ?? 0, spring)
-    tshadow.value = withSpring(scene.shadow.opacity, spring)
+    // geometry is shared; only the material's shadow tone changes per scene
+    tx.value = withSpring(SCENE_POSE.cx, spring)
+    ty.value = withSpring(SCENE_POSE.cy, spring)
+    tscale.value = withSpring(SCENE_POSE.scale / BASE, spring)
+    trotZ.value = withSpring(SCENE_POSE.rollDeg, spring)
+    trotX.value = withSpring(SCENE_POSE.previewTiltDeg, spring)
+    tshadow.value = withSpring(scene.shadowOpacity, spring)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scene])
 
@@ -187,8 +189,8 @@ function PrintRun({
           height: h,
           backgroundColor: '#000', // opaque backing so the iOS shadow follows the pose
           shadowColor: '#02070a',
-          shadowRadius: scene.shadow.radius,
-          shadowOffset: scene.shadow.offset,
+          shadowRadius: scene.shadowRadius,
+          shadowOffset: { width: 0, height: 10 },
           elevation: 8,
         },
         pose,
