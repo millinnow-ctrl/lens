@@ -359,6 +359,11 @@ export function renderStyled(
   const ch = style.character
   const s = params.intensity / 100 // global look strength
   const ref = Math.max(w, h) / 1000 // scale-independent px unit
+  // B&W INTEGRITY: on a monochrome stock every LIGHT effect must be achromatic.
+  // Halation, skin glow, subsurface warmth and flash white-balance all inject
+  // colour after the mono conversion — on film-noir that turned faces faintly
+  // pink and broke the black-and-white promise. mono gates them to neutral.
+  const mono = !!(ch.bw || ch.bwMix)
 
   /* 0 — the light meter reads the scene (cached: ~free on re-renders).
      `scene: null` disables adaptation; undefined means analyze. */
@@ -429,8 +434,11 @@ export function renderStyled(
   const splitAmt = (split?.amount ?? 0) * s
   // lens physics — how this stock's glass misbehaves (all optional, 0 = off)
   const optics = { ca: 0, cornerSoft: 0, distortion: 0, flareAniso: 0, ...ch.optics }
-  // legacy fringe (px at 1000px ref) folds into radial CA: corner shift in px
-  const caPx = ((ch.fringe ?? 0) + optics.ca * 3) * s * ref
+  // legacy fringe (px at 1000px ref) folds into radial CA: corner shift in px.
+  // A B&W emulsion cannot record coloured fringes — CA on mono film reads as
+  // edge softness, never purple edges — so the channel-split is zeroed for
+  // mono stocks (barrel distortion and corner softness still apply).
+  const caPx = mono ? 0 : ((ch.fringe ?? 0) + optics.ca * 3) * s * ref
   const kDist = optics.distortion * 0.09 * s
   const mtx = ch.colorMatrix // 3×3 channel crosstalk (real film mixes channels)
   const hiDesat = 0.6 * s // film bleaches highlights toward paper-white
@@ -881,8 +889,11 @@ export function renderStyled(
     // warm/red-biased bloom: the anti-halation layer failing scatters red
     // light around speculars — that orange halo is the film tell, not a
     // neutral glow. sepia + saturate push the crushed highlights warm.
+    // On a B&W stock the glow must stay silver — saturate(0), no sepia.
     // crush tight: only true highlights may glow, never the midtone field
-    ctx.filter = `brightness(0.46) contrast(3.8) saturate(1.5) sepia(0.5) blur(${(9 * ref).toFixed(2)}px)`
+    ctx.filter = mono
+      ? `brightness(0.46) contrast(3.8) saturate(0) blur(${(9 * ref).toFixed(2)}px)`
+      : `brightness(0.46) contrast(3.8) saturate(1.5) sepia(0.5) blur(${(9 * ref).toFixed(2)}px)`
     ctx.drawImage(canvas, 0, 0)
     ctx.restore()
     ctx.filter = 'none'
@@ -898,7 +909,9 @@ export function renderStyled(
         // orange. The ring mean is washed toward white, so push its chroma
         // back out before brightening.
         const tMean = (lt.tint[0] + lt.tint[1] + lt.tint[2]) / 3
-        const chroma = (c: number) => Math.min(255, Math.max(0, (tMean + (c - tMean) * 2.6) * 255 * 1.35))
+        // on a B&W stock the halo is silver: collapse the tint to its mean
+        const chroma = (c: number) =>
+          Math.min(255, Math.max(0, (tMean + (c - tMean) * (mono ? 0 : 2.6)) * 255 * 1.35))
         const r = Math.round(chroma(lt.tint[0]))
         const g = Math.round(chroma(lt.tint[1]))
         const bch = Math.round(chroma(lt.tint[2]))
@@ -1061,9 +1074,20 @@ export function renderStyled(
         const newL = L + roomLeft * lightAmt
         const lift = L > 0.001 ? newL / L : 1
         const s6 = bg * lift
-        r *= s6
-        g *= s6
-        b *= s6
+        if (mono) {
+          // a toned B&W print under more light gets BRIGHTER, not more COLOURED:
+          // lift the luma additively so the print's tone offsets never amplify
+          // (multiplying scales the chroma spread and speckles the shadows)
+          const v = (r + g + b) / 3
+          const add = v * (s6 - 1)
+          r += add
+          g += add
+          b += add
+        } else {
+          r *= s6
+          g *= s6
+          b *= s6
+        }
         // SPECULAR: shiny micro-highlights, scaled by remaining headroom so
         // shine sparkles without blowing to white. Skin shines soft; metal hard.
         const shine = smoothstep(0.06, 0.2, detail) * smoothstep(skinRef * 0.7, skinRef * 1.15, L)
@@ -1079,20 +1103,24 @@ export function renderStyled(
         // SKIN SUBSURFACE: flash-lit skin glows soft and faintly warm (light
         // scatters under the surface), so faces read luminous, not gray-white.
         // Tied to the light the skin actually absorbed (roomLeft·lightAmt), not
-        // a flat brighten, so it follows the modeling.
+        // a flat brighten, so it follows the modeling. Purely chromatic, so a
+        // B&W stock skips it — silver skin must stay silver.
         const sub = skin * roomLeft * lightAmt * 0.7
-        r += sub * 14
-        b -= sub * 10
+        if (!mono) {
+          r += sub * 14
+          b -= sub * 10
+        }
         // SKIN GLOW (the lens's skin-flatter, R45 — was a dead field): a soft
         // luminous lift on face skin, strongest under flash but with a gentle
         // ambient floor when a face is locked so portrait stocks read creamy.
         // Highlights are protected so it lifts mids, never blows the face.
+        // On a mono stock the glow is neutral — equal on every channel.
         const glowAmt = skin * M * glowStr * ((focal ? 0.12 : 0) + flash * 0.6)
         if (glowAmt > 0.002) {
           const glowLift = glowAmt * (1 - smoothstep(0.6, 0.95, L)) * 24
           r += glowLift
-          g += glowLift * 0.82
-          b += glowLift * 0.64
+          g += glowLift * (mono ? 1 : 0.82)
+          b += glowLift * (mono ? 1 : 0.64)
         }
         // CHIAROSCURO (noir): deepen the shadow-side modeling already on the
         // subject (push where the low-freq shading is dark, hold where it's lit)
@@ -1107,9 +1135,10 @@ export function renderStyled(
           b *= cg
         }
         // flash white balance: the lit subject cools toward ~5500K while the
-        // background keeps whatever ambient cast the scene had
+        // background keeps whatever ambient cast the scene had. A B&W stock has
+        // no white balance — skipping it keeps the mono promise intact.
         const pull = cool * flash * M
-        if (pull > 0.002) {
+        if (pull > 0.002 && !mono) {
           r = r * (1 - pull * 0.06)
           b = b * (1 + pull * 0.05)
         }
