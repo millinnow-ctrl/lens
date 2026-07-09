@@ -22,8 +22,6 @@ import { STYLE_ART } from '../lib/styleArt'
 import sampleGolden from '../assets/sample-golden.jpg'
 import sampleFriends from '../assets/sample-friends.jpg'
 import sampleDog from '../assets/sample-dog.jpg'
-import samplePrints from '../assets/sample-prints.jpg'
-import sampleHandprint from '../assets/sample-handprint.jpg'
 import camcorderCover from '../assets/camcorder-cover.jpg'
 
 
@@ -185,9 +183,6 @@ function HomeContent({
 
       {/* camera styles — the deck */}
       <motion.section variants={childVariants} className="mt-8">
-        <p className="px-5 font-mono font-semibold text-[10px] tracking-[0.18em] uppercase text-fog mb-1">
-          The case · {CAMERA_STYLES.length} cameras
-        </p>
         <div className="flex items-center justify-between px-5">
           <h2 className="type-display text-[22px]">Explore looks</h2>
           <span className="flex-1 mx-3 h-px bg-ink/10 self-center" aria-hidden />
@@ -236,7 +231,6 @@ function HomeContent({
 
       {/* recent edits */}
       <motion.section variants={childVariants} className="mt-8 px-5">
-        <p className="font-mono font-semibold text-[10px] tracking-[0.18em] uppercase text-fog mb-1">Recent develops</p>
         <div className="flex items-center justify-between mb-3">
           <h2 className="type-display text-[21px]">Your roll</h2>
           <span className="flex-1 mx-3 h-px bg-ink/10 self-center" aria-hidden />
@@ -330,34 +324,24 @@ function HomeContent({
         </div>
       </motion.section>
 
-      {/* tools — one wide, two small; shapes vary on purpose */}
+      {/* video — the camcorder is the whole story here, so it gets the room */}
       <motion.section variants={childVariants} className="mt-8 px-5">
-        <p className="font-mono font-semibold text-[10px] tracking-[0.18em] uppercase text-fog mb-1">The darkroom</p>
-        <div className="flex items-center mb-3">
-          <h2 className="type-display text-[21px]">Tools</h2>
+        <div className="flex items-baseline mb-3">
+          <h2 className="type-display text-[21px]">Video</h2>
           <span className="flex-1 ml-3 h-px bg-ink/10 self-center" aria-hidden />
         </div>
         <ToolCard
           to="/studio?tape=1"
           title="Camcorder"
-          sub="Shoot it like 1994 — counting timecode, tape grain"
+          sub="Drop in a clip and it films like 1994 — tape grain, counting timecode, that VHS color."
           image={camcorderCover}
-          tag="Pro"
-          ratio="aspect-[21/9]"
+          ratio="aspect-[4/3]"
           film
         />
-        {/* uneven two-up — different widths, the narrow one set lower */}
-        <div className="grid grid-cols-[1.28fr_1fr] gap-3 mt-3 items-start">
-          <ToolCard to="/studio?batch=1" title="Batch roll" sub="Up to 6 photos" image={samplePrints} />
-          <div className="mt-3">
-            <ToolCard to="/dashboard" title="Presets" sub="Saved looks" image={sampleHandprint} ratio="aspect-[16/11.5]" />
-          </div>
-        </div>
       </motion.section>
 
       {/* before & after */}
       <motion.section variants={childVariants} className="mt-8 px-5">
-        <p className="font-mono font-semibold text-[10px] tracking-[0.18em] uppercase text-fog mb-1">LM engine · live</p>
         <div className="flex items-center justify-between mb-3">
           <h2 className="type-display text-[21px]">Before & after</h2>
           <span className="flex-1 mx-3 h-px bg-ink/10 self-center" aria-hidden />
