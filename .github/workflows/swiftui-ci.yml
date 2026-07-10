@@ -1,0 +1,35 @@
+name: SwiftUI CI
+
+# Compiles the SwiftUI app on a cloud Mac on every push that touches it.
+# No signing, no Apple account needed — this is the compile/test loop that
+# verifies Swift written from the Linux dev environment.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'LensMoodApp/**'
+      - '.github/workflows/swiftui-ci.yml'
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate project
+        working-directory: LensMoodApp
+        run: xcodegen
+
+      - name: Build (simulator, unsigned)
+        working-directory: LensMoodApp
+        run: |
+          xcodebuild build \
+            -project LensMood.xcodeproj \
+            -scheme LensMood \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO | tail -50

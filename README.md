@@ -9,10 +9,16 @@ lighting, grain, color and vibe of that camera, entirely on the device.
 
 **The hook:** *see what your photo would look like shot on a $7,000 camera.*
 
-This is an **iOS-native-only** app built with **Expo (React Native) + Skia**.
-The whole app lives in [`lensmood-native/`](lensmood-native/). (There is no web
-build — the old Vite/Capacitor web app was removed to keep a single, clear
-target.)
+**The app is being rebuilt fully native in SwiftUI** — that build lives in
+[`LensMoodApp/`](LensMoodApp/) (XcodeGen project; compiled on every push by the
+SwiftUI CI workflow on a cloud Mac). The film engine ports to Core Image/Metal
+with per-stock LUTs generated from the reference engine — see
+[`LensMoodApp/Sources/Engine/ENGINE.md`](LensMoodApp/Sources/Engine/ENGINE.md).
+
+Until the SwiftUI build reaches parity, [`lensmood-native/`](lensmood-native/)
+(Expo + React Native + Skia) is the **frozen reference implementation** — its
+engine defines the ground-truth look, and [`reference/`](reference/) renders it
+headless to produce previews and parity fixtures.
 
 ## Run it
 

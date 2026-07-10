@@ -1,0 +1,28 @@
+# XcodeGen spec — `xcodegen` in this directory produces LensMood.xcodeproj.
+# CI (.github/workflows/swiftui-ci.yml) does this on a cloud Mac on every push.
+name: LensMood
+options:
+  bundleIdPrefix: app.lensmood
+  deploymentTarget:
+    iOS: '16.0'
+  createIntermediateGroups: true
+targets:
+  LensMood:
+    type: application
+    platform: iOS
+    sources:
+      - Sources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.lensmood.ios
+        MARKETING_VERSION: '1.0.0'
+        CURRENT_PROJECT_VERSION: '1'
+        TARGETED_DEVICE_FAMILY: '1'
+        SWIFT_VERSION: '5.9'
+        GENERATE_INFOPLIST_FILE: true
+        INFOPLIST_KEY_CFBundleDisplayName: LensMood
+        INFOPLIST_KEY_UILaunchScreen_Generation: true
+        INFOPLIST_KEY_NSPhotoLibraryUsageDescription: LensMood develops photos you pick. Everything stays on your phone.
+        INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: Save your developed shots and tapes to Photos.
+        INFOPLIST_KEY_NSCameraUsageDescription: Shoot straight into a lens.
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
