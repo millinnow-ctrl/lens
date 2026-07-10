@@ -8,6 +8,7 @@ import {
   View,
   Text,
   FlatList,
+  ImageBackground,
   Pressable,
   StyleSheet,
   useWindowDimensions,
@@ -84,7 +85,8 @@ export default function Home() {
 
       <HeroCard width={screenW - 28} onStart={() => router.push('/develop')} />
 
-      {/* video — the camcorder is the whole story, so it gets one big card */}
+      {/* video — the camcorder is the whole story: one big 16:9 tape frame,
+          the whole picture is the button */}
       <View style={s.caseHead}>
         <Text style={s.h2}>Video</Text>
       </View>
@@ -94,18 +96,20 @@ export default function Home() {
         accessibilityLabel="Open the camcorder"
         style={({ pressed }) => [s.videoCard, pressed && { transform: [{ scale: 0.985 }] }]}
       >
-        <View style={s.videoRecRow}>
-          <View style={s.videoRecDot} />
-          <Text style={s.videoRecText}>REC</Text>
-          <Text style={[s.videoRecText, { marginLeft: 'auto' }]}>SP · 0:00:00</Text>
-        </View>
-        <Text style={s.videoTitle}>Camcorder</Text>
-        <Text style={s.videoSub}>
-          Drop in a clip and it films like 1994 — tape grain, counting timecode, that VHS color.
-        </Text>
-        <View style={s.videoCtaPill}>
-          <Text style={s.videoCtaText}>Pick a clip ›</Text>
-        </View>
+        <ImageBackground
+          source={require('../assets/camcorder-cover.jpg')}
+          style={s.videoImage}
+          imageStyle={{ borderRadius: 22 }}
+        >
+          <View style={s.videoRecRow}>
+            <View style={s.videoRecDot} />
+            <Text style={s.videoRecText}>REC</Text>
+          </View>
+          <View style={s.videoScrim}>
+            <Text style={s.videoTitle}>Camcorder</Text>
+            <Text style={s.videoSub}>Any clip, filmed like 1994 — tap to load a tape.</Text>
+          </View>
+        </ImageBackground>
       </Pressable>
 
       {/* the case */}
@@ -179,35 +183,46 @@ const s = StyleSheet.create({
     marginTop: 12,
     borderRadius: 22,
     backgroundColor: colors.viewfinder,
-    padding: 20,
-    gap: 6,
     shadowColor: '#02070a',
     shadowOpacity: 0.28,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 8 },
     elevation: 6,
   },
-  videoRecRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 6 },
+  videoImage: {
+    aspectRatio: 16 / 9,
+    justifyContent: 'space-between',
+    padding: 16,
+  },
+  videoRecRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   videoRecDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: '#e1251b' },
   videoRecText: {
-    color: 'rgba(255,240,220,0.9)',
+    color: 'rgba(255,240,220,0.95)',
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 1,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowRadius: 4,
+    textShadowOffset: { width: 0, height: 1 },
   },
-  videoTitle: { color: '#fff', fontSize: 24, fontWeight: '800', letterSpacing: -0.4 },
-  videoSub: { color: 'rgba(255,255,255,0.68)', fontSize: 14, lineHeight: 19 },
-  videoCtaPill: {
-    alignSelf: 'flex-start',
-    marginTop: 10,
-    backgroundColor: colors.accent,
-    borderRadius: 999,
-    paddingHorizontal: 18,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+  videoScrim: { gap: 2 },
+  videoTitle: {
+    color: '#fff',
+    fontSize: 26,
+    fontWeight: '800',
+    letterSpacing: -0.4,
+    textShadowColor: 'rgba(0,0,0,0.55)',
+    textShadowRadius: 8,
+    textShadowOffset: { width: 0, height: 2 },
   },
-  videoCtaText: { color: '#fff', fontSize: 14.5, fontWeight: '700' },
+  videoSub: {
+    color: 'rgba(255,255,255,0.92)',
+    fontSize: 14,
+    fontWeight: '600',
+    textShadowColor: 'rgba(0,0,0,0.55)',
+    textShadowRadius: 6,
+    textShadowOffset: { width: 0, height: 1 },
+  },
 
   chips: { gap: 8, paddingVertical: 12, paddingHorizontal: 2 },
   chip: {

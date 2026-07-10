@@ -11,7 +11,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   View,
   Text,
-  Image,
   Pressable,
   StyleSheet,
   ActivityIndicator,
@@ -23,7 +22,6 @@ import {
 import { Stack, router, useLocalSearchParams } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Canvas, Image as SkiaImage, useImage } from '@shopify/react-native-skia'
-import { Asset } from 'expo-asset'
 import * as ImagePicker from 'expo-image-picker'
 import * as Sharing from 'expo-sharing'
 import * as MediaLibrary from 'expo-media-library'
@@ -44,16 +42,6 @@ type Picked = { uri: string; width: number; height: number }
 type ViewMode = 'original' | 'result' | 'compare'
 
 const MONO = Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' })
-
-/** Curated sample shots (bundled) — trying the lenses on these never spends a credit.
- *  Each one exercises a different side of the engine: backlit face metering, night
- *  light-mapping/halation, party-flash skin relight, still-life color science. */
-const SAMPLES = [
-  { key: 'golden', label: 'Golden hour', src: require('../assets/samples/sample-golden.jpg') },
-  { key: 'night', label: 'Neon rain', src: require('../assets/samples/sample-night.jpg') },
-  { key: 'friends', label: 'Party flash', src: require('../assets/samples/sample-friends.jpg') },
-  { key: 'brunch', label: 'Slow brunch', src: require('../assets/samples/sample-brunch.jpg') },
-] as const
 
 export default function Develop() {
   const insets = useSafeAreaInsets()
@@ -261,21 +249,6 @@ export default function Develop() {
     router.push('/camera')
   }, [])
 
-  const loadSample = useCallback(
-    async (sample: (typeof SAMPLES)[number]) => {
-      try {
-        const asset = Asset.fromModule(sample.src)
-        await asset.downloadAsync()
-        const uri = asset.localUri ?? asset.uri
-        sampleUrisRef.current.add(uri)
-        await loadPicked({ uri, width: asset.width ?? 0, height: asset.height ?? 0 })
-      } catch {
-        Alert.alert('Sample unavailable', 'That sample shot could not be loaded.')
-      }
-    },
-    [loadPicked],
-  )
-
   /** switching stocks on the rail — premium stocks are part of the paid kit */
   const onSelectStyle = useCallback(
     (st: CameraStyle) => {
@@ -417,26 +390,6 @@ export default function Develop() {
                     It develops right here on your phone through {style?.name ?? 'your chosen look'}.
                     Nothing gets uploaded.
                   </Text>
-                  <Text style={styles.sampleLabel}>Or try a sample — it's free</Text>
-                  <View style={styles.sampleRow}>
-                    {SAMPLES.map((s) => (
-                      <Pressable
-                        key={s.key}
-                        onPress={() => void loadSample(s)}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Try the ${s.label} sample shot`}
-                        style={({ pressed }) => [
-                          styles.sampleItem,
-                          pressed && { opacity: 0.8, transform: [{ scale: 0.96 }] },
-                        ]}
-                      >
-                        <Image source={s.src} style={styles.sampleThumb} />
-                        <Text style={styles.sampleName} numberOfLines={1}>
-                          {s.label}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
                 </View>
               )}
               {developing && (
@@ -611,21 +564,6 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', padding: 24, gap: 8 },
   emptyText: { color: 'rgba(255,255,255,0.9)', fontSize: 16, fontWeight: '700' },
   emptySub: { color: 'rgba(255,255,255,0.55)', fontSize: 13, textAlign: 'center', lineHeight: 18 },
-  sampleLabel: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 13.5,
-    fontWeight: '600',
-    marginTop: 12,
-  },
-  sampleRow: { flexDirection: 'row', gap: 12, marginTop: 2 },
-  sampleItem: { alignItems: 'center', gap: 5 },
-  sampleThumb: {
-    width: 56,
-    height: 72,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  sampleName: { color: 'rgba(255,255,255,0.55)', fontSize: 10.5, maxWidth: 62 },
   developing: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',

@@ -104,10 +104,13 @@ half4 main(float2 xy) {
   // chroma bleed: red smears a couple of pixels right, like composite video
   c.r = video.eval(xy + float2(2.2, 0.0)).r;
   half3 m = grade(c.rgb);
-  // tape grain, refreshed ~30x/sec in 2px cells
-  float2 cell = floor(xy / 2.0) + floor(t * 30.0) * 7.31;
+  // heavy tape grain, refreshed slowly (~12x/sec) so the noise crawls like
+  // worn tape instead of shimmering like digital noise
+  float2 cell = floor(xy / 2.0) + floor(t * 12.0) * 7.31;
   float n = fract(sin(dot(cell, float2(12.9898, 78.233))) * 43758.5453);
-  m += (half(n) - 0.5) * 0.07;
+  m += (half(n) - 0.5) * 0.10;
+  // slow AGC flicker — the deck hunting for exposure, a lazy breathing pump
+  m *= half(1.0 + 0.035 * sin(t * 2.4) * (0.6 + 0.4 * sin(t * 0.7)));
   // gentle tube vignette
   float2 uv = xy / res - 0.5;
   m *= 1.0 - dot(uv, uv) * 0.5;

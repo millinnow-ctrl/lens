@@ -85,9 +85,19 @@ final class VhsExporter {
 
       let t = CMTimeGetSeconds(request.compositionTime)
 
-      // 3 — tape grain: random field, re-seeded per frame by translation,
-      //     softened to luminance-only speckle and overlaid faintly
-      let jump = CGFloat(fmod(t * 997.0, 293.0))
+      // 3 — slow AGC flicker: the deck hunting for exposure (matches preview)
+      let flicker = 0.05 * sin(t * 2.4) * (0.6 + 0.4 * sin(t * 0.7))
+      if let exp = CIFilter(name: "CIExposureAdjust", parameters: [
+        kCIInputImageKey: img,
+        "inputEV": flicker,
+      ])?.outputImage {
+        img = exp
+      }
+
+      // 4 — heavy tape grain: random field re-seeded ~12x/sec (crawls slowly,
+      //     like worn tape), luminance-only speckle overlaid
+      let step = floor(t * 12.0)
+      let jump = CGFloat(fmod(step * 83.0, 293.0))
       let grainField = noise
         .transformed(by: CGAffineTransform(translationX: -jump * 3.1, y: -jump * 1.7))
         .applyingFilter("CIColorMatrix", parameters: [
@@ -95,11 +105,11 @@ final class VhsExporter {
           "inputGVector": CIVector(x: 0.22, y: 0.22, z: 0.22, w: 0),
           "inputBVector": CIVector(x: 0.22, y: 0.22, z: 0.22, w: 0),
           "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 0),
-          "inputBiasVector": CIVector(x: -0.11, y: -0.11, z: -0.11, w: 0.09),
+          "inputBiasVector": CIVector(x: -0.11, y: -0.11, z: -0.11, w: 0.13),
         ])
       img = grainField.composited(over: img)
 
-      // 4 — burned-in REC + counting timecode
+      // 5 — burned-in REC + counting timecode
       let overlay = Self.tapeOverlay(seconds: Int(t), blink: fmod(t, 1.2) < 0.6, extent: extent)
       img = overlay.composited(over: img)
 

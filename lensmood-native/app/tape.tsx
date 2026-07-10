@@ -15,6 +15,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  AppState,
   PixelRatio,
   Platform,
   useWindowDimensions,
@@ -50,6 +51,7 @@ import { colors } from '@/theme/colors'
 const MONO = Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' })
 const VHS_EFFECT = Skia.RuntimeEffect.Make(VHS_SKSL)!
 const MAX_SECONDS = 60
+const MAX_FILE_BYTES = 300 * 1024 * 1024
 
 function pad2(n: number) {
   return n < 10 ? `0${n}` : `${n}`
@@ -63,6 +65,15 @@ function TapePlayback({ uri, w, h }: { uri: string; w: number; h: number }) {
     looping: true,
     volume: 1,
   })
+
+  // leaving the app pauses the tape; coming back picks up where it left off
+  // (position is kept — it does not restart from the top)
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      paused.value = state !== 'active'
+    })
+    return () => sub.remove()
+  }, [paused])
 
   // RuntimeShader layers rasterize in physical pixels — feed res + time in px/s
   const dpr = PixelRatio.get()
@@ -164,6 +175,12 @@ export default function Tape() {
       const a = res.assets[0]
       if ((a.duration ?? 0) > MAX_SECONDS * 1000) {
         Alert.alert('Keep it under a minute', 'Tapes work best with clips up to 60 seconds.')
+        return
+      }
+      // size cap is about phone memory/heat, not storage — nothing uploads,
+      // there is no server; the whole darkroom is this device
+      if ((a.fileSize ?? 0) > MAX_FILE_BYTES) {
+        Alert.alert('That clip is huge', 'Keep tapes under 300 MB so the deck stays smooth.')
         return
       }
       exportedRef.current = null

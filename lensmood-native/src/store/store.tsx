@@ -318,8 +318,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     })()
   }, [persisted, ready])
 
-  const isPaid = persisted.plan !== 'free'
-  const hasVideoPlan = persisted.plan === 'pro' || persisted.plan === 'studio'
+  /* LAUNCH MODE: every gate is open while the product is being shaped —
+   * no credit limits, no premium locks, no watermark, nothing says "Pro".
+   * What's actually paid gets decided at the end; flip this to false then.
+   * The paywall screen stays reachable so plans can still be previewed. */
+  const EVERYTHING_FREE_FOR_NOW = true
+
+  const isPaid = EVERYTHING_FREE_FOR_NOW || persisted.plan !== 'free'
+  const hasVideoPlan =
+    EVERYTHING_FREE_FOR_NOW || persisted.plan === 'pro' || persisted.plan === 'studio'
   const firstDevelopFree = !persisted.usedFirstFree
 
   /* month-rollover aware: if the app has stayed open across a month boundary,
@@ -328,6 +335,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const creditsLeft = isPaid ? Infinity : Math.max(0, FREE_CREDITS - usedThisMonth)
 
   const spendCredit = useCallback((): boolean => {
+    if (EVERYTHING_FREE_FOR_NOW) return true
     if (persisted.plan !== 'free') return true
     // the very first develop is always on the house — the aha moment.
     // Granted via an explicit flag so free samples never consume it.

@@ -36,7 +36,9 @@ function StyleCardBase({
   onPress: (style: CameraStyle) => void
 }) {
   const [g0, g1] = gradientStops(style.gradient)
-  const premium = style.tier === 'premium'
+  // launch mode: every camera is open, so nothing wears a PRO tag for now
+  // (tier data stays on the styles — what's paid gets decided at the end)
+  const premium = false
 
   return (
     <Pressable
