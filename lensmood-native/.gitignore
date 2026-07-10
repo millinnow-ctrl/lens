@@ -32,3 +32,4 @@ yarn-error.*
 .idea/
 .vscode/
 *.tsbuildinfo
+.verify-export/

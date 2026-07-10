@@ -14,6 +14,7 @@
  */
 
 import { Skia, AlphaType, ColorType, type SkImage } from '@shopify/react-native-skia'
+import { detectFacesVision, visionAvailable } from '../../modules/lensmood-vision'
 import type { Focal } from '@/engine/types'
 
 export type { Focal }
@@ -76,12 +77,36 @@ const cache = new WeakMap<object, Focal | null>()
  * radius, or null when nothing is confident enough. Pure, ~ms on a 160px
  * thumb, cached per image.
  */
-export async function detectFocal(image: SkImage): Promise<Focal | null> {
+export async function detectFocal(image: SkImage, uri?: string): Promise<Focal | null> {
   const hit = cache.get(image as object)
   if (hit !== undefined) return hit
-  const result = detect(image)
+  // real on-device ML first (Apple Vision, full builds); heuristic fallback
+  let result: Focal | null = null
+  if (uri && visionAvailable) {
+    result = await detectVision(uri)
+  }
+  if (!result) result = detect(image)
   cache.set(image as object, result)
   return result
+}
+
+/** map the strongest Vision face to the engine's Focal contract */
+async function detectVision(uri: string): Promise<Focal | null> {
+  const faces = await detectFacesVision(uri)
+  if (!faces || faces.length === 0) return null
+  // the biggest confident face carries the shot
+  const best = faces
+    .filter((f) => f.confidence > 0.3)
+    .sort((a, b) => b.w * b.h - a.w * a.h)[0]
+  if (!best) return null
+  return {
+    x: best.x + best.w / 2,
+    y: best.y + best.h / 2,
+    // Vision boxes hug the face; pad a touch so hair/jaw stay inside the lock.
+    // w is a fraction of image width ≈ fraction of the longest edge for the
+    // portrait shots this app lives on.
+    r: Math.max(best.w, best.h) * 0.62,
+  }
 }
 
 function detect(source: SkImage): Focal | null {

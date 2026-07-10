@@ -22,6 +22,12 @@ npm install
 npx expo start            # scan the QR with Expo Go, or press i for a simulator
 ```
 
+## Verify it
+
+```bash
+npm run verify            # typecheck → tape-look tests (incl. SkSL compile) → iOS bundle
+```
+
 For the full native modules (Skia render, camera, IAP), use a dev build:
 
 ```bash

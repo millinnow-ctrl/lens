@@ -84,6 +84,30 @@ export default function Home() {
 
       <HeroCard width={screenW - 28} onStart={() => router.push('/develop')} />
 
+      {/* video — the camcorder is the whole story, so it gets one big card */}
+      <View style={s.caseHead}>
+        <Text style={s.h2}>Video</Text>
+      </View>
+      <Pressable
+        onPress={() => router.push('/tape')}
+        accessibilityRole="button"
+        accessibilityLabel="Open the camcorder"
+        style={({ pressed }) => [s.videoCard, pressed && { transform: [{ scale: 0.985 }] }]}
+      >
+        <View style={s.videoRecRow}>
+          <View style={s.videoRecDot} />
+          <Text style={s.videoRecText}>REC</Text>
+          <Text style={[s.videoRecText, { marginLeft: 'auto' }]}>SP · 0:00:00</Text>
+        </View>
+        <Text style={s.videoTitle}>Camcorder</Text>
+        <Text style={s.videoSub}>
+          Drop in a clip and it films like 1994 — tape grain, counting timecode, that VHS color.
+        </Text>
+        <View style={s.videoCtaPill}>
+          <Text style={s.videoCtaText}>Pick a clip ›</Text>
+        </View>
+      </Pressable>
+
       {/* the case */}
       <View style={s.caseHead}>
         <Text style={s.h2}>Explore looks</Text>
@@ -150,6 +174,40 @@ const s = StyleSheet.create({
   caseHead: { marginTop: 22, gap: 2, paddingHorizontal: 2 },
   h2: { color: colors.ink, fontSize: 26, fontWeight: '800', letterSpacing: -0.4 },
   h2sub: { color: colors.fog, fontSize: 14, fontWeight: '500' },
+
+  videoCard: {
+    marginTop: 12,
+    borderRadius: 22,
+    backgroundColor: colors.viewfinder,
+    padding: 20,
+    gap: 6,
+    shadowColor: '#02070a',
+    shadowOpacity: 0.28,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
+  },
+  videoRecRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 6 },
+  videoRecDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: '#e1251b' },
+  videoRecText: {
+    color: 'rgba(255,240,220,0.9)',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  videoTitle: { color: '#fff', fontSize: 24, fontWeight: '800', letterSpacing: -0.4 },
+  videoSub: { color: 'rgba(255,255,255,0.68)', fontSize: 14, lineHeight: 19 },
+  videoCtaPill: {
+    alignSelf: 'flex-start',
+    marginTop: 10,
+    backgroundColor: colors.accent,
+    borderRadius: 999,
+    paddingHorizontal: 18,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoCtaText: { color: '#fff', fontSize: 14.5, fontWeight: '700' },
 
   chips: { gap: 8, paddingVertical: 12, paddingHorizontal: 2 },
   chip: {

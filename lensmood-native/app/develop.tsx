@@ -205,9 +205,9 @@ export default function Develop() {
       setDeveloping(true)
       setPhase('Finding your subject')
       await new Promise((r) => setTimeout(r, 16))
-      // the subject finder feeds face metering, DoF, relight, and smoothing
-      // (this is the seam where on-device Vision segmentation slots in)
-      focalRef.current = await detectFocal(img)
+      // the subject finder feeds face metering, DoF, relight, and smoothing —
+      // Apple Vision on full builds, the classical heuristic otherwise
+      focalRef.current = await detectFocal(img, picked.uri)
       setPhase('Reading the light')
       await new Promise((r) => setTimeout(r, 16))
       sceneRef.current = analyzeScene(img, focalRef.current)
