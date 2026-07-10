@@ -3,15 +3,13 @@
  * light: the darkroom is the product, this is the service hatch.
  */
 
-import { View, Text, Pressable, StyleSheet, Alert, Platform } from 'react-native'
+import { View, Text, Pressable, StyleSheet, Alert } from 'react-native'
 import { Stack, router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Logo from '@/components/Logo'
 import { useApp, FREE_CREDITS } from '@/store'
 import { restore, purchasesAvailable } from '@/purchases'
 import { colors } from '@/theme/colors'
-
-const MONO = Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' })
 
 export default function Account() {
   const insets = useSafeAreaInsets()
@@ -46,8 +44,8 @@ export default function Account() {
 
       <View style={styles.cards}>
         <View style={styles.card}>
-          <Text style={styles.cardLabel}>PLAN</Text>
-          <Text style={styles.cardValue}>{plan.toUpperCase()}</Text>
+          <Text style={styles.cardLabel}>Your plan</Text>
+          <Text style={styles.cardValue}>{plan.charAt(0).toUpperCase() + plan.slice(1)}</Text>
           <Text style={styles.cardSub}>
             {isPaid
               ? 'Unlimited develops, no watermark.'
@@ -64,7 +62,7 @@ export default function Account() {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardLabel}>DARKROOM</Text>
+          <Text style={styles.cardLabel}>Your darkroom</Text>
           <Text style={styles.cardValue}>{history.length} develops</Text>
           <Text style={styles.cardSub}>Everything renders on this phone. Nothing is ever uploaded.</Text>
         </View>
@@ -90,7 +88,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(23,36,45,0.10)',
   },
-  cardLabel: { color: colors.fog, fontSize: 10, letterSpacing: 1.6, fontFamily: MONO, fontWeight: '600' },
+  cardLabel: { color: colors.inkSoft, fontSize: 14, fontWeight: '700' },
   cardValue: { color: colors.ink, fontSize: 22, fontWeight: '800', letterSpacing: -0.3, marginTop: 6 },
   cardSub: { color: colors.inkSoft, fontSize: 13.5, lineHeight: 19, marginTop: 4 },
   cta: {

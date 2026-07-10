@@ -6,14 +6,12 @@
  */
 
 import { useEffect, useMemo, useState } from 'react'
-import { View, Text, Pressable, ScrollView, StyleSheet, Alert, Platform } from 'react-native'
+import { View, Text, Pressable, ScrollView, StyleSheet, Alert } from 'react-native'
 import { Stack, router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useApp, haptics, type Plan } from '@/store'
 import { getPackages, purchase, restore, purchasesAvailable } from '@/purchases'
 import { colors } from '@/theme/colors'
-
-const MONO = Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' })
 
 interface Tier {
   id: Exclude<Plan, 'free'>
@@ -126,7 +124,6 @@ export default function Paywall() {
           </Pressable>
         </View>
 
-        <Text style={styles.eyebrow}>MEMBERSHIP</Text>
         <Text style={styles.h1}>Every camera.{'\n'}No limits.</Text>
 
         {/* cycle toggle */}
@@ -162,7 +159,7 @@ export default function Paywall() {
               <View key={tier.id} style={[styles.card, featured && styles.cardFeatured]}>
                 {featured && (
                   <View style={styles.popular}>
-                    <Text style={styles.popularText}>MOST POPULAR</Text>
+                    <Text style={styles.popularText}>Most popular</Text>
                   </View>
                 )}
                 <Text style={[styles.planName, featured && styles.onDark]}>{tier.name}</Text>
@@ -219,14 +216,6 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.paper },
   topbar: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 18, paddingVertical: 8 },
   close: { fontSize: 20, color: colors.inkSoft, padding: 4 },
-  eyebrow: {
-    color: colors.accent,
-    fontSize: 11,
-    letterSpacing: 2.2,
-    fontFamily: MONO,
-    fontWeight: '600',
-    paddingHorizontal: 20,
-  },
   h1: {
     color: colors.ink,
     fontSize: 34,
@@ -268,7 +257,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     marginBottom: 10,
   },
-  popularText: { color: '#fff', fontSize: 9, letterSpacing: 1.4, fontFamily: MONO, fontWeight: '700' },
+  popularText: { color: '#fff', fontSize: 11.5, fontWeight: '700' },
   planName: { color: colors.ink, fontSize: 20, fontWeight: '800', letterSpacing: -0.3 },
   blurb: { color: colors.inkSoft, fontSize: 13, marginTop: 2 },
   priceRow: { flexDirection: 'row', alignItems: 'baseline', marginTop: 12 },

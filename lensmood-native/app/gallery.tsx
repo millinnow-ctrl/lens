@@ -14,7 +14,6 @@ import {
   Alert,
   Modal,
   useWindowDimensions,
-  Platform,
 } from 'react-native'
 import { Stack, router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -23,8 +22,6 @@ import { File } from 'expo-file-system'
 import { useApp, haptics, type HistoryEntry } from '@/store'
 import BottomDock from '@/components/BottomDock'
 import { colors } from '@/theme/colors'
-
-const MONO = Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' })
 
 export default function Gallery() {
   const insets = useSafeAreaInsets()
@@ -64,8 +61,8 @@ export default function Gallery() {
     <View style={[s.root, { paddingTop: insets.top }]}>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={s.head}>
-        <Text style={s.eyebrow}>YOUR LIBRARY</Text>
         <Text style={s.h1}>Your darkroom.</Text>
+        <Text style={s.headSub}>Everything you've developed, kept on this phone.</Text>
       </View>
 
       {history.length === 0 ? (
@@ -112,7 +109,7 @@ export default function Gallery() {
                 style={{ width: screenW - 32, height: (screenW - 32) * 1.25, borderRadius: 18 }}
                 resizeMode="contain"
               />
-              <Text style={s.viewerLabel}>{openEntry.styleName.toUpperCase()}</Text>
+              <Text style={s.viewerLabel}>{openEntry.styleName}</Text>
               <View style={s.viewerRow}>
                 <Pressable onPress={() => share(openEntry)} style={({ pressed }) => [s.viewerBtn, pressed && { opacity: 0.85 }]}>
                   <Text style={s.viewerBtnText}>Share</Text>
@@ -134,8 +131,8 @@ export default function Gallery() {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.paper },
   head: { paddingHorizontal: 18, paddingTop: 10, paddingBottom: 16, gap: 4 },
-  eyebrow: { color: colors.accent, fontSize: 10.5, letterSpacing: 2, fontFamily: MONO, fontWeight: '600' },
   h1: { color: colors.ink, fontSize: 30, fontWeight: '800', letterSpacing: -0.5 },
+  headSub: { color: colors.inkSoft, fontSize: 14.5 },
 
   empty: { alignItems: 'center', marginTop: 60, gap: 6, paddingHorizontal: 32 },
   emptyTitle: { color: colors.ink, fontSize: 17, fontWeight: '700' },
@@ -152,7 +149,7 @@ const s = StyleSheet.create({
   ctaText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 
   thumb: { borderRadius: 14, backgroundColor: colors.viewfinder },
-  thumbLabel: { color: colors.fog, fontSize: 10, fontFamily: MONO, fontWeight: '600', marginTop: 4 },
+  thumbLabel: { color: colors.inkSoft, fontSize: 12, fontWeight: '600', marginTop: 4 },
 
   viewer: {
     flex: 1,
@@ -161,7 +158,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     gap: 14,
   },
-  viewerLabel: { color: 'rgba(255,255,255,0.75)', fontSize: 11, letterSpacing: 1.6, fontFamily: MONO, fontWeight: '600' },
+  viewerLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 15, fontWeight: '700' },
   viewerRow: { flexDirection: 'row', gap: 10 },
   viewerBtn: {
     backgroundColor: colors.accent,
