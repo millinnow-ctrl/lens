@@ -83,6 +83,15 @@ final class FilmEngine {
           kCIInputContrastKey: recipe.postLUTContrast,
         ])
       }
+      if let matrix = recipe.postLUTMatrix, matrix.count == 12 {
+        image = image.applyingFilter("CIColorMatrix", parameters: [
+          "inputRVector": CIVector(x: matrix[0], y: matrix[1], z: matrix[2], w: 0),
+          "inputGVector": CIVector(x: matrix[3], y: matrix[4], z: matrix[5], w: 0),
+          "inputBVector": CIVector(x: matrix[6], y: matrix[7], z: matrix[8], w: 0),
+          "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 1),
+          "inputBiasVector": CIVector(x: matrix[9], y: matrix[10], z: matrix[11], w: 0),
+        ])
+      }
     } else {
       image = applyExposure(image, ev: recipe.exposureBias + adaptiveEV)
       image = applyWhiteBalance(image, scene: scene, recipe: recipe)
