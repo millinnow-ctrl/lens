@@ -1,0 +1,10 @@
+name: CI Probe
+on:
+  push:
+    branches: [ci-probe]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - run: echo "runner acquired ok"
