@@ -64,6 +64,8 @@ struct CaptureView: View {
           }
         }
         .padding(Theme.pagePadding)
+        .padding(.bottom, 72)
+        .frame(maxWidth: .infinity, alignment: .leading)
       }
       .background(Theme.paper)
       .navigationTitle("Capture")
