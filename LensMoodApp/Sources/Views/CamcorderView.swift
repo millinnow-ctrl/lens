@@ -27,6 +27,7 @@ struct CamcorderView: View {
   @State private var errorMessage: String?
   @State private var saved = false
   @State private var cameraUnavailable = false
+  @State private var isSaving = false
 
   var body: some View {
     NavigationStack {
@@ -173,10 +174,11 @@ struct CamcorderView: View {
       .buttonStyle(InstrumentButtonStyle(kind: .secondary))
 
       if outputURL != nil {
-        Button("Save developed tape") {
+        Button(isSaving ? "Saving developed tape" : "Save developed tape") {
           saveTape()
         }
         .buttonStyle(InstrumentButtonStyle(kind: .secondary))
+        .disabled(isSaving)
       }
     }
   }
@@ -216,16 +218,16 @@ struct CamcorderView: View {
 
   private func saveTape() {
     guard let outputURL else { return }
-    PHPhotoLibrary.shared().performChanges {
-      PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: outputURL)
-    } completionHandler: { success, error in
-      DispatchQueue.main.async {
-        if success {
-          saved = true
-          UINotificationFeedbackGenerator().notificationOccurred(.success)
-        } else {
-          errorMessage = error?.localizedDescription ?? "The tape could not be saved."
-        }
+    isSaving = true
+    Task {
+      do {
+        try await PhotoLibraryWriter.save(videoAt: outputURL)
+        isSaving = false
+        saved = true
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+      } catch {
+        isSaving = false
+        errorMessage = error.localizedDescription
       }
     }
   }
