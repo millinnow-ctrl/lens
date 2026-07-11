@@ -170,7 +170,7 @@ struct CaptureView: View {
     let selected = stock
     DispatchQueue.global(qos: .userInitiated).async {
       let result = Result {
-        try FilmEngine.shared.develop(captured, with: selected.recipe, seed: 43).image
+        try FilmEngine.shared.develop(captured, with: selected.recipe, maxPixelSize: 8192, seed: 43).image
       }
       DispatchQueue.main.async {
         isSaving = false
