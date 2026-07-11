@@ -76,7 +76,7 @@ struct CaptureView: View {
       .alert("Camera unavailable", isPresented: $cameraUnavailable) {
         Button("OK", role: .cancel) {}
       } message: {
-        Text("Camera capture requires a physical iPhone. You can still choose a photograph from a camera’s Develop screen.")
+        Text("Camera capture is not available on this device. Choose a photograph from any camera’s Develop screen instead.")
       }
     }
   }
