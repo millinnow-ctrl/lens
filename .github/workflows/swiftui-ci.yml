@@ -64,12 +64,18 @@ jobs:
         working-directory: LensMoodApp
         run: |
           mkdir -p ui-artifacts
-          xcrun simctl bootstatus booted -b
+          DEVICE_ID=$(xcrun simctl list devices available | awk '/iPhone 16 Pro \(/ { value=$(NF-1); gsub(/[()]/, "", value); print value; exit }')
+          test -n "$DEVICE_ID"
+          xcrun simctl boot "$DEVICE_ID" || true
+          xcrun simctl bootstatus "$DEVICE_ID" -b
+          APP_PATH=$(find "$HOME/Library/Developer/Xcode/DerivedData" -path '*/Build/Products/Debug-iphonesimulator/LensMood.app' -print -quit)
+          test -d "$APP_PATH"
+          xcrun simctl install "$DEVICE_ID" "$APP_PATH"
           for tab in cameras capture library print tape; do
-            xcrun simctl terminate booted app.lensmood.ios || true
-            SIMCTL_CHILD_LENSMOOD_TAB=$tab xcrun simctl launch booted app.lensmood.ios
+            xcrun simctl terminate "$DEVICE_ID" app.lensmood.ios || true
+            SIMCTL_CHILD_LENSMOOD_TAB=$tab xcrun simctl launch "$DEVICE_ID" app.lensmood.ios
             sleep 3
-            xcrun simctl io booted screenshot ui-artifacts/$tab.png
+            xcrun simctl io "$DEVICE_ID" screenshot ui-artifacts/$tab.png
           done
 
       - name: Upload simulator capture
