@@ -12,7 +12,7 @@ struct AccountView: View {
             Text("Your darkroom")
               .font(.system(size: 32, weight: .bold, design: .serif))
               .foregroundStyle(Theme.ink)
-            Text("Processing remains on this device. Camera personalities and every production feature stay unlocked while LensMood is in development.")
+            Text("Processing remains on this device. All camera personalities are available. You can decide what belongs in your library before anything is saved.")
               .font(.system(size: 15))
               .foregroundStyle(Theme.inkSoft)
               .lineSpacing(4)
@@ -24,7 +24,7 @@ struct AccountView: View {
               Divider().overlay(Theme.hairline)
               accountRow("Camera library", value: "18 available")
               Divider().overlay(Theme.hairline)
-              accountRow("Development access", value: "Unlocked")
+              accountRow("Develop access", value: "Available")
             }
           }
 
