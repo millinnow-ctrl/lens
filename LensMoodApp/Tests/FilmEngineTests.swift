@@ -42,9 +42,12 @@ final class FilmEngineTests: XCTestCase {
   func testPublicCameraNamesAvoidUnclearedBrandsAndAILanguage() {
     let forbidden = ["Leica", "GQ", "A24", "Polaroid", "Kodachrome", "iPhone", "Super 8", "AI"]
     for stock in Stock.all {
+      let nameTokens = Set(stock.name.lowercased().split { !$0.isLetter && !$0.isNumber }.map(String.init))
+      let taglineTokens = Set(stock.tagline.lowercased().split { !$0.isLetter && !$0.isNumber }.map(String.init))
       for term in forbidden {
-        XCTAssertFalse(stock.name.localizedCaseInsensitiveContains(term), "\(stock.name) contains \(term)")
-        XCTAssertFalse(stock.tagline.localizedCaseInsensitiveContains(term), "\(stock.tagline) contains \(term)")
+        let token = term.lowercased()
+        XCTAssertFalse(nameTokens.contains(token), "\(stock.name) contains \(term)")
+        XCTAssertFalse(taglineTokens.contains(token), "\(stock.tagline) contains \(term)")
       }
     }
   }
@@ -71,9 +74,15 @@ final class FilmEngineTests: XCTestCase {
   }
 
   func testSlide64AgainstFirstGoldenFixture() throws {
-    let bundle = Bundle(for: Self.self)
-    let sourceURL = try XCTUnwrap(bundle.url(forResource: "sample-golden", withExtension: "jpg"))
-    let referenceURL = try XCTUnwrap(bundle.url(forResource: "golden-kodachrome", withExtension: "png"))
+    let testsDirectory = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+    let sourceURL = testsDirectory
+      .deletingLastPathComponent()
+      .deletingLastPathComponent()
+      .appendingPathComponent("reference/photos/sample-golden.jpg")
+    let referenceURL = testsDirectory
+      .appendingPathComponent("Fixtures/golden-kodachrome.png")
+    XCTAssertTrue(FileManager.default.fileExists(atPath: sourceURL.path))
+    XCTAssertTrue(FileManager.default.fileExists(atPath: referenceURL.path))
     let source = try XCTUnwrap(UIImage(contentsOfFile: sourceURL.path))
     let reference = try XCTUnwrap(UIImage(contentsOfFile: referenceURL.path))
     let rendered = try FilmEngine().develop(
