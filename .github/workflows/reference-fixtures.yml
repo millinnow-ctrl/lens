@@ -1,0 +1,79 @@
+name: Reference Fixtures
+
+# The React Native engine is the frozen visual master. Automatic runs verify
+# all hashes, while only compact review grids are retained. Full 180-image
+# render artifacts are produced on an explicit manual run.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'reference/**'
+      - 'lensmood-native/src/engine/**'
+      - 'lensmood-native/package-lock.json'
+      - '.github/workflows/reference-fixtures.yml'
+  push:
+    paths:
+      - 'reference/**'
+      - 'lensmood-native/src/engine/**'
+      - 'lensmood-native/package-lock.json'
+      - '.github/workflows/reference-fixtures.yml'
+
+concurrency:
+  group: reference-fixtures-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: lensmood-native/package-lock.json
+
+      - name: Install reference dependencies
+        working-directory: lensmood-native
+        run: npm ci --legacy-peer-deps
+
+      - name: Install pinned fixture rasterizer
+        working-directory: lensmood-native
+        run: npm install --no-save --legacy-peer-deps @napi-rs/canvas@1.0.2
+
+      - name: Compile reference engine
+        working-directory: reference
+        run: node ../lensmood-native/node_modules/typescript/lib/tsc.js lib/engine.ts lib/styles.ts lib/scene.ts --outDir out --module commonjs --target es2020 --lib es2020,dom --noCheck
+
+      - name: Verify all 180 golden fixtures
+        working-directory: reference
+        run: NODE_PATH=../lensmood-native/node_modules FIXTURES_OUT=$GITHUB_WORKSPACE/fixture-renders node fixtures.cjs verify
+
+      - name: Upload compact labeled review grids
+        if: always() && github.event_name != 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-fixture-review
+          path: |
+            reference/fixtures/*/*-grid.png
+            reference/fixtures/manifest.json
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Upload complete fixture renders for manual review
+        if: always() && github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-fixtures-complete
+          path: |
+            fixture-renders/
+            reference/fixtures/*/*-grid.png
+            reference/fixtures/manifest.json
+          if-no-files-found: error
+          retention-days: 3
