@@ -7,7 +7,16 @@ name: Reference Fixtures
 
 on:
   workflow_dispatch:
+  # PR branches verify once via pull_request; push runs only on main —
+  # running both per commit doubled the billed minutes
+  pull_request:
+    paths:
+      - 'reference/**'
+      - 'lensmood-native/src/engine/**'
+      - 'lensmood-native/package-lock.json'
+      - '.github/workflows/reference-fixtures.yml'
   push:
+    branches: [main]
     paths:
       - 'reference/**'
       - 'lensmood-native/src/engine/**'
