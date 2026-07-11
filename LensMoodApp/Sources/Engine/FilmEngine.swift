@@ -62,12 +62,13 @@ final class FilmEngine {
     }
 
     image = image.orientedForDisplay
+    let scene = try analyzer.analyze(image)
+    let subject = (try? VisionService.analyze(source)) ?? SubjectAnalysis(faces: [], personMask: nil)
+
     if let maxPixelSize {
       image = scaled(image, maxPixelSize: maxPixelSize)
     }
 
-    let scene = try analyzer.analyze(image)
-    let subject = (try? VisionService.analyze(source)) ?? SubjectAnalysis(faces: [], personMask: nil)
     let adaptiveEV = adaptiveExposure(for: scene, recipe: recipe)
     image = applyExposure(image, ev: recipe.exposureBias + adaptiveEV)
     image = applyWhiteBalance(image, scene: scene, recipe: recipe)
