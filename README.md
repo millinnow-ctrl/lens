@@ -3,9 +3,11 @@
 > Turn any photo into a cinematic camera shot.
 
 LensMood is a native **iOS** app. Pick a photo or a short clip, choose a camera
-mood — Disposable, iPhone Flash, 90s Camcorder, Leica Street, GQ Editorial, A24
-Still, Film Noir, Y2K Digicam, Polaroid and more — and LensMood recreates the
-lighting, grain, color and vibe of that camera, entirely on the device.
+personality — inspired by disposables, instant film, tape camcorders, street
+rangefinders, editorial strobes and more — and LensMood develops it for the
+light and subject in your photograph, entirely on the device. Each camera
+reads the scene differently; the output is an interpretation, not a measured
+simulation of any specific commercial camera.
 
 **The hook:** *see what your photo would look like shot on a $7,000 camera.*
 
