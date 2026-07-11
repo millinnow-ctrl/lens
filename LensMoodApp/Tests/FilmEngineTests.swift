@@ -52,6 +52,28 @@ final class FilmEngineTests: XCTestCase {
     }
   }
 
+  func testVisibleProductCopyAvoidsAILabeling() throws {
+    let testsDirectory = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+    let sourcesDirectory = testsDirectory
+      .deletingLastPathComponent()
+      .appendingPathComponent("Sources")
+    let enumerator = try XCTUnwrap(
+      FileManager.default.enumerator(
+        at: sourcesDirectory,
+        includingPropertiesForKeys: nil
+      )
+    )
+    let forbiddenPattern = #"(?i)\b(ai|artificial intelligence|machine learning)\b"#
+
+    for case let fileURL as URL in enumerator where fileURL.pathExtension == "swift" {
+      let source = try String(contentsOf: fileURL, encoding: .utf8)
+      XCTAssertNil(
+        source.range(of: forbiddenPattern, options: .regularExpression),
+        "Visible product source contains AI labeling in \(fileURL.lastPathComponent)"
+      )
+    }
+  }
+
   func testEveryAdaptiveRecipeProducesDistinctPixels() throws {
     let source = testImage()
     var outputs = Set<Data>()
