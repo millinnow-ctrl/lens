@@ -60,6 +60,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO | tee xcodetest.log | tail -120
 
       - name: Capture simulator product surfaces
+        if: always()
         working-directory: LensMoodApp
         run: |
           mkdir -p ui-artifacts
@@ -72,6 +73,7 @@ jobs:
           done
 
       - name: Upload simulator capture
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: swiftui-ui-capture
