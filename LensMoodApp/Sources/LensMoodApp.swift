@@ -1,13 +1,14 @@
-// LensMood — native SwiftUI app. This is the product; lensmood-native/ is the
-// frozen reference implementation the film engine is verified against.
-
 import SwiftUI
 
 @main
 struct LensMoodApp: App {
+  @StateObject private var model = AppModel()
+
   var body: some Scene {
     WindowGroup {
-      HomeView()
+      RootView()
+        .environmentObject(model)
+        .preferredColorScheme(.light)
     }
   }
 }
