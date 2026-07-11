@@ -23,8 +23,7 @@ final class LUTLoader {
     defer { lock.unlock() }
     if let cached = cache[name] { return cached }
 
-    guard let url = Bundle.main.url(forResource: name, withExtension: "lut", subdirectory: "luts")
-      ?? Bundle.main.url(forResource: name, withExtension: "lut") else {
+    guard let url = resourceURL(named: name) else {
       throw LUTLoaderError.missing(name)
     }
     let data = try Data(contentsOf: url, options: .mappedIfSafe)
@@ -32,6 +31,28 @@ final class LUTLoader {
     guard data.count == expected else { throw LUTLoaderError.invalid(name) }
     cache[name] = data
     return data
+  }
+
+  private func resourceURL(named name: String) -> URL? {
+    let bundles = [Bundle.main, Bundle(for: LUTLoader.self)] + Bundle.allBundles + Bundle.allFrameworks
+    var visited = Set<URL>()
+    for bundle in bundles {
+      guard let root = bundle.resourceURL, visited.insert(root).inserted else { continue }
+      if let direct = bundle.url(forResource: name, withExtension: "lut", subdirectory: "luts")
+        ?? bundle.url(forResource: name, withExtension: "lut") {
+        return direct
+      }
+      guard let enumerator = FileManager.default.enumerator(
+        at: root,
+        includingPropertiesForKeys: nil,
+        options: [.skipsHiddenFiles, .skipsPackageDescendants]
+      ) else { continue }
+      for case let candidate as URL in enumerator
+      where candidate.lastPathComponent == "\(name).lut" {
+        return candidate
+      }
+    }
+    return nil
   }
 
   func apply(named name: String, to image: CIImage) throws -> CIImage {
