@@ -33,7 +33,7 @@ enum PhotoLibraryWriter {
 
   static func save(videoAt url: URL) async throws {
     try await ensureAddPermission()
-    try await withCheckedThrowingContinuation { continuation in
+    try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
       PHPhotoLibrary.shared().performChanges {
         PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: url)
       } completionHandler: { success, error in
