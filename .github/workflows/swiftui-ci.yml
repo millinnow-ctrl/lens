@@ -51,10 +51,12 @@ jobs:
         working-directory: LensMoodApp
         run: |
           set -o pipefail
+          mkdir -p ui-artifacts
           xcodebuild test \
             -project LensMood.xcodeproj \
             -scheme LensMood \
             -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
+            -resultBundlePath ui-artifacts/LensMoodTests.xcresult \
             CODE_SIGNING_ALLOWED=NO | tee xcodetest.log | tail -120
 
       - name: Capture simulator product surfaces
