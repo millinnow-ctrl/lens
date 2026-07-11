@@ -31,7 +31,7 @@ struct DevelopView: View {
     .background(Theme.paper)
     .navigationTitle(stock.name)
     .navigationBarTitleDisplayMode(.inline)
-    .onChange(of: pickedItem) { _, item in
+    .onChange(of: pickedItem) { item in
       guard let item else { return }
       Task {
         if let data = try? await item.loadTransferable(type: Data.self),
