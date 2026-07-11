@@ -35,6 +35,9 @@ targets:
     platform: iOS
     sources:
       - Tests
+    resources:
+      - Tests/Fixtures
+      - ../reference/photos/sample-golden.jpg
     dependencies:
       - target: LensMood
     settings:
