@@ -1,7 +1,8 @@
 name: SwiftUI CI
 
-# Compiles, tests, and visually captures the SwiftUI app, then verifies the
-# frozen reference output. No signing or Apple account is required.
+# Builds, tests, and visually captures the native app. Reference-engine
+# preservation runs separately so Swift-only changes do not regenerate and
+# retain the 180-image fixture corpus.
 
 on:
   workflow_dispatch:
@@ -12,7 +13,6 @@ on:
   push:
     paths:
       - 'LensMoodApp/**'
-      - 'reference/**'
       - '.github/workflows/swiftui-ci.yml'
 
 concurrency:
@@ -84,7 +84,7 @@ jobs:
           name: swiftui-ui-capture
           path: LensMoodApp/ui-artifacts/
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 7
 
       - name: Upload Xcode logs on failure
         if: failure()
@@ -94,5 +94,4 @@ jobs:
           path: |
             LensMoodApp/xcodebuild.log
             LensMoodApp/xcodetest.log
-          retention-days: 14
-
+          retention-days: 3
