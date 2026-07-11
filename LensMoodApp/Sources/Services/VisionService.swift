@@ -1,83 +1,83 @@
-// Extracted from lensmood-native/modules/lensmood-vision (Expo wrapper removed).
-// Apple Vision face detection + person segmentation, fully on-device.
-// Compiled by SwiftUI CI; wired into FilmEngine in Phase B.
-
-import Vision
+import CoreImage
+import ImageIO
 import UIKit
+import Vision
 
 enum VisionError: LocalizedError {
-  case badInput(String)
+  case unreadableImage
+
   var errorDescription: String? {
-    switch self {
-    case .badInput(let m): return m
-    }
+    "The photograph could not be prepared for subject analysis."
   }
 }
 
+struct SubjectAnalysis {
+  let faces: [FaceProfile]
+  let personMask: CIImage?
+}
+
 final class VisionService {
-  private static func cgImage(from uri: String) throws -> CGImage {
-    guard let url = URL(string: uri),
-          let data = try? Data(contentsOf: url),
-          let ui = UIImage(data: data),
-          let cg = ui.cgImage else {
-      throw VisionError.badInput("Could not read the image.")
+  static func analyze(_ image: UIImage, includePersonMask: Bool = false) throws -> SubjectAnalysis {
+    guard let cgImage = image.cgImage else { throw VisionError.unreadableImage }
+    let orientation = CGImagePropertyOrientation(image.imageOrientation)
+
+    let faceRequest = VNDetectFaceRectanglesRequest()
+    var requests: [VNRequest] = [faceRequest]
+    let maskRequest: VNGeneratePersonSegmentationRequest?
+    if includePersonMask {
+      let request = VNGeneratePersonSegmentationRequest()
+      request.qualityLevel = .balanced
+      request.outputPixelFormat = kCVPixelFormatType_OneComponent8
+      requests.append(request)
+      maskRequest = request
+    } else {
+      maskRequest = nil
     }
-    return cg
-  }
 
-  /** VNDetectFaceRectangles → [{x, y, w, h}] normalized, top-left origin */
-  static func detectFaces(uri: String) throws -> [[String: Double]] {
-    let cg = try cgImage(from: uri)
-    let request = VNDetectFaceRectanglesRequest()
-    let handler = VNImageRequestHandler(cgImage: cg, options: [:])
-    try handler.perform([request])
-    let observations = request.results ?? []
-    return observations.map { face in
-      let bb = face.boundingBox // normalized, BOTTOM-left origin
-      return [
-        "x": Double(bb.origin.x),
-        "y": Double(1.0 - bb.origin.y - bb.size.height), // → top-left origin
-        "w": Double(bb.size.width),
-        "h": Double(bb.size.height),
-        "confidence": Double(face.confidence),
-      ]
+    let handler = VNImageRequestHandler(
+      cgImage: cgImage,
+      orientation: orientation,
+      options: [:]
+    )
+    try handler.perform(requests)
+
+    let faces = (faceRequest.results ?? []).enumerated().map { index, face in
+      let bounds = face.boundingBox
+      return FaceProfile(
+        id: index,
+        bounds: CGRect(
+          x: bounds.origin.x,
+          y: 1 - bounds.origin.y - bounds.height,
+          width: bounds.width,
+          height: bounds.height
+        ),
+        confidence: face.confidence
+      )
     }
+
+    let mask: CIImage?
+    if let buffer = maskRequest?.results?.first?.pixelBuffer {
+      mask = CIImage(cvPixelBuffer: buffer)
+    } else {
+      mask = nil
+    }
+
+    return SubjectAnalysis(faces: faces, personMask: mask)
   }
+}
 
-  /** VNGeneratePersonSegmentation → small grayscale PNG (base64) + dims */
-  static func personMask(uri: String) throws -> [String: Any]? {
-    let cg = try cgImage(from: uri)
-    let request = VNGeneratePersonSegmentationRequest()
-    request.qualityLevel = .balanced
-    request.outputPixelFormat = kCVPixelFormatType_OneComponent8
-    let handler = VNImageRequestHandler(cgImage: cg, options: [:])
-    try handler.perform([request])
-    guard let result = request.results?.first else { return nil }
-    let buffer = result.pixelBuffer
-
-    CVPixelBufferLockBaseAddress(buffer, .readOnly)
-    defer { CVPixelBufferUnlockBaseAddress(buffer, .readOnly) }
-    let width = CVPixelBufferGetWidth(buffer)
-    let height = CVPixelBufferGetHeight(buffer)
-    let bytesPerRow = CVPixelBufferGetBytesPerRow(buffer)
-    guard let base = CVPixelBufferGetBaseAddress(buffer) else { return nil }
-
-    guard let ctx = CGContext(
-      data: base,
-      width: width,
-      height: height,
-      bitsPerComponent: 8,
-      bytesPerRow: bytesPerRow,
-      space: CGColorSpaceCreateDeviceGray(),
-      bitmapInfo: CGImageAlphaInfo.none.rawValue
-    ), let maskCG = ctx.makeImage() else { return nil }
-
-    let png = UIImage(cgImage: maskCG).pngData()
-    guard let png else { return nil }
-    return [
-      "maskBase64": png.base64EncodedString(),
-      "width": width,
-      "height": height,
-    ]
+private extension CGImagePropertyOrientation {
+  init(_ orientation: UIImage.Orientation) {
+    switch orientation {
+    case .up: self = .up
+    case .upMirrored: self = .upMirrored
+    case .down: self = .down
+    case .downMirrored: self = .downMirrored
+    case .left: self = .left
+    case .leftMirrored: self = .leftMirrored
+    case .right: self = .right
+    case .rightMirrored: self = .rightMirrored
+    @unknown default: self = .up
+    }
   }
 }
