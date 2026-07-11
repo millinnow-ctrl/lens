@@ -18,7 +18,7 @@ enum PhotoLibraryError: LocalizedError {
 enum PhotoLibraryWriter {
   static func save(image: UIImage) async throws {
     try await ensureAddPermission()
-    try await withCheckedThrowingContinuation { continuation in
+    try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
       PHPhotoLibrary.shared().performChanges {
         PHAssetChangeRequest.creationRequestForAsset(from: image)
       } completionHandler: { success, error in
@@ -50,7 +50,11 @@ enum PhotoLibraryWriter {
     let current = PHPhotoLibrary.authorizationStatus(for: .addOnly)
     let status: PHAuthorizationStatus
     if current == .notDetermined {
-      status = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
+      status = await withCheckedContinuation { continuation in
+        PHPhotoLibrary.requestAuthorization(for: .addOnly) { newStatus in
+          continuation.resume(returning: newStatus)
+        }
+      }
     } else {
       status = current
     }
