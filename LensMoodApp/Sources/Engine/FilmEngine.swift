@@ -70,13 +70,14 @@ final class FilmEngine {
     }
 
     let adaptiveEV = adaptiveExposure(for: scene, recipe: recipe)
-    image = applyExposure(image, ev: recipe.exposureBias + adaptiveEV)
-    image = applyWhiteBalance(image, scene: scene, recipe: recipe)
-    image = applyTone(image, recipe: recipe)
-
     if recipe.engineClass == .staticLUT, let lutName = recipe.lutName {
+      // The baked cube is the complete per-pixel color core. Applying the
+      // recipe's exposure, white balance, and tone again would double-develop it.
       image = try lutLoader.apply(named: lutName, to: image)
     } else {
+      image = applyExposure(image, ev: recipe.exposureBias + adaptiveEV)
+      image = applyWhiteBalance(image, scene: scene, recipe: recipe)
+      image = applyTone(image, recipe: recipe)
       image = applyAdaptiveColor(image, scene: scene, recipe: recipe)
     }
 
