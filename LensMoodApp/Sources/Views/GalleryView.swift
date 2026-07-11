@@ -91,21 +91,6 @@ struct GalleryView: View {
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .background(Theme.paper)
   }
-
-  private func save() {
-    isSaving = true
-    Task {
-      do {
-        try await PhotoLibraryWriter.save(image: asset.image)
-        isSaving = false
-        saveConfirmation = true
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
-      } catch {
-        isSaving = false
-        errorMessage = error.localizedDescription
-      }
-    }
-  }
 }
 
 private struct GalleryDetailView: View {
@@ -180,6 +165,21 @@ private struct GalleryDetailView: View {
         Button("OK", role: .cancel) {}
       } message: {
         Text(errorMessage ?? "Please try again.")
+      }
+    }
+  }
+
+  private func save() {
+    isSaving = true
+    Task {
+      do {
+        try await PhotoLibraryWriter.save(image: asset.image)
+        isSaving = false
+        saveConfirmation = true
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+      } catch {
+        isSaving = false
+        errorMessage = error.localizedDescription
       }
     }
   }
