@@ -21,6 +21,7 @@ struct DevelopView: View {
   @State private var previewMode: PreviewMode = .developed
   @State private var compareFraction: CGFloat = 0.5
   @State private var isDeveloping = false
+  @State private var isSaving = false
   @State private var errorMessage: String?
   @State private var sharePresented = false
   @State private var saveConfirmation = false
@@ -200,9 +201,9 @@ struct DevelopView: View {
     VStack(spacing: 10) {
       HStack(spacing: 10) {
         photoPicker(title: "New photograph")
-        Button("Save") { save() }
+        Button(isSaving ? "Preparing full resolution" : "Save") { save() }
           .buttonStyle(InstrumentButtonStyle(kind: .primary))
-          .disabled(developedImage == nil)
+          .disabled(developedImage == nil || isSaving)
       }
       Button("Share developed photograph") {
         sharePresented = true
@@ -308,10 +309,26 @@ struct DevelopView: View {
   }
 
   private func save() {
-    guard let developedImage else { return }
-    UIImageWriteToSavedPhotosAlbum(developedImage, nil, nil, nil)
-    saveConfirmation = true
-    UINotificationFeedbackGenerator().notificationOccurred(.success)
+    guard let sourceImage else { return }
+    isSaving = true
+    let recipe = stock.recipe
+    let seed = Double(stock.id.unicodeScalars.reduce(17) { ($0 * 31 + Int($1.value)) % 100_000 })
+    DispatchQueue.global(qos: .userInitiated).async {
+      let result = Result {
+        try FilmEngine.shared.develop(sourceImage, with: recipe, seed: seed).image
+      }
+      DispatchQueue.main.async {
+        isSaving = false
+        switch result {
+        case .success(let fullResolution):
+          UIImageWriteToSavedPhotosAlbum(fullResolution, nil, nil, nil)
+          saveConfirmation = true
+          UINotificationFeedbackGenerator().notificationOccurred(.success)
+        case .failure(let error):
+          errorMessage = error.localizedDescription
+        }
+      }
+    }
   }
 }
 
