@@ -145,3 +145,6 @@ vite.config.ts.timestamp-*
 dist-single
 src/assets/sample-flashref.jpg
 reference/out/
+# per-stock fixture PNGs reproduce byte-exactly from committed inputs + engine
+# (manifest SHA256s are canonical; CI regenerates and uploads them as artifacts)
+reference/fixtures/*/*/

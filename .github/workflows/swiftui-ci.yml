@@ -9,6 +9,7 @@ on:
   push:
     paths:
       - 'LensMoodApp/**'
+      - 'reference/**'
       - '.github/workflows/swiftui-ci.yml'
 
 jobs:
@@ -33,3 +34,30 @@ jobs:
             -scheme LensMood \
             -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO | tail -50
+
+  fixtures:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install reference deps
+        working-directory: lensmood-native
+        run: npm ci --legacy-peer-deps && npm i --no-save --legacy-peer-deps @napi-rs/canvas
+      - name: Compile reference engine
+        working-directory: reference
+        run: node ../lensmood-native/node_modules/typescript/lib/tsc.js lib/engine.ts lib/styles.ts lib/scene.ts --outDir out --module commonjs --target es2020 --lib es2020,dom --noCheck
+      - name: Verify golden fixtures (byte-exact) + emit renders
+        working-directory: reference
+        run: NODE_PATH=../lensmood-native/node_modules FIXTURES_OUT=$GITHUB_WORKSPACE/fixture-renders node fixtures.cjs verify
+      - name: Upload fixture renders + labeled grids
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-fixtures
+          path: |
+            fixture-renders/
+            reference/fixtures/*/*-grid.png
+            reference/fixtures/manifest.json
+          retention-days: 30

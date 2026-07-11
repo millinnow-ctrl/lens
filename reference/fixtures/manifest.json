@@ -1,0 +1,1550 @@
+{
+  "version": 1,
+  "toleranceVersion": 1,
+  "engine": {
+    "commit": "431d21b15c9ccd84009398b99325bf3ede65ea37",
+    "twin": "reference/lib/engine.ts",
+    "colorModel": "display-referred sRGB, 8-bit, unmanaged (reference-native)",
+    "renderOptions": {
+      "maxSize": 560,
+      "watermark": false,
+      "frame": true,
+      "focal": null,
+      "scene": "analyzed (adaptive)"
+    },
+    "determinism": {
+      "pinnedDateUTC": "2026-01-01T12:00:00Z",
+      "rng": "fnv1a-seeded per photo/stock (harness-level; engine untouched)"
+    },
+    "knownLimit": "focal=null in headless harness: face-lock adaptive paths dormant; covered in Phase B via recorded per-photo focal"
+  },
+  "tolerances": {
+    "meanAbsChannel": 2,
+    "p99AbsChannel": 12,
+    "note": "v1 defaults; per-stock overrides may be added with owner approval"
+  },
+  "photos": [
+    {
+      "id": "golden",
+      "set": "baseline",
+      "file": "photos/sample-golden.jpg",
+      "kind": "real-original",
+      "note": "owner-approved real photograph (project sample set)",
+      "sha256": "9d66bc2d066560d80ebc38525437f3a358dbb9b0ec8d477633b081509b9d3e06"
+    },
+    {
+      "id": "friends",
+      "set": "baseline",
+      "file": "photos/sample-friends.jpg",
+      "kind": "real-original",
+      "note": "owner-approved real photograph (project sample set)",
+      "sha256": "674d59a81f7de3dfc30c842ffd452eb4f853d17664b773532f27ade61a68c3dd"
+    },
+    {
+      "id": "brunch",
+      "set": "baseline",
+      "file": "photos/sample-brunch.jpg",
+      "kind": "real-original",
+      "note": "owner-approved real photograph (project sample set)",
+      "sha256": "9864b51c232ab73820665263d8b5a1d90d0e6b54298bdcc4173b4ed143b1fffd"
+    },
+    {
+      "id": "street",
+      "set": "baseline",
+      "file": "photos/sample-street.jpg",
+      "kind": "real-original",
+      "note": "owner-approved real photograph (project sample set)",
+      "sha256": "f47de59750f4eb7458588ea37ef75ea49327384d27cd716d59eb0de703166634"
+    },
+    {
+      "id": "night",
+      "set": "baseline",
+      "file": "photos/sample-night.jpg",
+      "kind": "real-original",
+      "note": "owner-approved real photograph (project sample set)",
+      "sha256": "45ba012eb37b638e5f56ca692090fe75445e8915a5386787dce0430b71fd369b"
+    },
+    {
+      "id": "concert",
+      "set": "baseline",
+      "file": "photos/sample-concert.jpg",
+      "kind": "real-original",
+      "note": "owner-approved real photograph (project sample set)",
+      "sha256": "fb8833750d15df008111e5ca364739170a2cd06ed147e2de78dcbd8fd805a116"
+    },
+    {
+      "id": "dog",
+      "set": "baseline",
+      "file": "photos/sample-dog.jpg",
+      "kind": "real-original",
+      "note": "owner-approved real photograph (project sample set)",
+      "sha256": "8678fd075a700ad8fb051936897874f4c4bf063dcb80730b2a2429b08c6bbfa1"
+    },
+    {
+      "id": "degraded-blurry-from-brunch",
+      "set": "extended",
+      "file": "photos-extended/degraded-blurry-from-brunch.png",
+      "kind": "synthetic-degraded",
+      "note": "SYNTHETIC: deterministic degradation of a real baseline photo (technical edge case)",
+      "sha256": "cd3f9b6de54e3c54c7e0c2c11b812d1e33f377f27c34c89555cb5fdc79941e89"
+    },
+    {
+      "id": "degraded-noisy-from-friends",
+      "set": "extended",
+      "file": "photos-extended/degraded-noisy-from-friends.png",
+      "kind": "synthetic-degraded",
+      "note": "SYNTHETIC: deterministic degradation of a real baseline photo (technical edge case)",
+      "sha256": "b55ce7e26a0a0477a6ca82fdbc7c5431c13947133910dccd39fec978808ef395"
+    },
+    {
+      "id": "degraded-underexposed-from-golden",
+      "set": "extended",
+      "file": "photos-extended/degraded-underexposed-from-golden.png",
+      "kind": "synthetic-degraded",
+      "note": "SYNTHETIC: deterministic degradation of a real baseline photo (technical edge case)",
+      "sha256": "885484c8627901334de5adb2302d622d5832f420c9edab5f8ed114b7a3188c8d"
+    }
+  ],
+  "fixtures": [
+    {
+      "photo": "golden",
+      "stock": "disposable",
+      "file": "fixtures/baseline/golden/disposable.png",
+      "sha256": "4a97e150e41b7a045315cac2d7ec0d92bd13bfdee105c881dd458a26a8305538",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "golden",
+      "stock": "iphone-flash",
+      "file": "fixtures/baseline/golden/iphone-flash.png",
+      "sha256": "8873d8f1d1709f7870f5344cc41fd28fa76469934b4c3ee0ac8aeccf44b72728",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "golden",
+      "stock": "camcorder-90s",
+      "file": "fixtures/baseline/golden/camcorder-90s.png",
+      "sha256": "9e9a7531039a982b7373e1c0185d7d9ce247c7887222db6d29dd7fdf69f9b667",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "golden",
+      "stock": "leica-street",
+      "file": "fixtures/baseline/golden/leica-street.png",
+      "sha256": "368bd7ec6f82ffda3c80e680255da2724e304dfe299df92392ff5f73f24b6e35",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "golden",
+      "stock": "gq-editorial",
+      "file": "fixtures/baseline/golden/gq-editorial.png",
+      "sha256": "413eebff434f77ea8bf55f6b4c537ff2a6501645567c8133df8ee2899172123c",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "golden",
+      "stock": "a24-still",
+      "file": "fixtures/baseline/golden/a24-still.png",
+      "sha256": "6942384c3d92b3c9b7f8b77ba5199b78ac7adea539280988b86d52faf69950de",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "golden",
+      "stock": "film-noir",
+      "file": "fixtures/baseline/golden/film-noir.png",
+      "sha256": "1a5ecc41cad30a0cfd7ecfb09adb9beae1d6e782df39acc125a02b6fac2bd682",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "golden",
+      "stock": "y2k-digicam",
+      "file": "fixtures/baseline/golden/y2k-digicam.png",
+      "sha256": "abe69b912f69292bac0a1a0baa0600face522c524e7e38c7bad2bb1c01be43f1",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "golden",
+      "stock": "polaroid",
+      "file": "fixtures/baseline/golden/polaroid.png",
+      "sha256": "bcbcb04f701a6286eaaf8cf3f7e9014b653dd31a279657a9ee70eb0827e58964",
+      "width": 482,
+      "height": 681
+    },
+    {
+      "photo": "golden",
+      "stock": "super-8",
+      "file": "fixtures/baseline/golden/super-8.png",
+      "sha256": "048022203c3d11c06e70334d1401aeeaf60b93345cf06de90bade8930538ee17",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "golden",
+      "stock": "lomo",
+      "file": "fixtures/baseline/golden/lomo.png",
+      "sha256": "8a97fa12cab2e003a8dd7213755d267b2a30fd58ffcbfd66e8c535ca3ef51e80",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "golden",
+      "stock": "kodachrome",
+      "file": "fixtures/baseline/golden/kodachrome.png",
+      "sha256": "0ed533958d2744cb973da318ee7761edd7b9c82f2b87075ae919919d8f0df24c",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "golden",
+      "stock": "security-cam",
+      "file": "fixtures/baseline/golden/security-cam.png",
+      "sha256": "d20f251cbe7f4b9adf4738ba74bc174fcb1c336a62e9673c969c3efd0e64e2ba",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "golden",
+      "stock": "point-shoot",
+      "file": "fixtures/baseline/golden/point-shoot.png",
+      "sha256": "205ba63aeca044291f18995d039e507ad97487c14211b174185fce93f4c4b4af",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "golden",
+      "stock": "pastel-cinema",
+      "file": "fixtures/baseline/golden/pastel-cinema.png",
+      "sha256": "6e750729c8a732a73964dd3a4631e1d4b91954aa2ae000abd67172efa2f401c8",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "golden",
+      "stock": "tokyo-neon",
+      "file": "fixtures/baseline/golden/tokyo-neon.png",
+      "sha256": "fe547ede9a55b632571108640b4217a17187f92275a1242d13c802f7adc80617",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "golden",
+      "stock": "photobooth",
+      "file": "fixtures/baseline/golden/photobooth.png",
+      "sha256": "bdf75ff65b7db9a0c52b78a4598b8c0e2c147713fa5cf9e7249e6ffc12f3cff5",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "golden",
+      "stock": "tintype",
+      "file": "fixtures/baseline/golden/tintype.png",
+      "sha256": "4309f89e01967ee032f55cdbabc07ef4b66f9f94b2a5899a5fa61f3a2571a496",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "friends",
+      "stock": "disposable",
+      "file": "fixtures/baseline/friends/disposable.png",
+      "sha256": "5b9f3865e8c41069ac0c8aa1822b08e67476055bbdca3817ef0f99971383018e",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "friends",
+      "stock": "iphone-flash",
+      "file": "fixtures/baseline/friends/iphone-flash.png",
+      "sha256": "43e71c1974edf8186c2de977da5009c33f3094d59bb6d0331aca4087af30a560",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "friends",
+      "stock": "camcorder-90s",
+      "file": "fixtures/baseline/friends/camcorder-90s.png",
+      "sha256": "a2262940c2117db3d546b59f0b812a33831476fad06d4e3b793d9674ceeaca46",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "friends",
+      "stock": "leica-street",
+      "file": "fixtures/baseline/friends/leica-street.png",
+      "sha256": "dc5f87bca7284f47725c10ef14abeb2fe13dbe4e0b0bae9a1fe7259ca0bed349",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "friends",
+      "stock": "gq-editorial",
+      "file": "fixtures/baseline/friends/gq-editorial.png",
+      "sha256": "63ff667ba78d5a7e6c1c0f6f842a449d4d3565029cc1e9295b0012c69c00ece5",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "friends",
+      "stock": "a24-still",
+      "file": "fixtures/baseline/friends/a24-still.png",
+      "sha256": "069d6b574cdb6ba19526862a61b101fde66f950982b2bfa3815c06c2e64d0e1e",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "friends",
+      "stock": "film-noir",
+      "file": "fixtures/baseline/friends/film-noir.png",
+      "sha256": "29fb120e12a7046e63fb97acdefb6b3e604c079173c8ee6315ef1f74f992ba39",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "friends",
+      "stock": "y2k-digicam",
+      "file": "fixtures/baseline/friends/y2k-digicam.png",
+      "sha256": "733e3f78cd63f9fb4b53c72a5c229e6e3123c96995f788339e29b9a4e92e67df",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "friends",
+      "stock": "polaroid",
+      "file": "fixtures/baseline/friends/polaroid.png",
+      "sha256": "e000218ed306b8804504eee06542278bab99741910b9480a59a19d4a4579d101",
+      "width": 482,
+      "height": 681
+    },
+    {
+      "photo": "friends",
+      "stock": "super-8",
+      "file": "fixtures/baseline/friends/super-8.png",
+      "sha256": "6ed6980bb9bd71e74045af4e6c33dd5e978a8569c1ae323f31b01fdab66b44c1",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "friends",
+      "stock": "lomo",
+      "file": "fixtures/baseline/friends/lomo.png",
+      "sha256": "e1114c0b6ca6e4b0e6948f5fb8824cfaaa51eb35a3c725bca24e7c62252a82ee",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "friends",
+      "stock": "kodachrome",
+      "file": "fixtures/baseline/friends/kodachrome.png",
+      "sha256": "e442f8c89ba515802ca696790d491132b44b6ec5c432ac0989ce2d5f30a8e96e",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "friends",
+      "stock": "security-cam",
+      "file": "fixtures/baseline/friends/security-cam.png",
+      "sha256": "95ab4f683899b65d2476b657d91275193b268790a39d4e04bcb1ad00f86d28bf",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "friends",
+      "stock": "point-shoot",
+      "file": "fixtures/baseline/friends/point-shoot.png",
+      "sha256": "85c8c38a03e29cb296b71a92a190bc0a8264c9b42e2405f300bca89c00f45b94",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "friends",
+      "stock": "pastel-cinema",
+      "file": "fixtures/baseline/friends/pastel-cinema.png",
+      "sha256": "b7e59d0b9a119bba1ffc242911b1cd8150c8fd2041f3779013da03478a53574e",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "friends",
+      "stock": "tokyo-neon",
+      "file": "fixtures/baseline/friends/tokyo-neon.png",
+      "sha256": "b6a8a67a50270b0e2bbce0a97fa62f6378effcba69a2b9e4251195fcd5ac2f0b",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "friends",
+      "stock": "photobooth",
+      "file": "fixtures/baseline/friends/photobooth.png",
+      "sha256": "0984d109061a52a6f971d14ad7197217e9258d93b2ccd962156f8886b1564007",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "friends",
+      "stock": "tintype",
+      "file": "fixtures/baseline/friends/tintype.png",
+      "sha256": "1ab1aca0e5ee0a2e597c0d05757b7c11b9e122812ad0123c8eb02a09d8a62c14",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "brunch",
+      "stock": "disposable",
+      "file": "fixtures/baseline/brunch/disposable.png",
+      "sha256": "a29c55a68d702df1cdd76c7dc664d864aa1c3ecb7d3ada63b13645a53987c3fb",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "brunch",
+      "stock": "iphone-flash",
+      "file": "fixtures/baseline/brunch/iphone-flash.png",
+      "sha256": "490a15eb36792324affdd38761bf21a141efbe43f97894caed3586554077f795",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "brunch",
+      "stock": "camcorder-90s",
+      "file": "fixtures/baseline/brunch/camcorder-90s.png",
+      "sha256": "1f45b8f1fd1384c667965c348fb5328a8559ba0f54e0978ecc9e36102386dbaf",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "brunch",
+      "stock": "leica-street",
+      "file": "fixtures/baseline/brunch/leica-street.png",
+      "sha256": "1f86e273673f05817780a86c84e21e3f76d429e525d0eb9f6b7a963de875c6eb",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "brunch",
+      "stock": "gq-editorial",
+      "file": "fixtures/baseline/brunch/gq-editorial.png",
+      "sha256": "b9bb5675a202a91ce5011765d2eece8199d01292cab63ec407de5dd1428db15f",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "brunch",
+      "stock": "a24-still",
+      "file": "fixtures/baseline/brunch/a24-still.png",
+      "sha256": "54398488d5ebde5f0ba0d678c8ce47d551e703eed0970dcddc4dac23d548fad2",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "brunch",
+      "stock": "film-noir",
+      "file": "fixtures/baseline/brunch/film-noir.png",
+      "sha256": "0bc5854de55bfb44e0e84f74e43de23cc71ed4efb8a84d7f5fcd4892fbc6b2d1",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "brunch",
+      "stock": "y2k-digicam",
+      "file": "fixtures/baseline/brunch/y2k-digicam.png",
+      "sha256": "b36af346ffd13877f3e845a61ca643b1afe2793baeffd587bcade6090eacb8bc",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "brunch",
+      "stock": "polaroid",
+      "file": "fixtures/baseline/brunch/polaroid.png",
+      "sha256": "fa4f317e124ece85ddcf570cde27629e13f2d84eb741bda40cb12c58d4884c3c",
+      "width": 482,
+      "height": 681
+    },
+    {
+      "photo": "brunch",
+      "stock": "super-8",
+      "file": "fixtures/baseline/brunch/super-8.png",
+      "sha256": "e18a389d9cf6fd81a747a8997121d8639806c7c96f4140e4248465e089a9b1bf",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "brunch",
+      "stock": "lomo",
+      "file": "fixtures/baseline/brunch/lomo.png",
+      "sha256": "d8839832b34cacb06147613e38128edc4f3d2f2be64817d7d77cf10c7705ee51",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "brunch",
+      "stock": "kodachrome",
+      "file": "fixtures/baseline/brunch/kodachrome.png",
+      "sha256": "fc5b1d62dbd3d9a534489291ff7cb117e583ee816fc6858fd4f22a0f51321753",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "brunch",
+      "stock": "security-cam",
+      "file": "fixtures/baseline/brunch/security-cam.png",
+      "sha256": "c7d3a3c56829dc56d2da76c6de46c2f3934aaafa9b59bf7a19ea2f6f2618340e",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "brunch",
+      "stock": "point-shoot",
+      "file": "fixtures/baseline/brunch/point-shoot.png",
+      "sha256": "9713dae7d95a9478b219b08681ed961e28d79db3dd093bf3122fbffae5ce2844",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "brunch",
+      "stock": "pastel-cinema",
+      "file": "fixtures/baseline/brunch/pastel-cinema.png",
+      "sha256": "ce6ac01fae1155e5259fb1ca21720388fdd878986df30f64791e9a7a7da13fc3",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "brunch",
+      "stock": "tokyo-neon",
+      "file": "fixtures/baseline/brunch/tokyo-neon.png",
+      "sha256": "237643cc4ca746e3725fb6d08432a9e0d37fb5764dd371a25a35ba3fa729a064",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "brunch",
+      "stock": "photobooth",
+      "file": "fixtures/baseline/brunch/photobooth.png",
+      "sha256": "1e958d1b3d27e488d04c7a44199f6e6a4883363d8b53edbe905a7cfed4da652c",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "brunch",
+      "stock": "tintype",
+      "file": "fixtures/baseline/brunch/tintype.png",
+      "sha256": "6c45448e7377f99a09830fdb784da47e366176e1a3e72a4ab4ed7883a8762352",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "street",
+      "stock": "disposable",
+      "file": "fixtures/baseline/street/disposable.png",
+      "sha256": "50703b0ccbd919c16ce5c48c0deb86d93fbafbbba2dcc5f932b26995e817fbf0",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "street",
+      "stock": "iphone-flash",
+      "file": "fixtures/baseline/street/iphone-flash.png",
+      "sha256": "f126fb17766b6c699453a0f12e22293f49fed1071ad43f267f94bebbe90bd66f",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "street",
+      "stock": "camcorder-90s",
+      "file": "fixtures/baseline/street/camcorder-90s.png",
+      "sha256": "72eebde63fdf640b111ce96c2fa17698dd475b29af075f12dfe01359380f525f",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "street",
+      "stock": "leica-street",
+      "file": "fixtures/baseline/street/leica-street.png",
+      "sha256": "54330df465721dce9b70439de7e757d24e19c1a83bb0018f282e84e19c54c105",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "street",
+      "stock": "gq-editorial",
+      "file": "fixtures/baseline/street/gq-editorial.png",
+      "sha256": "11a5cdd37f4b4d2fb0de59d2d9ae9bb01ea9193bda1f0487ee1b89ec8799bb63",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "street",
+      "stock": "a24-still",
+      "file": "fixtures/baseline/street/a24-still.png",
+      "sha256": "0b1d0f8d1784900e251004de15bf9529b4fe984681c2cf98f568aba2de4d4f20",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "street",
+      "stock": "film-noir",
+      "file": "fixtures/baseline/street/film-noir.png",
+      "sha256": "41141e42e5d0b688d60c47730f6b9b2030012c5c8bab3e3de9e59a8239afd6e4",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "street",
+      "stock": "y2k-digicam",
+      "file": "fixtures/baseline/street/y2k-digicam.png",
+      "sha256": "95d9436efe575d41b667312092a6d9db1d9da41ebeb13696c7c19b39cf1ca311",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "street",
+      "stock": "polaroid",
+      "file": "fixtures/baseline/street/polaroid.png",
+      "sha256": "b08310054589d4a7ae3e43e6090475c25689f553b7f75f7da812a1d559cf9633",
+      "width": 482,
+      "height": 681
+    },
+    {
+      "photo": "street",
+      "stock": "super-8",
+      "file": "fixtures/baseline/street/super-8.png",
+      "sha256": "cea1ef14aac2940f0cbae01700ee9b1f1dec9a22039d7bf41c58f9895ac4db66",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "street",
+      "stock": "lomo",
+      "file": "fixtures/baseline/street/lomo.png",
+      "sha256": "45e65a9383aa6fd12390b95097a9ea851e58af5291152694525347febd4ceb98",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "street",
+      "stock": "kodachrome",
+      "file": "fixtures/baseline/street/kodachrome.png",
+      "sha256": "9d22ddc942e4d23e80802e6a42861c9241348ff7d3d5c09b58bd6e42f772fbbd",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "street",
+      "stock": "security-cam",
+      "file": "fixtures/baseline/street/security-cam.png",
+      "sha256": "fa9deed9edff216046934d53022c32c01fc7e5d5ffc87a8587f9361cbb24019d",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "street",
+      "stock": "point-shoot",
+      "file": "fixtures/baseline/street/point-shoot.png",
+      "sha256": "9bce8363aa498a0e6ed70b33a614e7fd36fa2a420f5f1aacba8b7f9261e186e1",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "street",
+      "stock": "pastel-cinema",
+      "file": "fixtures/baseline/street/pastel-cinema.png",
+      "sha256": "284f03a9632b377d99b7f4882886e96a80bf3f9b4aae887f9e553bab56fb2dc5",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "street",
+      "stock": "tokyo-neon",
+      "file": "fixtures/baseline/street/tokyo-neon.png",
+      "sha256": "29e407d7f63c5d2f8430b2866e1910656333842754a85a58bc32128584b5acf1",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "street",
+      "stock": "photobooth",
+      "file": "fixtures/baseline/street/photobooth.png",
+      "sha256": "a866177e1717d8dbda6e4616a6d6680119dde9c523bd15cf7a16832a9f154e74",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "street",
+      "stock": "tintype",
+      "file": "fixtures/baseline/street/tintype.png",
+      "sha256": "6da19304387f656f66272236909788624fe95644f2bd6bb34f5f249cae22fb0c",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "night",
+      "stock": "disposable",
+      "file": "fixtures/baseline/night/disposable.png",
+      "sha256": "555c79f50f0b95b10298c702797225bcef373cc4851fc0e25a40516114683b94",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "night",
+      "stock": "iphone-flash",
+      "file": "fixtures/baseline/night/iphone-flash.png",
+      "sha256": "095b68e6ba2c8fc8eeb7cbf8df3cb80eba3eba9ffd8d43d1db96fbcaf5022428",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "night",
+      "stock": "camcorder-90s",
+      "file": "fixtures/baseline/night/camcorder-90s.png",
+      "sha256": "1a3b2061eae8b598c7a488e63474e60f7650ecd5425d1487b6462133a3ea95b4",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "night",
+      "stock": "leica-street",
+      "file": "fixtures/baseline/night/leica-street.png",
+      "sha256": "bfb065a4e4672e3d579df2305e82660db563919409564574e871bd398c8feea1",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "night",
+      "stock": "gq-editorial",
+      "file": "fixtures/baseline/night/gq-editorial.png",
+      "sha256": "a53733e63f976cb3a16c5f6ce8dcbf8be93e8005c55b433ca477c03dc01753aa",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "night",
+      "stock": "a24-still",
+      "file": "fixtures/baseline/night/a24-still.png",
+      "sha256": "64b71bb5d435887dcbf04e57daaa133441642cd4bae43bab9f677367028af1f2",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "night",
+      "stock": "film-noir",
+      "file": "fixtures/baseline/night/film-noir.png",
+      "sha256": "d06a933055a69251cd09f9864481201b5d584ca4672274783388b08d3a95172c",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "night",
+      "stock": "y2k-digicam",
+      "file": "fixtures/baseline/night/y2k-digicam.png",
+      "sha256": "e8e694968ecdc195ffa2a77e4d1842654612a639317106500dbe4217c0bdad11",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "night",
+      "stock": "polaroid",
+      "file": "fixtures/baseline/night/polaroid.png",
+      "sha256": "140caa5fb127d4ea1434a75d43644be19ba06c1de2ba72ae5fc7408537987adb",
+      "width": 482,
+      "height": 681
+    },
+    {
+      "photo": "night",
+      "stock": "super-8",
+      "file": "fixtures/baseline/night/super-8.png",
+      "sha256": "ab9d43c8870e26dbc542a9eaaf79884219997eb34b479c1429297a441e0f544e",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "night",
+      "stock": "lomo",
+      "file": "fixtures/baseline/night/lomo.png",
+      "sha256": "90b705f66e05c7ff197e28e2a77733c487d670b8a61bfc5b05b51243ac0bcb0e",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "night",
+      "stock": "kodachrome",
+      "file": "fixtures/baseline/night/kodachrome.png",
+      "sha256": "40b55baa601380532fbca703b08082119fd8eff16f57bd1a67f6efc4eec8b601",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "night",
+      "stock": "security-cam",
+      "file": "fixtures/baseline/night/security-cam.png",
+      "sha256": "1841929e1136a2641bd51a6967f5b8bb0c04540c793bfee1fc7c078ed7178f26",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "night",
+      "stock": "point-shoot",
+      "file": "fixtures/baseline/night/point-shoot.png",
+      "sha256": "090a6f3892f8b29381aec31d58eda088a80f7a5f06977990cf8baee5174594b8",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "night",
+      "stock": "pastel-cinema",
+      "file": "fixtures/baseline/night/pastel-cinema.png",
+      "sha256": "266c3197d1ebd3d256fa511e501538c09ecabc138c0b772a4783b69abdb342e5",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "night",
+      "stock": "tokyo-neon",
+      "file": "fixtures/baseline/night/tokyo-neon.png",
+      "sha256": "3eca381dd79cfee871d09a0b893f73f68a0a8fe500760662e0a5fc6627d8c7f6",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "night",
+      "stock": "photobooth",
+      "file": "fixtures/baseline/night/photobooth.png",
+      "sha256": "de5a3d92c5d53df69f55e188f0d55d690387de833be3e0860a699513f7a54eec",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "night",
+      "stock": "tintype",
+      "file": "fixtures/baseline/night/tintype.png",
+      "sha256": "01840185ff430607ca96d8389a2aa5cadd04bfe51741589fd9ee08bebfc6ad10",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "concert",
+      "stock": "disposable",
+      "file": "fixtures/baseline/concert/disposable.png",
+      "sha256": "bb49a47d21b5be7541d88d9b47b66c983c0ba892c03c58c8020cec4ec6102741",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "concert",
+      "stock": "iphone-flash",
+      "file": "fixtures/baseline/concert/iphone-flash.png",
+      "sha256": "8b9bb3877c46e5ab8c95eef39c79827e61318a366710662784af89d3e5a617f9",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "concert",
+      "stock": "camcorder-90s",
+      "file": "fixtures/baseline/concert/camcorder-90s.png",
+      "sha256": "2e04df8ad3a59c7340b1669ffd4f32b19f70c9fe5018c567b725deb645c32a05",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "concert",
+      "stock": "leica-street",
+      "file": "fixtures/baseline/concert/leica-street.png",
+      "sha256": "e38a8119fb1b86ff8d2c6aab94873294cf3b1ad41d94e2aea9ca76a8c7fb4ec2",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "concert",
+      "stock": "gq-editorial",
+      "file": "fixtures/baseline/concert/gq-editorial.png",
+      "sha256": "b23b81e9cd6dacb34ce7f66c0020f206fbcf041c543e4e338513c82617403b38",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "concert",
+      "stock": "a24-still",
+      "file": "fixtures/baseline/concert/a24-still.png",
+      "sha256": "02a072480780f730256d966cba6dcab8435425c457331d9254668fd9d7f8ea34",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "concert",
+      "stock": "film-noir",
+      "file": "fixtures/baseline/concert/film-noir.png",
+      "sha256": "b40539ea80ec91b860e99a5abfff93aef74166a6a9e1e41949786296b591c811",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "concert",
+      "stock": "y2k-digicam",
+      "file": "fixtures/baseline/concert/y2k-digicam.png",
+      "sha256": "6809473d98b630cdc697c494d3ece99093b537cb64b8f5d204ee6c22f8f2c7bb",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "concert",
+      "stock": "polaroid",
+      "file": "fixtures/baseline/concert/polaroid.png",
+      "sha256": "b7488b03d32c7a95fdb905c63612d4c1eccbcac710e4ea4bf26a57bbb0244e6f",
+      "width": 482,
+      "height": 681
+    },
+    {
+      "photo": "concert",
+      "stock": "super-8",
+      "file": "fixtures/baseline/concert/super-8.png",
+      "sha256": "b4b9800c740120ab8312df1d9315eb58545789ee326e531b93cce9fe99ddb4da",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "concert",
+      "stock": "lomo",
+      "file": "fixtures/baseline/concert/lomo.png",
+      "sha256": "13d96976e011adf05d85af83fbcb08c4fde5538501c326139a214d02d1f2c5e6",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "concert",
+      "stock": "kodachrome",
+      "file": "fixtures/baseline/concert/kodachrome.png",
+      "sha256": "885c2aa24681abbf79de7f92e371c7717d911f36b68824a9ac68a6dbe9fd7bb6",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "concert",
+      "stock": "security-cam",
+      "file": "fixtures/baseline/concert/security-cam.png",
+      "sha256": "401bfd6b5c9b432c61c01eaddd46b5ef2aa39077ec5d54559ccb30a9921532cb",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "concert",
+      "stock": "point-shoot",
+      "file": "fixtures/baseline/concert/point-shoot.png",
+      "sha256": "c060833d60432ce946b151b3a3acc2dc34a364918bb3d45a66187455a8f87f2f",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "concert",
+      "stock": "pastel-cinema",
+      "file": "fixtures/baseline/concert/pastel-cinema.png",
+      "sha256": "808e17ba6f0486ac6311b9bc7685e6de7f4a2825934aee670633326f1743aa8b",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "concert",
+      "stock": "tokyo-neon",
+      "file": "fixtures/baseline/concert/tokyo-neon.png",
+      "sha256": "25ae65bf9091b6d6b8b3b1dbfd8c787028df779d1ed8d507a0c7cfcabfc2a3d3",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "concert",
+      "stock": "photobooth",
+      "file": "fixtures/baseline/concert/photobooth.png",
+      "sha256": "aee36e86789ba03e9326cb92ab479e9a845379854581e8ca512e7469a909ef8f",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "concert",
+      "stock": "tintype",
+      "file": "fixtures/baseline/concert/tintype.png",
+      "sha256": "12623ae23abec602277302d7e836750a73f889ae7ce5d22a007d4311d995e56e",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "dog",
+      "stock": "disposable",
+      "file": "fixtures/baseline/dog/disposable.png",
+      "sha256": "451030e0d74d2803edbfb7f13a2e2942906dbbd198728de3cc0cdcfe3b6c1c2b",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "dog",
+      "stock": "iphone-flash",
+      "file": "fixtures/baseline/dog/iphone-flash.png",
+      "sha256": "853e7ce74f1dda7f4e7c433effe094c2df4d6b42c1787afba06ea19d64da24bd",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "dog",
+      "stock": "camcorder-90s",
+      "file": "fixtures/baseline/dog/camcorder-90s.png",
+      "sha256": "a834bb774eb653b57fc3d8dd30b7aade3bf9f16b7cf2816daa757ade0af4b88f",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "dog",
+      "stock": "leica-street",
+      "file": "fixtures/baseline/dog/leica-street.png",
+      "sha256": "d94c9f8d983200b4d9258d780535f3a3d22f5a19dd58464739bff55e72d9aaeb",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "dog",
+      "stock": "gq-editorial",
+      "file": "fixtures/baseline/dog/gq-editorial.png",
+      "sha256": "a0ee362526e7a67a05ee5b3778accce45f2efb5d4a3341277138f601631b0393",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "dog",
+      "stock": "a24-still",
+      "file": "fixtures/baseline/dog/a24-still.png",
+      "sha256": "b1d66caf34f19a4fbc6e77fd43ac28040b47638283d4003abf59a04cd4d29903",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "dog",
+      "stock": "film-noir",
+      "file": "fixtures/baseline/dog/film-noir.png",
+      "sha256": "d02c521b53b383602a278b103ec933c3572d6c8f471f35f366aa3608f42c8786",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "dog",
+      "stock": "y2k-digicam",
+      "file": "fixtures/baseline/dog/y2k-digicam.png",
+      "sha256": "effcc96bc2d91b1acb4702f80c470dfbcdbf6f64228c5b3206140675e50760cb",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "dog",
+      "stock": "polaroid",
+      "file": "fixtures/baseline/dog/polaroid.png",
+      "sha256": "6b54b6f1e7099a26179de4a405a33d4523f733b7235c3aace970f5efa947a2cf",
+      "width": 482,
+      "height": 681
+    },
+    {
+      "photo": "dog",
+      "stock": "super-8",
+      "file": "fixtures/baseline/dog/super-8.png",
+      "sha256": "c25c1fcf30de92118d5b0d543fbcbc62178203f265820b5f35ee0e83dce169c4",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "dog",
+      "stock": "lomo",
+      "file": "fixtures/baseline/dog/lomo.png",
+      "sha256": "1e226ba18b9663ed34cbc19a2ed292736bfcc3737e98b700ffe8e084f8cb4621",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "dog",
+      "stock": "kodachrome",
+      "file": "fixtures/baseline/dog/kodachrome.png",
+      "sha256": "9ca7e1a6675b6313de04490d70ec49696664108a330b5396f7db33cf7f0bd509",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "dog",
+      "stock": "security-cam",
+      "file": "fixtures/baseline/dog/security-cam.png",
+      "sha256": "7a4dfa9a9d19c1c17fd90d37dbcb7c82b0877cf2b77438b02521a98b7344b34d",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "dog",
+      "stock": "point-shoot",
+      "file": "fixtures/baseline/dog/point-shoot.png",
+      "sha256": "b855b83582663eb058e2d08398dc43b40c914a1edcada7b8e66d58ec20dc4610",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "dog",
+      "stock": "pastel-cinema",
+      "file": "fixtures/baseline/dog/pastel-cinema.png",
+      "sha256": "abeabfc684e3a47b2f2c2c46b998fec365926d6f881a473874e055b680d9293c",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "dog",
+      "stock": "tokyo-neon",
+      "file": "fixtures/baseline/dog/tokyo-neon.png",
+      "sha256": "61bf94372ed03947753e017ae65e4e1fea330dd482eb5fa48ee70cb1de06a8e0",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "dog",
+      "stock": "photobooth",
+      "file": "fixtures/baseline/dog/photobooth.png",
+      "sha256": "24d60c8f4a27715b87dd27f024ecbbcf15213a83657c597122961b436a9ee52c",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "dog",
+      "stock": "tintype",
+      "file": "fixtures/baseline/dog/tintype.png",
+      "sha256": "e00c2883ac5632947f6d4fdfe865f6ee5661e5ee195fc58cecde32a5870d10cc",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-blurry-from-brunch",
+      "stock": "disposable",
+      "file": "fixtures/extended/degraded-blurry-from-brunch/disposable.png",
+      "sha256": "39566aa7064569199e3ce6a9022a7e66e98f1beef407348f3d5a035539de82f0",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-blurry-from-brunch",
+      "stock": "iphone-flash",
+      "file": "fixtures/extended/degraded-blurry-from-brunch/iphone-flash.png",
+      "sha256": "186ea81a400ff8efb9e2cb6df3ef9395f2e4b26b52c4345cf4489727e5671466",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-blurry-from-brunch",
+      "stock": "camcorder-90s",
+      "file": "fixtures/extended/degraded-blurry-from-brunch/camcorder-90s.png",
+      "sha256": "808e5b6304fd635a3b6f3ee99dc1b64dae88b51f28841eecd370fb042b8dba27",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-blurry-from-brunch",
+      "stock": "leica-street",
+      "file": "fixtures/extended/degraded-blurry-from-brunch/leica-street.png",
+      "sha256": "6235e1c6511a33ad6d7acc80808822c3d414d68e19905fb8ab8dc516bb8ad5dc",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-blurry-from-brunch",
+      "stock": "gq-editorial",
+      "file": "fixtures/extended/degraded-blurry-from-brunch/gq-editorial.png",
+      "sha256": "a8593485bad35d943f408ad8bb066a3c0b72403cd85d824e292ae327c9eb3b32",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-blurry-from-brunch",
+      "stock": "a24-still",
+      "file": "fixtures/extended/degraded-blurry-from-brunch/a24-still.png",
+      "sha256": "a0d674f6c4e44cf1176af67110dfe9595980f5bff5f32e98c18a23fb135107c0",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-blurry-from-brunch",
+      "stock": "film-noir",
+      "file": "fixtures/extended/degraded-blurry-from-brunch/film-noir.png",
+      "sha256": "719eae249a7300f08571512b3322f340815705aeeee729dff50cf3f0fe9cd801",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-blurry-from-brunch",
+      "stock": "y2k-digicam",
+      "file": "fixtures/extended/degraded-blurry-from-brunch/y2k-digicam.png",
+      "sha256": "c950151aaa6482493edb9fd83d5992fea73e041b2dd4ed01843fdfb623a67a36",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-blurry-from-brunch",
+      "stock": "polaroid",
+      "file": "fixtures/extended/degraded-blurry-from-brunch/polaroid.png",
+      "sha256": "d03e45e94ff22bef90bae17676794c0b5c4799ba7bd024007f5ed214054f0711",
+      "width": 482,
+      "height": 681
+    },
+    {
+      "photo": "degraded-blurry-from-brunch",
+      "stock": "super-8",
+      "file": "fixtures/extended/degraded-blurry-from-brunch/super-8.png",
+      "sha256": "b311e901ddcf6efb9d185e116cea41c114defffbecc49552f750a378d0e4095c",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-blurry-from-brunch",
+      "stock": "lomo",
+      "file": "fixtures/extended/degraded-blurry-from-brunch/lomo.png",
+      "sha256": "3e7940128ef4dbb5995d537a48963fab063e667abd29676d8f268c1c540f5272",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-blurry-from-brunch",
+      "stock": "kodachrome",
+      "file": "fixtures/extended/degraded-blurry-from-brunch/kodachrome.png",
+      "sha256": "d46c86181308a977d0c7ef5e9005d6a41d958ff99a856d941d61b4802d7dc06f",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-blurry-from-brunch",
+      "stock": "security-cam",
+      "file": "fixtures/extended/degraded-blurry-from-brunch/security-cam.png",
+      "sha256": "427b0ad31b573324682afcdd61dacc79bc97f195daff9ee7aa1f283df6349101",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-blurry-from-brunch",
+      "stock": "point-shoot",
+      "file": "fixtures/extended/degraded-blurry-from-brunch/point-shoot.png",
+      "sha256": "f98116a564d5835b615b1486883bf0e6b09794cc8764c26d21e3b0b03adc8415",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-blurry-from-brunch",
+      "stock": "pastel-cinema",
+      "file": "fixtures/extended/degraded-blurry-from-brunch/pastel-cinema.png",
+      "sha256": "1037dce972216ca8735db071d70544ca1452c35ddd6c98ecbcaf7e62119490a0",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-blurry-from-brunch",
+      "stock": "tokyo-neon",
+      "file": "fixtures/extended/degraded-blurry-from-brunch/tokyo-neon.png",
+      "sha256": "2fff54409ed9175e3c2056819f1e100f9988ff0c76aac224ea99cc0d2bfd4aa7",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-blurry-from-brunch",
+      "stock": "photobooth",
+      "file": "fixtures/extended/degraded-blurry-from-brunch/photobooth.png",
+      "sha256": "87bad3bb6b2b82c8743c3d501f7230b88839b09ad46f0d0f6f4ab853d26e82ff",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-blurry-from-brunch",
+      "stock": "tintype",
+      "file": "fixtures/extended/degraded-blurry-from-brunch/tintype.png",
+      "sha256": "cfaf7e32d3a83f4b3540c98790a158f1460ddcedfd910d7642882ba40a2e91cb",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-noisy-from-friends",
+      "stock": "disposable",
+      "file": "fixtures/extended/degraded-noisy-from-friends/disposable.png",
+      "sha256": "ad5edbe01cf4b84250126c05bee927ffe365915745719f97a9ee15bd335478b3",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-noisy-from-friends",
+      "stock": "iphone-flash",
+      "file": "fixtures/extended/degraded-noisy-from-friends/iphone-flash.png",
+      "sha256": "2fa5f140051b3beba7cf7ef110ef32147112af005ff1fbf72477be8f615c127c",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-noisy-from-friends",
+      "stock": "camcorder-90s",
+      "file": "fixtures/extended/degraded-noisy-from-friends/camcorder-90s.png",
+      "sha256": "05523fb1dc043bf118779d9ed210556eb27b1cf2d779c87a91da6f915b926200",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-noisy-from-friends",
+      "stock": "leica-street",
+      "file": "fixtures/extended/degraded-noisy-from-friends/leica-street.png",
+      "sha256": "f03635cf59af32cbdbd584550cbe05488ec4928f2ef66553066f70034aaaa2e2",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-noisy-from-friends",
+      "stock": "gq-editorial",
+      "file": "fixtures/extended/degraded-noisy-from-friends/gq-editorial.png",
+      "sha256": "963f05879e37719cee6465d420cd83991df59a10d79e05d7c677bacee5a56361",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-noisy-from-friends",
+      "stock": "a24-still",
+      "file": "fixtures/extended/degraded-noisy-from-friends/a24-still.png",
+      "sha256": "bc702b1126fd2fb45895a1d2811ce7421020fa259b08eda98b2712cfcf238e6d",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-noisy-from-friends",
+      "stock": "film-noir",
+      "file": "fixtures/extended/degraded-noisy-from-friends/film-noir.png",
+      "sha256": "48ec7b684b6cb660e0537d13e0c5bd54a7cbeefb948d51793b6136c21e1bc102",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-noisy-from-friends",
+      "stock": "y2k-digicam",
+      "file": "fixtures/extended/degraded-noisy-from-friends/y2k-digicam.png",
+      "sha256": "e6b1112eccf7bb3043b6e9b918d4c4c4ceedde0940e66c8f35ca6b9c7d08e3c4",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-noisy-from-friends",
+      "stock": "polaroid",
+      "file": "fixtures/extended/degraded-noisy-from-friends/polaroid.png",
+      "sha256": "4fe3d57226b7d356a8153ad29bf81bf286326de80e824a66337ee4686ee1d135",
+      "width": 482,
+      "height": 681
+    },
+    {
+      "photo": "degraded-noisy-from-friends",
+      "stock": "super-8",
+      "file": "fixtures/extended/degraded-noisy-from-friends/super-8.png",
+      "sha256": "91f855fbb723a644368f52b09f8a62201a14f49a7a9de2e51552814102d34751",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-noisy-from-friends",
+      "stock": "lomo",
+      "file": "fixtures/extended/degraded-noisy-from-friends/lomo.png",
+      "sha256": "52cf31e4f1764067b88ba7d5329a5a74c978f537b5db4cc65d3bf8295c55c06c",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-noisy-from-friends",
+      "stock": "kodachrome",
+      "file": "fixtures/extended/degraded-noisy-from-friends/kodachrome.png",
+      "sha256": "18bdb709c140c530037988700720b6bfc632debb01dabed134d225350089a065",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-noisy-from-friends",
+      "stock": "security-cam",
+      "file": "fixtures/extended/degraded-noisy-from-friends/security-cam.png",
+      "sha256": "7b9ad8af0db1829c033f69b89ea7adc725abb79d492a2380c0bdedfec6a3b444",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-noisy-from-friends",
+      "stock": "point-shoot",
+      "file": "fixtures/extended/degraded-noisy-from-friends/point-shoot.png",
+      "sha256": "a7be2bf99dc7b1b326b034abf6a00917336337c42dc410391525bb83e5a35fbe",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-noisy-from-friends",
+      "stock": "pastel-cinema",
+      "file": "fixtures/extended/degraded-noisy-from-friends/pastel-cinema.png",
+      "sha256": "e4a04c27423dabc32e3a6381772d9682b7f82dd1dcd693668b2718bd9ec5f6fc",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-noisy-from-friends",
+      "stock": "tokyo-neon",
+      "file": "fixtures/extended/degraded-noisy-from-friends/tokyo-neon.png",
+      "sha256": "d8a2e40262f4f74d57be0aab0be893d2ce9156c7193f7d9fa7957cf818e6a0d2",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-noisy-from-friends",
+      "stock": "photobooth",
+      "file": "fixtures/extended/degraded-noisy-from-friends/photobooth.png",
+      "sha256": "3765babc6477523c2f89a2942b0f09bc59ed02961aac92bdde027e186f968a1a",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-noisy-from-friends",
+      "stock": "tintype",
+      "file": "fixtures/extended/degraded-noisy-from-friends/tintype.png",
+      "sha256": "25299f080b207978fb970491e4877a6a894d72d9b6f591e8357d2d224dccceee",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-underexposed-from-golden",
+      "stock": "disposable",
+      "file": "fixtures/extended/degraded-underexposed-from-golden/disposable.png",
+      "sha256": "5ee48a2a9b1295f9cbc02545f1d11cd8b48d875244a645e2a730b0473094bce2",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-underexposed-from-golden",
+      "stock": "iphone-flash",
+      "file": "fixtures/extended/degraded-underexposed-from-golden/iphone-flash.png",
+      "sha256": "0580484beeac85f0ed37b98f17f244b5be0d835c6349add1dc9ea295f9fe90d0",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-underexposed-from-golden",
+      "stock": "camcorder-90s",
+      "file": "fixtures/extended/degraded-underexposed-from-golden/camcorder-90s.png",
+      "sha256": "37a896af85b65e00b26752fcd606a3e37bd945451e2f4f365c31a8100a69063c",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-underexposed-from-golden",
+      "stock": "leica-street",
+      "file": "fixtures/extended/degraded-underexposed-from-golden/leica-street.png",
+      "sha256": "8480448b4e6fa66979659accba2e4bf6b9966f7205502c463edf166e4ec012df",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-underexposed-from-golden",
+      "stock": "gq-editorial",
+      "file": "fixtures/extended/degraded-underexposed-from-golden/gq-editorial.png",
+      "sha256": "4c4128d8fad8e0996d4778dd450fe158928d8711837df749aee3531f90441120",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-underexposed-from-golden",
+      "stock": "a24-still",
+      "file": "fixtures/extended/degraded-underexposed-from-golden/a24-still.png",
+      "sha256": "4d7a4989311e9a8c9d9b9615dfe2281521baf2c8be208ce01750742f6b9cfad9",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-underexposed-from-golden",
+      "stock": "film-noir",
+      "file": "fixtures/extended/degraded-underexposed-from-golden/film-noir.png",
+      "sha256": "c0eaed30e28039bb0d4814377ad23a46713bac7767447837162e46e88c9ac71c",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-underexposed-from-golden",
+      "stock": "y2k-digicam",
+      "file": "fixtures/extended/degraded-underexposed-from-golden/y2k-digicam.png",
+      "sha256": "8d3901645d4da593fea71e18820239b7ca1e5bc12f2b56840914966e36650adc",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-underexposed-from-golden",
+      "stock": "polaroid",
+      "file": "fixtures/extended/degraded-underexposed-from-golden/polaroid.png",
+      "sha256": "4c5ae14abbf86216cf7ff53e316d0e89074bdc60964d052f188c12953883e6c9",
+      "width": 482,
+      "height": 681
+    },
+    {
+      "photo": "degraded-underexposed-from-golden",
+      "stock": "super-8",
+      "file": "fixtures/extended/degraded-underexposed-from-golden/super-8.png",
+      "sha256": "77f53b090e0a7042e170f1cf0a6336d7a7f5166c69d3bf530c8e44a502de2517",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-underexposed-from-golden",
+      "stock": "lomo",
+      "file": "fixtures/extended/degraded-underexposed-from-golden/lomo.png",
+      "sha256": "aeee1682ceaa8ee0deede07c94dbd021296d84a5deb5f22ab3079d5514f89624",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-underexposed-from-golden",
+      "stock": "kodachrome",
+      "file": "fixtures/extended/degraded-underexposed-from-golden/kodachrome.png",
+      "sha256": "05f9cdb0ec6d41777d6527fd89e65a4669756c18d0849b1ccbe0a32b587d550f",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-underexposed-from-golden",
+      "stock": "security-cam",
+      "file": "fixtures/extended/degraded-underexposed-from-golden/security-cam.png",
+      "sha256": "1ef224820424f7d2c85759579570bbce0be37e269342a50dac30c357aedc01e1",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-underexposed-from-golden",
+      "stock": "point-shoot",
+      "file": "fixtures/extended/degraded-underexposed-from-golden/point-shoot.png",
+      "sha256": "73abbb1add3dc94d903da943efc3be936ab3e997d1e36665f7bb95af44d28ac4",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-underexposed-from-golden",
+      "stock": "pastel-cinema",
+      "file": "fixtures/extended/degraded-underexposed-from-golden/pastel-cinema.png",
+      "sha256": "84b6504ed6775cf8dc28958bc2bc1a7ca8c1d0bd3174e30143888d40ab01b804",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-underexposed-from-golden",
+      "stock": "tokyo-neon",
+      "file": "fixtures/extended/degraded-underexposed-from-golden/tokyo-neon.png",
+      "sha256": "dcee71d1996caa09c51b635e8a51ab6c6fe8529207edd880458d7996a6667b78",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-underexposed-from-golden",
+      "stock": "photobooth",
+      "file": "fixtures/extended/degraded-underexposed-from-golden/photobooth.png",
+      "sha256": "de1e7d9417c1039f848552db015fcaf4c15ca8d1df1ebbc8117883cf42740c19",
+      "width": 420,
+      "height": 560
+    },
+    {
+      "photo": "degraded-underexposed-from-golden",
+      "stock": "tintype",
+      "file": "fixtures/extended/degraded-underexposed-from-golden/tintype.png",
+      "sha256": "0b49ecba0d7ef0691eea7174298fae356ee31523d1ff13b810914ce02345b570",
+      "width": 420,
+      "height": 560
+    }
+  ]
+}
