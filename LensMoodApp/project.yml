@@ -14,8 +14,9 @@ targets:
     platform: iOS
     sources:
       - Sources
-    resources:
-      - Resources
+      - path: Resources/luts
+        buildPhase: resources
+        type: folder
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.lensmood.ios
