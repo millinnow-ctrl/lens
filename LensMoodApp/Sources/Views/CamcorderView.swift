@@ -81,7 +81,7 @@ struct CamcorderView: View {
       .alert("Camera unavailable", isPresented: $cameraUnavailable) {
         Button("OK", role: .cancel) {}
       } message: {
-        Text("Recording requires a physical iPhone. You can load an existing clip here in the simulator.")
+        Text("Recording is not available on this device. You can load an existing clip instead.")
       }
     }
   }
