@@ -318,13 +318,21 @@ struct DevelopView: View {
         try FilmEngine.shared.develop(sourceImage, with: recipe, maxPixelSize: 8192, seed: seed).image
       }
       DispatchQueue.main.async {
-        isSaving = false
         switch result {
         case .success(let fullResolution):
-          UIImageWriteToSavedPhotosAlbum(fullResolution, nil, nil, nil)
-          saveConfirmation = true
-          UINotificationFeedbackGenerator().notificationOccurred(.success)
+          Task {
+            do {
+              try await PhotoLibraryWriter.save(image: fullResolution)
+              isSaving = false
+              saveConfirmation = true
+              UINotificationFeedbackGenerator().notificationOccurred(.success)
+            } catch {
+              isSaving = false
+              errorMessage = error.localizedDescription
+            }
+          }
         case .failure(let error):
+          isSaving = false
           errorMessage = error.localizedDescription
         }
       }
