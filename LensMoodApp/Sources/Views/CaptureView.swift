@@ -11,6 +11,8 @@ struct CaptureView: View {
   @State private var isDeveloping = false
   @State private var isSaving = false
   @State private var cameraUnavailable = false
+  @State private var saveConfirmation = false
+  @State private var errorMessage: String?
 
   var body: some View {
     NavigationStack {
@@ -82,6 +84,17 @@ struct CaptureView: View {
       } message: {
         Text("Camera capture is not available on this device. Choose a photograph from any camera’s Develop screen instead.")
       }
+      .alert("Saved to Photos", isPresented: $saveConfirmation) {
+        Button("OK", role: .cancel) {}
+      }
+      .alert("Could not complete that action", isPresented: Binding(
+        get: { errorMessage != nil },
+        set: { if !$0 { errorMessage = nil } }
+      )) {
+        Button("OK", role: .cancel) {}
+      } message: {
+        Text(errorMessage ?? "Please try again.")
+      }
     }
   }
 
@@ -151,7 +164,8 @@ struct CaptureView: View {
       }
       DispatchQueue.main.async {
         isDeveloping = false
-        if case .success(let render) = result {
+        switch result {
+        case .success(let render):
           developed = render.image
           decisions = render.decisions
           model.add(DevelopedAsset(
@@ -161,6 +175,8 @@ struct CaptureView: View {
             decisions: render.decisions
           ))
           UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        case .failure(let error):
+          errorMessage = error.localizedDescription
         }
       }
     }
@@ -175,10 +191,22 @@ struct CaptureView: View {
         try FilmEngine.shared.develop(captured, with: selected.recipe, maxPixelSize: 8192, seed: 43).image
       }
       DispatchQueue.main.async {
-        isSaving = false
-        if case .success(let fullResolution) = result {
-          UIImageWriteToSavedPhotosAlbum(fullResolution, nil, nil, nil)
-          UINotificationFeedbackGenerator().notificationOccurred(.success)
+        switch result {
+        case .success(let fullResolution):
+          Task {
+            do {
+              try await PhotoLibraryWriter.save(image: fullResolution)
+              isSaving = false
+              saveConfirmation = true
+              UINotificationFeedbackGenerator().notificationOccurred(.success)
+            } catch {
+              isSaving = false
+              errorMessage = error.localizedDescription
+            }
+          }
+        case .failure(let error):
+          isSaving = false
+          errorMessage = error.localizedDescription
         }
       }
     }
