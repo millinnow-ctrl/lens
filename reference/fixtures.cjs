@@ -18,11 +18,22 @@
  *   NODE_PATH=../lensmood-native/node_modules node fixtures.cjs gen
  *   NODE_PATH=../lensmood-native/node_modules node fixtures.cjs verify
  */
-const { createCanvas, loadImage } = require('@napi-rs/canvas')
+const { createCanvas, loadImage, GlobalFonts } = require('@napi-rs/canvas')
 const { writeFileSync, readFileSync, mkdirSync, existsSync, readdirSync } = require('fs')
 const { createHash } = require('crypto')
 const { execSync } = require('child_process')
 const path = require('path')
+
+/** Font pin (harness-level): the engine stamps text (security-cam timestamp,
+ *  camcorder REC/clock) with the stack `ui-monospace, Menlo, monospace`.
+ *  Glyph rasterization depends on which system font resolves — different on
+ *  every machine — so fixtures register a committed font (DejaVu Sans Mono,
+ *  Bitstream Vera license, freely redistributable) under the FIRST family
+ *  names in the engine's stacks. Both dev sandbox and CI then rasterize
+ *  identical glyphs. Same spirit as the Date/RNG pins: engine untouched. */
+for (const f of ['DejaVuSansMono.ttf', 'DejaVuSansMono-Bold.ttf'])
+  for (const alias of ['ui-monospace', 'IBM Plex Mono'])
+    GlobalFonts.registerFromPath(path.join(__dirname, 'fonts', f), alias)
 
 global.HTMLVideoElement = class {}
 global.HTMLImageElement = class {}
@@ -135,7 +146,11 @@ async function gen() {
       twin: 'reference/lib/engine.ts',
       colorModel: 'display-referred sRGB, 8-bit, unmanaged (reference-native)',
       renderOptions: { maxSize: MAX_SIZE, watermark: false, frame: true, focal: null, scene: 'analyzed (adaptive)' },
-      determinism: { pinnedDateUTC: '2026-01-01T12:00:00Z', rng: 'fnv1a-seeded per photo/stock (harness-level; engine untouched)' },
+      determinism: {
+        pinnedDateUTC: '2026-01-01T12:00:00Z',
+        rng: 'fnv1a-seeded per photo/stock (harness-level; engine untouched)',
+        fonts: 'reference/fonts/DejaVuSansMono[-Bold].ttf registered as ui-monospace + IBM Plex Mono (pins timestamp/REC glyph rasterization across machines)',
+      },
       knownLimit: 'focal=null in headless harness: face-lock adaptive paths dormant; covered in Phase B via recorded per-photo focal',
     },
     tolerances: { meanAbsChannel: 2.0, p99AbsChannel: 12.0, note: 'v1 defaults; per-stock overrides may be added with owner approval' },

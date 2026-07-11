@@ -2,7 +2,7 @@
   "version": 1,
   "toleranceVersion": 1,
   "engine": {
-    "commit": "431d21b15c9ccd84009398b99325bf3ede65ea37",
+    "commit": "a80b7f4d7b9780852f406087a681853b5c101d05",
     "twin": "reference/lib/engine.ts",
     "colorModel": "display-referred sRGB, 8-bit, unmanaged (reference-native)",
     "renderOptions": {
@@ -14,7 +14,8 @@
     },
     "determinism": {
       "pinnedDateUTC": "2026-01-01T12:00:00Z",
-      "rng": "fnv1a-seeded per photo/stock (harness-level; engine untouched)"
+      "rng": "fnv1a-seeded per photo/stock (harness-level; engine untouched)",
+      "fonts": "reference/fonts/DejaVuSansMono[-Bold].ttf registered as ui-monospace + IBM Plex Mono (pins timestamp/REC glyph rasterization across machines)"
     },
     "knownLimit": "focal=null in headless harness: face-lock adaptive paths dormant; covered in Phase B via recorded per-photo focal"
   },
@@ -126,7 +127,7 @@
       "photo": "golden",
       "stock": "camcorder-90s",
       "file": "fixtures/baseline/golden/camcorder-90s.png",
-      "sha256": "9e9a7531039a982b7373e1c0185d7d9ce247c7887222db6d29dd7fdf69f9b667",
+      "sha256": "d6645f724de03b18f3d93fbe537ce69ce8be1e50fb1d2f827091318db1203412",
       "width": 420,
       "height": 560
     },
@@ -206,7 +207,7 @@
       "photo": "golden",
       "stock": "security-cam",
       "file": "fixtures/baseline/golden/security-cam.png",
-      "sha256": "d20f251cbe7f4b9adf4738ba74bc174fcb1c336a62e9673c969c3efd0e64e2ba",
+      "sha256": "caf31a38d3ebe4f31f61a4ee837bf704c143f7423e1bd9446b64c1cda4a449bc",
       "width": 420,
       "height": 560
     },
@@ -270,7 +271,7 @@
       "photo": "friends",
       "stock": "camcorder-90s",
       "file": "fixtures/baseline/friends/camcorder-90s.png",
-      "sha256": "a2262940c2117db3d546b59f0b812a33831476fad06d4e3b793d9674ceeaca46",
+      "sha256": "2b8f21e537d052633004c3eea6bea2b0f0fa19be847b1cb527dd69a89171ab59",
       "width": 420,
       "height": 560
     },
@@ -350,7 +351,7 @@
       "photo": "friends",
       "stock": "security-cam",
       "file": "fixtures/baseline/friends/security-cam.png",
-      "sha256": "95ab4f683899b65d2476b657d91275193b268790a39d4e04bcb1ad00f86d28bf",
+      "sha256": "bd955d7f04293931dfffe0f6b13a81766607243ff4a0982dc18e0956acb7d451",
       "width": 420,
       "height": 560
     },
@@ -414,7 +415,7 @@
       "photo": "brunch",
       "stock": "camcorder-90s",
       "file": "fixtures/baseline/brunch/camcorder-90s.png",
-      "sha256": "1f45b8f1fd1384c667965c348fb5328a8559ba0f54e0978ecc9e36102386dbaf",
+      "sha256": "8ec479badf4adf1db9842638c5fcd29ad7a7ff5ba5c361a605b18f7bb51e6e58",
       "width": 420,
       "height": 560
     },
@@ -494,7 +495,7 @@
       "photo": "brunch",
       "stock": "security-cam",
       "file": "fixtures/baseline/brunch/security-cam.png",
-      "sha256": "c7d3a3c56829dc56d2da76c6de46c2f3934aaafa9b59bf7a19ea2f6f2618340e",
+      "sha256": "ce2aec3a32981d8a2b92c4acd8ac422d76d45215c669dcb7af9bb994554c0c28",
       "width": 420,
       "height": 560
     },
@@ -558,7 +559,7 @@
       "photo": "street",
       "stock": "camcorder-90s",
       "file": "fixtures/baseline/street/camcorder-90s.png",
-      "sha256": "72eebde63fdf640b111ce96c2fa17698dd475b29af075f12dfe01359380f525f",
+      "sha256": "210b09887b8b4d7b5a90892afc69317a9b725b1d0c21555ed9c5c82fb79adb71",
       "width": 420,
       "height": 560
     },
@@ -638,7 +639,7 @@
       "photo": "street",
       "stock": "security-cam",
       "file": "fixtures/baseline/street/security-cam.png",
-      "sha256": "fa9deed9edff216046934d53022c32c01fc7e5d5ffc87a8587f9361cbb24019d",
+      "sha256": "1bbdf40b0a9a31d2b32004f04e66063b2654baf0549ddffa145566d9d8eed92b",
       "width": 420,
       "height": 560
     },
@@ -702,7 +703,7 @@
       "photo": "night",
       "stock": "camcorder-90s",
       "file": "fixtures/baseline/night/camcorder-90s.png",
-      "sha256": "1a3b2061eae8b598c7a488e63474e60f7650ecd5425d1487b6462133a3ea95b4",
+      "sha256": "a7a56a8a6118200718a5d46262fb07abb26b83012f7eb30a136b26a8b03319f3",
       "width": 420,
       "height": 560
     },
@@ -782,7 +783,7 @@
       "photo": "night",
       "stock": "security-cam",
       "file": "fixtures/baseline/night/security-cam.png",
-      "sha256": "1841929e1136a2641bd51a6967f5b8bb0c04540c793bfee1fc7c078ed7178f26",
+      "sha256": "c439f4ee02f9e8c1cbc0e38d388e0bce51d67bc22530d1a19e095fcaeaca0861",
       "width": 420,
       "height": 560
     },
@@ -846,7 +847,7 @@
       "photo": "concert",
       "stock": "camcorder-90s",
       "file": "fixtures/baseline/concert/camcorder-90s.png",
-      "sha256": "2e04df8ad3a59c7340b1669ffd4f32b19f70c9fe5018c567b725deb645c32a05",
+      "sha256": "ea8f69498a0cb4c477b8dca01d001721a6d23e69bbf27b79c3ad80e642698b7c",
       "width": 420,
       "height": 560
     },
@@ -926,7 +927,7 @@
       "photo": "concert",
       "stock": "security-cam",
       "file": "fixtures/baseline/concert/security-cam.png",
-      "sha256": "401bfd6b5c9b432c61c01eaddd46b5ef2aa39077ec5d54559ccb30a9921532cb",
+      "sha256": "cc2c7a0d55bc64a7aa8dbea43a104ea9b2bad6aa03d82ff6c21ede4b2bd34f40",
       "width": 420,
       "height": 560
     },
@@ -990,7 +991,7 @@
       "photo": "dog",
       "stock": "camcorder-90s",
       "file": "fixtures/baseline/dog/camcorder-90s.png",
-      "sha256": "a834bb774eb653b57fc3d8dd30b7aade3bf9f16b7cf2816daa757ade0af4b88f",
+      "sha256": "649315093d51c1fbf1ef2b30fcad3b5cc4042406348ded56f266b7e30e70afdd",
       "width": 420,
       "height": 560
     },
@@ -1070,7 +1071,7 @@
       "photo": "dog",
       "stock": "security-cam",
       "file": "fixtures/baseline/dog/security-cam.png",
-      "sha256": "7a4dfa9a9d19c1c17fd90d37dbcb7c82b0877cf2b77438b02521a98b7344b34d",
+      "sha256": "5ea47a96b9934b3eb6a664ea1ea54f68449d05360ce34878f27267cdd931b8ed",
       "width": 420,
       "height": 560
     },
@@ -1134,7 +1135,7 @@
       "photo": "degraded-blurry-from-brunch",
       "stock": "camcorder-90s",
       "file": "fixtures/extended/degraded-blurry-from-brunch/camcorder-90s.png",
-      "sha256": "808e5b6304fd635a3b6f3ee99dc1b64dae88b51f28841eecd370fb042b8dba27",
+      "sha256": "852bbf54ecc302fa71f7e85d0d1c306098b3bee2b225f14d89b7029cd07830e5",
       "width": 420,
       "height": 560
     },
@@ -1214,7 +1215,7 @@
       "photo": "degraded-blurry-from-brunch",
       "stock": "security-cam",
       "file": "fixtures/extended/degraded-blurry-from-brunch/security-cam.png",
-      "sha256": "427b0ad31b573324682afcdd61dacc79bc97f195daff9ee7aa1f283df6349101",
+      "sha256": "52348a1d13a155a1fcecbd135398e712b0be2bb30283059f1da50a880b114e68",
       "width": 420,
       "height": 560
     },
@@ -1278,7 +1279,7 @@
       "photo": "degraded-noisy-from-friends",
       "stock": "camcorder-90s",
       "file": "fixtures/extended/degraded-noisy-from-friends/camcorder-90s.png",
-      "sha256": "05523fb1dc043bf118779d9ed210556eb27b1cf2d779c87a91da6f915b926200",
+      "sha256": "6198ae1733e5f8c19aa9c979d6bd5e18f988a6ad9919317ec1c1d32f453f57f1",
       "width": 420,
       "height": 560
     },
@@ -1358,7 +1359,7 @@
       "photo": "degraded-noisy-from-friends",
       "stock": "security-cam",
       "file": "fixtures/extended/degraded-noisy-from-friends/security-cam.png",
-      "sha256": "7b9ad8af0db1829c033f69b89ea7adc725abb79d492a2380c0bdedfec6a3b444",
+      "sha256": "5e932e156b105c2a8d4879db40737cf28e243d6f2f1241a9729f2b496bcd91c0",
       "width": 420,
       "height": 560
     },
@@ -1422,7 +1423,7 @@
       "photo": "degraded-underexposed-from-golden",
       "stock": "camcorder-90s",
       "file": "fixtures/extended/degraded-underexposed-from-golden/camcorder-90s.png",
-      "sha256": "37a896af85b65e00b26752fcd606a3e37bd945451e2f4f365c31a8100a69063c",
+      "sha256": "9745b1f713d33eafc27eff56863dcb202eb3d79387992dc565be886bfb4f88f0",
       "width": 420,
       "height": 560
     },
@@ -1502,7 +1503,7 @@
       "photo": "degraded-underexposed-from-golden",
       "stock": "security-cam",
       "file": "fixtures/extended/degraded-underexposed-from-golden/security-cam.png",
-      "sha256": "1ef224820424f7d2c85759579570bbce0be37e269342a50dac30c357aedc01e1",
+      "sha256": "f92b281bd261dc88a545d64f31bac373654ebd582884534dd1315293d3bc7186",
       "width": 420,
       "height": 560
     },

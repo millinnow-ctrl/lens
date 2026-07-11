@@ -45,7 +45,8 @@ jobs:
           node-version: 22
       - name: Install reference deps
         working-directory: lensmood-native
-        run: npm ci --legacy-peer-deps && npm i --no-save --legacy-peer-deps @napi-rs/canvas
+        # @napi-rs/canvas pinned: fixture hashes depend on its rasterizer
+        run: npm ci --legacy-peer-deps && npm i --no-save --legacy-peer-deps @napi-rs/canvas@1.0.2
       - name: Compile reference engine
         working-directory: reference
         run: node ../lensmood-native/node_modules/typescript/lib/tsc.js lib/engine.ts lib/styles.ts lib/scene.ts --outDir out --module commonjs --target es2020 --lib es2020,dom --noCheck
