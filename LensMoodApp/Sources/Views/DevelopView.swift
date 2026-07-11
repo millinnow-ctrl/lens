@@ -315,7 +315,7 @@ struct DevelopView: View {
     let seed = Double(stock.id.unicodeScalars.reduce(17) { ($0 * 31 + Int($1.value)) % 100_000 })
     DispatchQueue.global(qos: .userInitiated).async {
       let result = Result {
-        try FilmEngine.shared.develop(sourceImage, with: recipe, seed: seed).image
+        try FilmEngine.shared.develop(sourceImage, with: recipe, maxPixelSize: 8192, seed: seed).image
       }
       DispatchQueue.main.async {
         isSaving = false
