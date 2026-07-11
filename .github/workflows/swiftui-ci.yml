@@ -1,6 +1,6 @@
 name: SwiftUI CI
 
-# Compiles the SwiftUI app and verifies the frozen reference output.
+# Compiles and tests the SwiftUI app and verifies the frozen reference output.
 # No signing or Apple account is required.
 
 on:
@@ -26,7 +26,7 @@ permissions:
 jobs:
   build:
     runs-on: macos-15
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
 
@@ -45,14 +45,26 @@ jobs:
             -project LensMood.xcodeproj \
             -scheme LensMood \
             -destination 'generic/platform=iOS Simulator' \
-            CODE_SIGNING_ALLOWED=NO | tee xcodebuild.log | tail -80
+            CODE_SIGNING_ALLOWED=NO | tee xcodebuild.log | tail -100
 
-      - name: Upload build log on failure
+      - name: Test engine and product invariants
+        working-directory: LensMoodApp
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project LensMood.xcodeproj \
+            -scheme LensMood \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
+            CODE_SIGNING_ALLOWED=NO | tee xcodetest.log | tail -120
+
+      - name: Upload Xcode logs on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: swiftui-build-log
-          path: LensMoodApp/xcodebuild.log
+          name: swiftui-xcode-logs
+          path: |
+            LensMoodApp/xcodebuild.log
+            LensMoodApp/xcodetest.log
           retention-days: 14
 
   fixtures:
