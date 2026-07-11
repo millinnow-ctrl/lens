@@ -2,16 +2,11 @@ name: Reference Fixtures
 
 # The React Native engine is the frozen visual master. Automatic runs verify
 # all hashes, while only compact review grids are retained. Full 180-image
-# render artifacts are produced on an explicit manual run.
+# render artifacts are produced on an explicit manual run. Push path filters
+# avoid rerunning this large job for every commit in a mixed-scope pull request.
 
 on:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - 'reference/**'
-      - 'lensmood-native/src/engine/**'
-      - 'lensmood-native/package-lock.json'
-      - '.github/workflows/reference-fixtures.yml'
   push:
     paths:
       - 'reference/**'
