@@ -115,6 +115,9 @@ final class FilmEngine {
         kCIInputIntensityKey: 1,
       ])
     }
+    if recipe.id == "polaroid" {
+      image = applyInstantFrame(to: image)
+    }
 
     let extent = image.extent.integral
     guard let cgImage = context.createCGImage(
@@ -274,6 +277,25 @@ final class FilmEngine {
       kCIInputIntensityKey: amount * 1.7,
       kCIInputRadiusKey: min(image.extent.width, image.extent.height) * 0.72,
     ]).cropped(to: image.extent)
+  }
+
+  private func applyInstantFrame(to image: CIImage) -> CIImage {
+    let horizontal = round(image.extent.width * 31 / 420)
+    let top = horizontal
+    let bottom = round(image.extent.width * 90 / 420)
+    let canvas = CGRect(
+      x: image.extent.minX - horizontal,
+      y: image.extent.minY - bottom,
+      width: image.extent.width + horizontal * 2,
+      height: image.extent.height + top + bottom
+    )
+    let paper = CIImage(color: CIColor(
+      red: 0.965,
+      green: 0.952,
+      blue: 0.905,
+      alpha: 1
+    )).cropped(to: canvas)
+    return image.composited(over: paper)
   }
 
   private func applyGrain(
