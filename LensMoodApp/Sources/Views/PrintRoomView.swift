@@ -70,6 +70,7 @@ struct PrintRoomView: View {
           }
         }
         .padding(Theme.pagePadding)
+        .frame(maxWidth: .infinity, alignment: .leading)
       }
       .background(Theme.paper)
       .navigationTitle("Print")
@@ -97,6 +98,7 @@ struct PrintRoomView: View {
         .buttonStyle(InstrumentButtonStyle(kind: .primary))
       }
       .padding(24)
+      .frame(maxWidth: .infinity)
     }
   }
 
