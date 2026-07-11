@@ -1,7 +1,7 @@
 name: SwiftUI CI
 
-# Compiles and tests the SwiftUI app and verifies the frozen reference output.
-# No signing or Apple account is required.
+# Compiles, tests, and visually captures the SwiftUI app, then verifies the
+# frozen reference output. No signing or Apple account is required.
 
 on:
   workflow_dispatch:
@@ -56,6 +56,23 @@ jobs:
             -scheme LensMood \
             -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
             CODE_SIGNING_ALLOWED=NO | tee xcodetest.log | tail -120
+
+      - name: Capture simulator home screen
+        working-directory: LensMoodApp
+        run: |
+          mkdir -p ui-artifacts
+          xcrun simctl bootstatus booted -b
+          xcrun simctl launch booted app.lensmood.ios
+          sleep 4
+          xcrun simctl io booted screenshot ui-artifacts/home.png
+
+      - name: Upload simulator capture
+        uses: actions/upload-artifact@v4
+        with:
+          name: swiftui-ui-capture
+          path: LensMoodApp/ui-artifacts/
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Upload Xcode logs on failure
         if: failure()
