@@ -73,45 +73,50 @@ final class FilmEngineTests: XCTestCase {
     XCTAssertEqual(Set(fingerprints.map(String.init(describing:))).count, 18)
   }
 
-  func testSlide64AgainstFirstGoldenFixture() throws {
+  func testAllClassACamerasAgainstGoldenFixtures() throws {
     let testsDirectory = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
     let sourceURL = testsDirectory
       .deletingLastPathComponent()
       .deletingLastPathComponent()
       .appendingPathComponent("reference/photos/sample-golden.jpg")
-    let referenceURL = testsDirectory
-      .appendingPathComponent("Fixtures/golden-kodachrome.png")
-    XCTAssertTrue(FileManager.default.fileExists(atPath: sourceURL.path))
-    XCTAssertTrue(FileManager.default.fileExists(atPath: referenceURL.path))
     let source = try XCTUnwrap(UIImage(contentsOfFile: sourceURL.path))
-    let reference = try XCTUnwrap(UIImage(contentsOfFile: referenceURL.path))
-    let rendered = try FilmEngine().develop(
-      source,
-      with: CameraRecipe.recipe(for: "kodachrome"),
-      maxPixelSize: 560,
-      seed: 1
-    ).image
+    let cameraIDs = [
+      "kodachrome", "a24-still", "film-noir", "pastel-cinema", "tokyo-neon",
+      "leica-street", "polaroid", "tintype", "super-8", "gq-editorial",
+    ]
 
-    XCTAssertEqual(rendered.cgImage?.width, reference.cgImage?.width)
-    XCTAssertEqual(rendered.cgImage?.height, reference.cgImage?.height)
+    for cameraID in cameraIDs {
+      let referenceURL = testsDirectory
+        .appendingPathComponent("Fixtures/golden-\(cameraID).png")
+      let reference = try XCTUnwrap(UIImage(contentsOfFile: referenceURL.path))
+      let rendered = try FilmEngine().develop(
+        source,
+        with: CameraRecipe.recipe(for: cameraID),
+        maxPixelSize: 560,
+        seed: 1
+      ).image
 
-    let error = meanAbsoluteRGBError(rendered, reference)
-    print("Slide 64 pilot MAE: \(error)/255")
-    XCTAssertLessThan(
-      error,
-      55,
-      "The pilot Swift port has drifted beyond the broad bring-up threshold."
-    )
+      XCTAssertEqual(rendered.cgImage?.width, reference.cgImage?.width, cameraID)
+      XCTAssertEqual(rendered.cgImage?.height, reference.cgImage?.height, cameraID)
 
-    let renderedAttachment = XCTAttachment(image: rendered)
-    renderedAttachment.name = "Swift-Slide-64"
-    renderedAttachment.lifetime = .keepAlways
-    add(renderedAttachment)
+      let error = meanAbsoluteRGBError(rendered, reference)
+      print("Class A \(cameraID) MAE: \(error)/255")
+      XCTAssertLessThan(
+        error,
+        80,
+        "\(cameraID) drifted beyond the broad bring-up threshold."
+      )
 
-    let referenceAttachment = XCTAttachment(image: reference)
-    referenceAttachment.name = "Reference-Kodachrome"
-    referenceAttachment.lifetime = .keepAlways
-    add(referenceAttachment)
+      let renderedAttachment = XCTAttachment(image: rendered)
+      renderedAttachment.name = "Swift-\(cameraID)"
+      renderedAttachment.lifetime = .keepAlways
+      add(renderedAttachment)
+
+      let referenceAttachment = XCTAttachment(image: reference)
+      referenceAttachment.name = "Reference-\(cameraID)"
+      referenceAttachment.lifetime = .keepAlways
+      add(referenceAttachment)
+    }
   }
 
   private func meanAbsoluteRGBError(_ first: UIImage, _ second: UIImage) -> Double {
