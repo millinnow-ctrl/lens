@@ -74,6 +74,15 @@ final class FilmEngine {
       // The baked cube is the complete per-pixel color core. Applying the
       // recipe's exposure, white balance, and tone again would double-develop it.
       image = try lutLoader.apply(named: lutName, to: image)
+      if recipe.postLUTExposure != 0 {
+        image = applyExposure(image, ev: recipe.postLUTExposure)
+      }
+      if recipe.postLUTSaturation != 1 || recipe.postLUTContrast != 1 {
+        image = image.applyingFilter("CIColorControls", parameters: [
+          kCIInputSaturationKey: recipe.postLUTSaturation,
+          kCIInputContrastKey: recipe.postLUTContrast,
+        ])
+      }
     } else {
       image = applyExposure(image, ev: recipe.exposureBias + adaptiveEV)
       image = applyWhiteBalance(image, scene: scene, recipe: recipe)
