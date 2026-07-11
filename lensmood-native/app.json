@@ -1,0 +1,86 @@
+{
+  "expo": {
+    "name": "LensMood",
+    "slug": "lensmood",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "lensmood",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "icon": "./assets/icon.png",
+    "backgroundColor": "#eef2f5",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "app.lensmood.native",
+      "infoPlist": {
+        "NSCameraUsageDescription": "LensMood uses the camera so you can shoot a photo to develop with a camera style.",
+        "NSPhotoLibraryUsageDescription": "LensMood needs access to your photos so you can pick one to develop. Photos are processed on-device and never uploaded.",
+        "NSPhotoLibraryAddUsageDescription": "LensMood saves your developed photos back to your library.",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "privacyManifests": {
+        "NSPrivacyAccessedAPITypes": [
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": ["CA92.1"]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryFileTimestamp",
+            "NSPrivacyAccessedAPITypeReasons": ["C617.1"]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategorySystemBootTime",
+            "NSPrivacyAccessedAPITypeReasons": ["35F9.1"]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryDiskSpace",
+            "NSPrivacyAccessedAPITypeReasons": ["E174.1"]
+          }
+        ]
+      }
+    },
+    "android": {
+      "package": "app.lensmood.native",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#eef2f5"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "LensMood needs access to your photos so you can pick one to develop.",
+          "cameraPermission": "LensMood uses the camera so you can shoot a photo to develop."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "LensMood needs access to your photos so you can pick one to develop.",
+          "savePhotosPermission": "LensMood saves your developed photos back to your library.",
+          "isAccessMediaLocationEnabled": false
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#eef2f5"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "revenueCatIosKey": ""
+    }
+  }
+}

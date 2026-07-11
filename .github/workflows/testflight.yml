@@ -1,0 +1,45 @@
+name: TestFlight
+
+# Builds the native Expo (React Native + Skia) app on EAS and submits it to
+# TestFlight. The build runs on Expo's cloud infrastructure, so no Mac runner
+# is required. The app lives in lensmood-native/.
+#
+# One-time setup (from your machine, inside lensmood-native/):
+#   npm i -g eas-cli
+#   eas login
+#   eas init            # links the project, writes extra.eas.projectId into app.json
+#
+# Required repository secret (Settings → Secrets and variables → Actions):
+#   EXPO_TOKEN   An Expo access token (expo.dev → Account → Access tokens)
+#
+# App Store Connect submit credentials are managed by EAS (eas submit reads
+# them). See docs/TESTFLIGHT.md for the full walkthrough.
+
+on:
+  workflow_dispatch: # run it from the Actions tab whenever you want a new beta
+  push:
+    tags: ['v*'] # …or push a tag like v1.0.1
+
+jobs:
+  beta:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: lensmood-native
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build & submit to TestFlight (EAS)
+        run: eas build --platform ios --profile production --non-interactive --auto-submit
