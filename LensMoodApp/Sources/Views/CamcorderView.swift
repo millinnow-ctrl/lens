@@ -53,6 +53,8 @@ struct CamcorderView: View {
           }
         }
         .padding(Theme.pagePadding)
+        .padding(.bottom, 80)
+        .frame(maxWidth: .infinity, alignment: .leading)
       }
       .background(Theme.paper)
       .navigationTitle("Tape")
