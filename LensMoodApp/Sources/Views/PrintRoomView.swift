@@ -33,6 +33,8 @@ struct PrintRoomView: View {
   @State private var selectedID: UUID?
   @State private var surface: PrintSurface = .wood
   @State private var saved = false
+  @State private var isSaving = false
+  @State private var errorMessage: String?
 
   private var selected: DevelopedAsset? {
     if let selectedID {
@@ -63,10 +65,11 @@ struct PrintRoomView: View {
             surfacePicker
             printStage
 
-            Button("Save photographed print") {
+            Button(isSaving ? "Saving print" : "Save photographed print") {
               savePrint()
             }
             .buttonStyle(InstrumentButtonStyle(kind: .primary))
+            .disabled(isSaving)
           }
         }
         .padding(Theme.pagePadding)
@@ -77,6 +80,14 @@ struct PrintRoomView: View {
       .navigationBarTitleDisplayMode(.inline)
       .alert("Print saved", isPresented: $saved) {
         Button("OK", role: .cancel) {}
+      }
+      .alert("Could not save this print", isPresented: Binding(
+        get: { errorMessage != nil },
+        set: { if !$0 { errorMessage = nil } }
+      )) {
+        Button("OK", role: .cancel) {}
+      } message: {
+        Text(errorMessage ?? "Please try again.")
       }
     }
   }
@@ -156,14 +167,28 @@ struct PrintRoomView: View {
 
   private func savePrint() {
     guard let selected else { return }
+    isSaving = true
     let composition = InstantPrintComposition(asset: selected, surface: surface)
       .frame(width: 1200, height: 1200)
     let renderer = ImageRenderer(content: composition)
     renderer.scale = 1
-    guard let image = renderer.uiImage else { return }
-    UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
-    saved = true
-    UINotificationFeedbackGenerator().notificationOccurred(.success)
+    guard let image = renderer.uiImage else {
+      isSaving = false
+      errorMessage = "The print could not be rendered. Please try again."
+      return
+    }
+
+    Task {
+      do {
+        try await PhotoLibraryWriter.save(image: image)
+        isSaving = false
+        saved = true
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+      } catch {
+        isSaving = false
+        errorMessage = error.localizedDescription
+      }
+    }
   }
 }
 
