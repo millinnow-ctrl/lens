@@ -9,6 +9,7 @@ struct CaptureView: View {
   @State private var decisions: [String] = []
   @State private var cameraPresented = false
   @State private var isDeveloping = false
+  @State private var isSaving = false
   @State private var cameraUnavailable = false
 
   var body: some View {
@@ -41,10 +42,11 @@ struct CaptureView: View {
           .buttonStyle(InstrumentButtonStyle(kind: .primary))
 
           if developed != nil {
-            Button("Save developed photograph") {
+            Button(isSaving ? "Preparing full resolution" : "Save developed photograph") {
               save()
             }
             .buttonStyle(InstrumentButtonStyle(kind: .secondary))
+            .disabled(isSaving)
           }
 
           if !decisions.isEmpty {
@@ -163,8 +165,20 @@ struct CaptureView: View {
   }
 
   private func save() {
-    guard let developed else { return }
-    UIImageWriteToSavedPhotosAlbum(developed, nil, nil, nil)
-    UINotificationFeedbackGenerator().notificationOccurred(.success)
+    guard let captured else { return }
+    isSaving = true
+    let selected = stock
+    DispatchQueue.global(qos: .userInitiated).async {
+      let result = Result {
+        try FilmEngine.shared.develop(captured, with: selected.recipe, seed: 43).image
+      }
+      DispatchQueue.main.async {
+        isSaving = false
+        if case .success(let fullResolution) = result {
+          UIImageWriteToSavedPhotosAlbum(fullResolution, nil, nil, nil)
+          UINotificationFeedbackGenerator().notificationOccurred(.success)
+        }
+      }
+    }
   }
 }
