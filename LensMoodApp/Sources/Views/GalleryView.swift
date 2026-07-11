@@ -91,6 +91,21 @@ struct GalleryView: View {
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .background(Theme.paper)
   }
+
+  private func save() {
+    isSaving = true
+    Task {
+      do {
+        try await PhotoLibraryWriter.save(image: asset.image)
+        isSaving = false
+        saveConfirmation = true
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+      } catch {
+        isSaving = false
+        errorMessage = error.localizedDescription
+      }
+    }
+  }
 }
 
 private struct GalleryDetailView: View {
@@ -99,6 +114,9 @@ private struct GalleryDetailView: View {
   @EnvironmentObject private var model: AppModel
   @Environment(\.dismiss) private var dismiss
   @State private var sharePresented = false
+  @State private var isSaving = false
+  @State private var saveConfirmation = false
+  @State private var errorMessage: String?
 
   var body: some View {
     NavigationStack {
@@ -119,10 +137,11 @@ private struct GalleryDetailView: View {
               .foregroundStyle(Theme.inkSoft)
           }
 
-          Button("Save to Photos") {
-            UIImageWriteToSavedPhotosAlbum(asset.image, nil, nil, nil)
+          Button(isSaving ? "Saving to Photos" : "Save to Photos") {
+            save()
           }
           .buttonStyle(InstrumentButtonStyle(kind: .primary))
+          .disabled(isSaving)
 
           Button("Share") {
             sharePresented = true
@@ -150,6 +169,17 @@ private struct GalleryDetailView: View {
       }
       .sheet(isPresented: $sharePresented) {
         ActivitySheet(items: [asset.image])
+      }
+      .alert("Saved to Photos", isPresented: $saveConfirmation) {
+        Button("OK", role: .cancel) {}
+      }
+      .alert("Could not save this photograph", isPresented: Binding(
+        get: { errorMessage != nil },
+        set: { if !$0 { errorMessage = nil } }
+      )) {
+        Button("OK", role: .cancel) {}
+      } message: {
+        Text(errorMessage ?? "Please try again.")
       }
     }
   }
