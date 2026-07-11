@@ -39,6 +39,37 @@ final class FilmEngineTests: XCTestCase {
     XCTAssertTrue(result.decisions.contains { $0.hasPrefix("Low light raised") })
   }
 
+  func testPublicCameraNamesAvoidUnclearedBrandsAndAILanguage() {
+    let forbidden = ["Leica", "GQ", "A24", "Polaroid", "Kodachrome", "iPhone", "Super 8", "AI"]
+    for stock in Stock.all {
+      for term in forbidden {
+        XCTAssertFalse(stock.name.localizedCaseInsensitiveContains(term), "\(stock.name) contains \(term)")
+        XCTAssertFalse(stock.tagline.localizedCaseInsensitiveContains(term), "\(stock.tagline) contains \(term)")
+      }
+    }
+  }
+
+  func testEveryAdaptiveRecipeProducesDistinctPixels() throws {
+    let source = testImage()
+    var outputs = Set<Data>()
+    for recipe in CameraRecipe.all where recipe.engineClass == .adaptive {
+      let image = try FilmEngine().develop(source, with: recipe, seed: 91).image
+      outputs.insert(pixelBytes(image))
+    }
+    XCTAssertEqual(outputs.count, 8)
+  }
+
+  func testRecipeParameterFingerprintsAreUnique() {
+    let fingerprints = CameraRecipe.all.map {
+      [
+        $0.exposureBias, $0.adaptiveExposure, $0.warmth, $0.saturation,
+        $0.contrast, $0.shadowLift, $0.highlightCompression, $0.vignette,
+        $0.bloom, $0.grain, $0.grainSize,
+      ]
+    }
+    XCTAssertEqual(Set(fingerprints.map(String.init(describing:))).count, 18)
+  }
+
   private func testImage() -> UIImage {
     let renderer = UIGraphicsImageRenderer(size: CGSize(width: 64, height: 64))
     return renderer.image { context in
