@@ -18,6 +18,7 @@ struct FilmRenderResult {
   let image: UIImage
   let scene: SceneProfile
   let decisions: [String]
+  let faces: [FaceProfile]
 }
 
 final class FilmEngine {
@@ -66,6 +67,7 @@ final class FilmEngine {
     }
 
     let scene = try analyzer.analyze(image)
+    let subject = (try? VisionService.analyze(source)) ?? SubjectAnalysis(faces: [], personMask: nil)
     let adaptiveEV = adaptiveExposure(for: scene, recipe: recipe)
     image = applyExposure(image, ev: recipe.exposureBias + adaptiveEV)
     image = applyWhiteBalance(image, scene: scene, recipe: recipe)
@@ -77,6 +79,9 @@ final class FilmEngine {
       image = applyAdaptiveColor(image, scene: scene, recipe: recipe)
     }
 
+    if recipe.protectsFaces, !subject.faces.isEmpty {
+      image = applyFaceProtection(image, faces: subject.faces, amount: scene.isBacklit ? 0.22 : 0.10)
+    }
     if recipe.monochrome {
       image = image.applyingFilter("CIPhotoEffectMono")
     }
@@ -103,7 +108,8 @@ final class FilmEngine {
     return FilmRenderResult(
       image: UIImage(cgImage: cgImage, scale: source.scale, orientation: .up),
       scene: scene,
-      decisions: decisions(for: scene, recipe: recipe, adaptiveEV: adaptiveEV)
+      decisions: decisions(for: scene, recipe: recipe, adaptiveEV: adaptiveEV, faces: subject.faces),
+      faces: subject.faces
     )
   }
 
@@ -198,6 +204,42 @@ final class FilmEngine {
     }
   }
 
+  private func applyFaceProtection(
+    _ image: CIImage,
+    faces: [FaceProfile],
+    amount: Double
+  ) -> CIImage {
+    var protected = image
+    for face in faces {
+      let center = CIVector(
+        x: image.extent.minX + face.bounds.midX * image.extent.width,
+        y: image.extent.minY + (1 - face.bounds.midY) * image.extent.height
+      )
+      let radius = max(
+        face.bounds.width * image.extent.width,
+        face.bounds.height * image.extent.height
+      ) * 0.85
+      guard radius > 1 else { continue }
+      let lifted = protected.applyingFilter("CIExposureAdjust", parameters: [
+        kCIInputEVKey: amount,
+      ])
+      let mask = CIFilter(name: "CIRadialGradient", parameters: [
+        "inputCenter": center,
+        "inputRadius0": radius * 0.22,
+        "inputRadius1": radius,
+        "inputColor0": CIColor.white,
+        "inputColor1": CIColor.black,
+      ])?.outputImage?.cropped(to: image.extent)
+      if let mask {
+        protected = lifted.applyingFilter("CIBlendWithMask", parameters: [
+          kCIInputBackgroundImageKey: protected,
+          kCIInputMaskImageKey: mask,
+        ])
+      }
+    }
+    return protected
+  }
+
   private func applyBloom(_ image: CIImage, amount: Double) -> CIImage {
     guard amount > 0.001 else { return image }
     return image.applyingFilter("CIBloom", parameters: [
@@ -230,12 +272,16 @@ final class FilmEngine {
   private func decisions(
     for scene: SceneProfile,
     recipe: CameraRecipe,
-    adaptiveEV: Double
+    adaptiveEV: Double,
+    faces: [FaceProfile]
   ) -> [String] {
     var notes: [String] = []
+    if !faces.isEmpty, recipe.protectsFaces {
+      notes.append(faces.count == 1 ? "Face exposure protected" : "Group exposure balanced")
+    }
     if adaptiveEV > 0.08 { notes.append("Low light raised \(formattedStops(adaptiveEV))") }
     if adaptiveEV < -0.08 { notes.append("Highlights held \(formattedStops(abs(adaptiveEV)))") }
-    if scene.isBacklit, recipe.protectsFaces { notes.append("Backlight recovery prepared") }
+    if scene.isBacklit, recipe.protectsFaces, !faces.isEmpty { notes.append("Backlit subject lifted") }
     if abs(scene.warmth) > 0.06 {
       notes.append(recipe.preservesWarmCast ? "Ambient color retained" : "Color cast restrained")
     }
