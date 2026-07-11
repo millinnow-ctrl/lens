@@ -70,6 +70,79 @@ final class FilmEngineTests: XCTestCase {
     XCTAssertEqual(Set(fingerprints.map(String.init(describing:))).count, 18)
   }
 
+  func testSlide64AgainstFirstGoldenFixture() throws {
+    let bundle = Bundle(for: Self.self)
+    let sourceURL = try XCTUnwrap(bundle.url(forResource: "sample-golden", withExtension: "jpg"))
+    let referenceURL = try XCTUnwrap(bundle.url(forResource: "golden-kodachrome", withExtension: "png"))
+    let source = try XCTUnwrap(UIImage(contentsOfFile: sourceURL.path))
+    let reference = try XCTUnwrap(UIImage(contentsOfFile: referenceURL.path))
+    let rendered = try FilmEngine().develop(
+      source,
+      with: CameraRecipe.recipe(for: "kodachrome"),
+      maxPixelSize: 560,
+      seed: 1
+    ).image
+
+    XCTAssertEqual(rendered.cgImage?.width, reference.cgImage?.width)
+    XCTAssertEqual(rendered.cgImage?.height, reference.cgImage?.height)
+
+    let error = meanAbsoluteRGBError(rendered, reference)
+    print("Slide 64 pilot MAE: \(error)/255")
+    XCTAssertLessThan(
+      error,
+      55,
+      "The pilot Swift port has drifted beyond the broad bring-up threshold."
+    )
+
+    let renderedAttachment = XCTAttachment(image: rendered)
+    renderedAttachment.name = "Swift-Slide-64"
+    renderedAttachment.lifetime = .keepAlways
+    add(renderedAttachment)
+
+    let referenceAttachment = XCTAttachment(image: reference)
+    referenceAttachment.name = "Reference-Kodachrome"
+    referenceAttachment.lifetime = .keepAlways
+    add(referenceAttachment)
+  }
+
+  private func meanAbsoluteRGBError(_ first: UIImage, _ second: UIImage) -> Double {
+    guard let firstCG = first.cgImage,
+          let secondCG = second.cgImage,
+          firstCG.width == secondCG.width,
+          firstCG.height == secondCG.height else {
+      return .infinity
+    }
+    let left = rgbaBytes(firstCG)
+    let right = rgbaBytes(secondCG)
+    var total = 0
+    var samples = 0
+    for index in stride(from: 0, to: min(left.count, right.count), by: 4) {
+      total += abs(Int(left[index]) - Int(right[index]))
+      total += abs(Int(left[index + 1]) - Int(right[index + 1]))
+      total += abs(Int(left[index + 2]) - Int(right[index + 2]))
+      samples += 3
+    }
+    return samples == 0 ? .infinity : Double(total) / Double(samples)
+  }
+
+  private func rgbaBytes(_ image: CGImage) -> [UInt8] {
+    let width = image.width
+    let height = image.height
+    var bytes = [UInt8](repeating: 0, count: width * height * 4)
+    let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
+    let context = CGContext(
+      data: &bytes,
+      width: width,
+      height: height,
+      bitsPerComponent: 8,
+      bytesPerRow: width * 4,
+      space: colorSpace,
+      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    )
+    context?.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+    return bytes
+  }
+
   private func testImage() -> UIImage {
     let renderer = UIGraphicsImageRenderer(size: CGSize(width: 64, height: 64))
     return renderer.image { context in
