@@ -115,7 +115,8 @@ final class FilmEngineTests: XCTestCase {
         source,
         with: CameraRecipe.recipe(for: cameraID),
         maxPixelSize: 560,
-        seed: 1
+        seed: 1,
+        analyzeSubjects: false
       ).image
 
       XCTAssertEqual(rendered.cgImage?.width, reference.cgImage?.width, cameraID)
@@ -123,6 +124,14 @@ final class FilmEngineTests: XCTestCase {
 
       let error = meanAbsoluteRGBError(rendered, reference)
       print("Class A \(cameraID) MAE: \(error)/255")
+      if cameraID == "kodachrome" {
+        try writeSlide64Artifacts(source: source, reference: reference, rendered: rendered)
+        XCTAssertLessThanOrEqual(
+          error,
+          2,
+          "Slide 64 must meet the approved parity target before completion."
+        )
+      }
       XCTAssertLessThan(
         error,
         80,
@@ -138,6 +147,73 @@ final class FilmEngineTests: XCTestCase {
       referenceAttachment.name = "Reference-\(cameraID)"
       referenceAttachment.lifetime = .keepAlways
       add(referenceAttachment)
+    }
+  }
+
+  private func writeSlide64Artifacts(
+    source: UIImage,
+    reference: UIImage,
+    rendered: UIImage
+  ) throws {
+    let testsDirectory = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+    let outputDirectory = testsDirectory
+      .deletingLastPathComponent()
+      .appendingPathComponent("ui-artifacts/parity/slide-64")
+    try FileManager.default.createDirectory(
+      at: outputDirectory,
+      withIntermediateDirectories: true
+    )
+
+    let difference = try absoluteDifference(reference, rendered)
+    let sideBySide = sideBySide(reference, rendered)
+    let images: [(String, UIImage)] = [
+      ("original.png", source),
+      ("reference.png", reference),
+      ("swift.png", rendered),
+      ("difference.png", difference),
+      ("side-by-side.png", sideBySide),
+    ]
+    for (name, image) in images {
+      let data = try XCTUnwrap(image.pngData(), "Could not encode \(name)")
+      try data.write(to: outputDirectory.appendingPathComponent(name), options: .atomic)
+    }
+  }
+
+  private func absoluteDifference(_ first: UIImage, _ second: UIImage) throws -> UIImage {
+    let firstCG = try XCTUnwrap(first.cgImage)
+    let secondCG = try XCTUnwrap(second.cgImage)
+    XCTAssertEqual(firstCG.width, secondCG.width)
+    XCTAssertEqual(firstCG.height, secondCG.height)
+    let left = rgbaBytes(firstCG)
+    let right = rgbaBytes(secondCG)
+    var difference = [UInt8](repeating: 0, count: left.count)
+    for index in stride(from: 0, to: min(left.count, right.count), by: 4) {
+      difference[index] = UInt8(abs(Int(left[index]) - Int(right[index])))
+      difference[index + 1] = UInt8(abs(Int(left[index + 1]) - Int(right[index + 1])))
+      difference[index + 2] = UInt8(abs(Int(left[index + 2]) - Int(right[index + 2])))
+      difference[index + 3] = 255
+    }
+    let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
+    let context = CGContext(
+      data: &difference,
+      width: firstCG.width,
+      height: firstCG.height,
+      bitsPerComponent: 8,
+      bytesPerRow: firstCG.width * 4,
+      space: colorSpace,
+      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    )
+    return UIImage(cgImage: try XCTUnwrap(context?.makeImage()))
+  }
+
+  private func sideBySide(_ reference: UIImage, _ rendered: UIImage) -> UIImage {
+    let size = CGSize(
+      width: reference.size.width + rendered.size.width,
+      height: max(reference.size.height, rendered.size.height)
+    )
+    return UIGraphicsImageRenderer(size: size).image { _ in
+      reference.draw(at: .zero)
+      rendered.draw(at: CGPoint(x: reference.size.width, y: 0))
     }
   }
 
@@ -197,3 +273,4 @@ final class FilmEngineTests: XCTestCase {
     return data as Data
   }
 }
+

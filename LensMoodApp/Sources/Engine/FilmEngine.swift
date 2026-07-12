@@ -28,6 +28,8 @@ final class FilmEngine {
   private let analyzer: SceneAnalyzer
   private let lutLoader = LUTLoader()
   private let grainKernel: CIColorKernel?
+  private let referenceVignetteKernel: CIColorKernel?
+  private let referenceGrainKernel: CIColorKernel?
 
   init() {
     let sRGB = CGColorSpace(name: CGColorSpace.sRGB)!
@@ -46,13 +48,42 @@ final class FilmEngine {
         return vec4(clamp(pixel.rgb + vec3(noise), 0.0, 1.0), pixel.a);
       }
       """)
+    referenceVignetteKernel = CIColorKernel(source: """
+      kernel vec4 lensMoodReferenceVignette(
+        __sample pixel,
+        float centerX,
+        float centerY,
+        float innerRadius,
+        float outerRadius,
+        float outerAlpha
+      ) {
+        float distanceFromCenter = distance(destCoord(), vec2(centerX, centerY));
+        float ramp = clamp(
+          (distanceFromCenter - innerRadius) / max(outerRadius - innerRadius, 0.001),
+          0.0,
+          1.0
+        );
+        float alpha = ramp * outerAlpha;
+        vec3 vignetteColor = vec3(8.0 / 255.0, 8.0 / 255.0, 12.0 / 255.0);
+        return vec4(mix(pixel.rgb, vignetteColor, alpha), pixel.a);
+      }
+      """)
+    referenceGrainKernel = CIColorKernel(source: """
+      kernel vec4 lensMoodReferenceGrain(__sample pixel, __sample noise, float amplitude) {
+        float luminance = dot(pixel.rgb, vec3(0.299, 0.587, 0.114));
+        float weight = 0.25 + 0.75 * (4.0 * luminance * (1.0 - luminance));
+        vec3 result = pixel.rgb + noise.rgb * (amplitude / 255.0) * weight;
+        return vec4(clamp(result, 0.0, 1.0), pixel.a);
+      }
+      """)
   }
 
   func develop(
     _ source: UIImage,
     with recipe: CameraRecipe,
     maxPixelSize: CGFloat? = nil,
-    seed: Double = 1
+    seed: Double = 1,
+    analyzeSubjects: Bool = true
   ) throws -> FilmRenderResult {
     guard var image = CIImage(
       image: source,
@@ -63,7 +94,9 @@ final class FilmEngine {
 
     image = image.orientedForDisplay
     let scene = try analyzer.analyze(image)
-    let subject = (try? VisionService.analyze(source)) ?? SubjectAnalysis(faces: [], personMask: nil)
+    let subject = analyzeSubjects
+      ? ((try? VisionService.analyze(source)) ?? SubjectAnalysis(faces: [], personMask: nil))
+      : SubjectAnalysis(faces: [], personMask: nil)
 
     if let maxPixelSize {
       image = scaled(image, maxPixelSize: maxPixelSize)
@@ -106,8 +139,13 @@ final class FilmEngine {
       image = image.applyingFilter("CIPhotoEffectMono")
     }
     image = applyBloom(image, amount: recipe.bloom)
-    image = applyVignette(image, amount: recipe.vignette)
-    image = applyGrain(image, amount: recipe.grain, size: recipe.grainSize, seed: seed)
+    if let profile = recipe.referenceSpatial {
+      image = applyReferenceVignette(image, profile: profile)
+      image = applyReferenceGrain(image, recipeID: recipe.id, profile: profile)
+    } else {
+      image = applyVignette(image, amount: recipe.vignette)
+      image = applyGrain(image, amount: recipe.grain, size: recipe.grainSize, seed: seed)
+    }
     if recipe.monochrome {
       // Enforce the invariant after every spatial and lighting pass.
       image = image.applyingFilter("CIColorMonochrome", parameters: [
@@ -311,6 +349,103 @@ final class FilmEngine {
     ) ?? image
   }
 
+  private func applyReferenceVignette(
+    _ image: CIImage,
+    profile: ReferenceSpatialProfile
+  ) -> CIImage {
+    guard let referenceVignetteKernel else { return image }
+    let extent = image.extent
+    let innerRadius = min(extent.width, extent.height) * 0.35
+    let outerRadius = max(extent.width, extent.height) * 0.78
+    let outerAlpha = profile.shadowVignette * profile.intensity * 0.55
+    return referenceVignetteKernel.apply(
+      extent: extent,
+      arguments: [
+        image,
+        extent.midX,
+        extent.midY,
+        innerRadius,
+        outerRadius,
+        outerAlpha,
+      ]
+    ) ?? image
+  }
+
+  private func applyReferenceGrain(
+    _ image: CIImage,
+    recipeID: String,
+    profile: ReferenceSpatialProfile
+  ) -> CIImage {
+    guard let referenceGrainKernel else { return image }
+    let extent = image.extent.integral
+    let width = max(1, Int(extent.width))
+    let height = max(1, Int(extent.height))
+    let referenceScale = Double(max(width, height)) / 1000
+    let clumpSize = max(1, Int((profile.grainSize * referenceScale).rounded()))
+    let seed = referenceHash(recipeID) & 0xffff
+    var pixels = [Float32](repeating: 0, count: width * height * 4)
+
+    for y in 0..<height {
+      let grainY = clumpSize > 1 ? y / clumpSize : y
+      for x in 0..<width {
+        let grainX = clumpSize > 1 ? x / clumpSize : x
+        let mono = referenceGrainSample(x: grainX, y: grainY, seed: seed)
+        let index = (y * width + x) * 4
+        pixels[index] = Float32(
+          mono + referenceGrainSample(x: grainX, y: grainY, seed: seed &+ 13) * profile.grainChroma
+        )
+        pixels[index + 1] = Float32(
+          mono + referenceGrainSample(x: grainX, y: grainY, seed: seed &+ 37) * profile.grainChroma
+        )
+        pixels[index + 2] = Float32(
+          mono + referenceGrainSample(x: grainX, y: grainY, seed: seed &+ 61) * profile.grainChroma
+        )
+        pixels[index + 3] = 1
+      }
+    }
+
+    let data = pixels.withUnsafeBytes { Data($0) }
+    let noise = CIImage(
+      bitmapData: data,
+      bytesPerRow: width * 4 * MemoryLayout<Float32>.size,
+      size: CGSize(width: width, height: height),
+      format: .RGBAf,
+      colorSpace: nil
+    ).transformed(by: CGAffineTransform(translationX: extent.minX, y: extent.minY))
+    let amplitude = profile.grainLevel * 34 * profile.grainAmplitude
+      * min(1, profile.intensity * 1.25)
+    return referenceGrainKernel.apply(
+      extent: extent,
+      arguments: [image, noise, amplitude]
+    ) ?? image
+  }
+
+  private func referenceHash(_ string: String) -> UInt32 {
+    var hash: UInt32 = 0x811c9dc5
+    for codeUnit in string.utf16 {
+      hash ^= UInt32(codeUnit)
+      hash = hash &* 0x01000193
+    }
+    return hash
+  }
+
+  private func referenceNoiseHash(x: Int, y: Int, seed: UInt32) -> Double {
+    var hash = UInt32(truncatingIfNeeded: x) &* 374_761_393
+    hash = hash &+ UInt32(truncatingIfNeeded: y) &* 668_265_263
+    hash = hash &+ seed &* 2_246_822_519
+    hash = (hash ^ (hash >> 13)) &* 1_274_126_177
+    hash ^= hash >> 16
+    return Double(hash) / 4_294_967_296
+  }
+
+  private func referenceGrainSample(x: Int, y: Int, seed: UInt32) -> Double {
+    (
+      referenceNoiseHash(x: x, y: y, seed: seed)
+        + referenceNoiseHash(x: x, y: y, seed: seed &+ 9_173)
+        + referenceNoiseHash(x: x, y: y, seed: seed &+ 51_287)
+    ) / 3 - 0.5
+  }
+
   private func decisions(
     for scene: SceneProfile,
     recipe: CameraRecipe,
@@ -343,3 +478,4 @@ private extension Double {
     min(range.upperBound, max(range.lowerBound, self))
   }
 }
+

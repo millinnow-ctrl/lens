@@ -10,7 +10,7 @@ on:
     paths:
       - 'LensMoodApp/**'
       - '.github/workflows/swiftui-ci.yml'
-  # push runs only on main — PR branches are already covered by the
+  # push runs only on main â€” PR branches are already covered by the
   # pull_request trigger, and running both doubled the billed macOS minutes
   push:
     branches: [main]
@@ -62,7 +62,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO | tee xcodetest.log | tail -120
 
       - name: Capture simulator product surfaces
-        # success() only — booting the simulator after a failed build/test
+        # success() only â€” booting the simulator after a failed build/test
         # burns 10x-billed macOS minutes with nothing to capture
         if: success()
         working-directory: LensMoodApp
@@ -91,6 +91,15 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      - name: Upload Slide 64 parity evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: slide-64-parity
+          path: LensMoodApp/ui-artifacts/parity/slide-64/
+          if-no-files-found: warn
+          retention-days: 7
+
       - name: Upload Xcode logs on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -100,3 +109,4 @@ jobs:
             LensMoodApp/xcodebuild.log
             LensMoodApp/xcodetest.log
           retention-days: 3
+
