@@ -139,7 +139,7 @@ struct HomeView: View {
 
   @ViewBuilder
   private var tapePoster: some View {
-    if let ui = UIImage(named: "camcorder-cover") {
+    if let ui = BundleMedia.image("camcorder-cover") {
       Image(uiImage: ui)
         .resizable()
         .scaledToFill()

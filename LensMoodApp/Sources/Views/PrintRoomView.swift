@@ -237,7 +237,7 @@ private struct InstantPrintComposition: View {
       let size = geometry.size
       ZStack {
         // photographic surface plate, color fallback if the asset is missing
-        if let plate = UIImage(named: surface.imageName) {
+        if let plate = BundleMedia.image(surface.imageName) {
           Image(uiImage: plate)
             .resizable()
             .scaledToFill()

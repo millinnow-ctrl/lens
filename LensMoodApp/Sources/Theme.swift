@@ -1,4 +1,22 @@
 import SwiftUI
+import UIKit
+
+/// Loose photographic resources (camcorder cover, print surface plates) are
+/// bundled outside the asset catalog, and XcodeGen may place them at the
+/// bundle root or under images/ depending on how the group resolves — probe
+/// both before falling back to the caller's procedural stand-in.
+enum BundleMedia {
+  static func image(_ name: String) -> UIImage? {
+    if let direct = UIImage(named: name) { return direct }
+    for ext in ["jpg", "png"] {
+      if let url = Bundle.main.url(forResource: name, withExtension: ext)
+        ?? Bundle.main.url(forResource: name, withExtension: ext, subdirectory: "images") {
+        return UIImage(contentsOfFile: url.path)
+      }
+    }
+    return nil
+  }
+}
 
 extension Color {
   init(hex: String) {
