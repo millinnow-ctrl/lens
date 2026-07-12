@@ -440,7 +440,7 @@ final class FilmEngine {
       referenceGeometryKernel.apply(
         extent: extent,
         roiCallback: roi,
-        inputImage: source,
+        image: source,
         arguments: [extent.midX, extent.midY, radialScale, coefficient]
       )?.cropped(to: extent) ?? image
     }
@@ -605,6 +605,7 @@ private extension Double {
     min(range.upperBound, max(range.lowerBound, self))
   }
 }
+
 
 
 
