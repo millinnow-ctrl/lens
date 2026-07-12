@@ -68,12 +68,15 @@ struct CaptureView: View {
       readout("APERTURE", "ƒ/\(fmtF(camera.settings.aperture))", .aperture)
       readout("EV", fmtEV(camera.settings.exposureBiasEV), .ev)
       Spacer(minLength: 0)
-      Button {} label: {
-        Image(systemName: "gearshape")
-          .font(.system(size: 15)).foregroundStyle(CameraTheme.dim)
-          .frame(width: 34, height: 34)
-          .overlay(Circle().stroke(CameraTheme.line, lineWidth: 1))
-      }.buttonStyle(.plain)
+      if camera.settings.autoRelight {
+        HStack(spacing: 5) {
+          Image(systemName: "wand.and.stars").font(.system(size: 10))
+          Text("AUTO LIGHT").font(.spaceMono(9, bold: true)).tracking(0.5)
+        }
+        .foregroundStyle(CameraTheme.gold)
+        .padding(.horizontal, 8).padding(.vertical, 5)
+        .background(CameraTheme.gold.opacity(0.12)).clipShape(Capsule())
+      }
     }
     .padding(.horizontal, 18).padding(.top, 14).padding(.bottom, 12)
     .background(Color.black)
@@ -193,7 +196,7 @@ struct CaptureView: View {
     Button { mountPickerShown = true } label: {
       HStack(spacing: 10) {
         canisterIcon
-        Text(loadedStock.name).font(.system(size: 16, weight: .semibold)).foregroundStyle(CameraTheme.text)
+        Text(loadedStock.name).font(.spaceMono(15, bold: true)).foregroundStyle(CameraTheme.text)
         Image(systemName: "chevron.down").font(.system(size: 11, weight: .semibold)).foregroundStyle(CameraTheme.dim)
         Spacer()
         Button { showGrid.toggle(); tick() } label: {
@@ -229,9 +232,9 @@ struct CaptureView: View {
       ForEach(CaptureMode.allCases, id: \.self) { mode in
         let on = camera.settings.captureMode == mode
         Button { selectMode(mode) } label: {
-          VStack(spacing: 4) {
+          VStack(spacing: 5) {
             Image(systemName: mode.systemImage).font(.system(size: 20))
-            Text(mode.rawValue).font(.system(size: 12, weight: on ? .semibold : .regular))
+            Text(mode.rawValue.uppercased()).font(.spaceMono(11, bold: on)).tracking(0.5)
             Rectangle().fill(on ? CameraTheme.gold : .clear).frame(width: 18, height: 2).clipShape(Capsule())
           }
           .foregroundStyle(on ? CameraTheme.gold : CameraTheme.dim)
@@ -296,11 +299,20 @@ struct CaptureView: View {
     VStack {
       HStack {
         Button { model.selectedTab = .cameras } label: {
-          Image(systemName: "xmark").font(.system(size: 15, weight: .semibold)).foregroundStyle(.white)
-            .frame(width: 34, height: 34).background(Color.black.opacity(0.4)).clipShape(Circle())
-        }.buttonStyle(.plain)
+          HStack(spacing: 6) {
+            Image(systemName: "chevron.left").font(.system(size: 13, weight: .bold))
+            Text("LensMood").font(.spaceMono(13, bold: true))
+          }
+          .foregroundStyle(CameraTheme.gold)
+          .padding(.horizontal, 14).frame(height: 38)
+          .background(Color.black.opacity(0.55)).clipShape(Capsule())
+          .overlay(Capsule().stroke(CameraTheme.gold.opacity(0.55), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Back to LensMood")
         Spacer()
-      }.padding(.leading, 14).padding(.top, 6)
+      }
+      .padding(.leading, 14).padding(.top, 72)
       Spacer()
     }
   }
@@ -395,6 +407,13 @@ struct CaptureView: View {
             ForEach(asset.decisions, id: \.self) { Text("· \($0)").font(.system(size: 12)).foregroundStyle(.white.opacity(0.85)) }
           }.frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 20)
         }
+
+        // honest attribution for the lighting model
+        Text("Scene-aware lighting · Apple Vision + Core Image, on device")
+          .font(.spaceMono(9))
+          .foregroundStyle(CameraTheme.faint)
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .padding(.horizontal, 20).padding(.top, 4)
 
         Spacer()
         HStack(spacing: 12) {

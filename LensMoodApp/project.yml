@@ -21,6 +21,8 @@ targets:
         buildPhase: resources
       - path: Resources/video
         buildPhase: resources
+      - path: Resources/fonts
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.lensmood.ios

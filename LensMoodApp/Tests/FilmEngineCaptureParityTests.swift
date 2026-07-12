@@ -94,7 +94,9 @@ final class FilmEngineCaptureParityTests: XCTestCase {
     let relit = try FilmEngine.shared.develop(img, with: stock.recipe, maxPixelSize: 560, seed: 1, capture: s).image
     XCTAssertGreaterThan(mae(pure, relit), 1.0, "auto relight should change the frame")
     let relit2 = try FilmEngine.shared.develop(img, with: stock.recipe, maxPixelSize: 560, seed: 1, capture: s).image
-    XCTAssertEqual(mae(relit, relit2), 0, "relight must be deterministic")
+    // essentially deterministic — Core Image's night-mode denoise (CINoiseReduction)
+    // isn't bit-exact across runs, but stays well under a quantization step
+    XCTAssertLessThan(mae(relit, relit2), 0.01, "relight must be effectively deterministic")
   }
 
   func testExifHomeParsesEveryStock() {
