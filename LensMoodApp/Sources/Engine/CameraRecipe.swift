@@ -8,6 +8,9 @@ enum CameraEngineClass: String, Codable {
 struct ReferenceSpatialProfile: Equatable {
   let intensity: Double
   let acutance: Double
+  let chromaticAberration: Double
+  let distortion: Double
+  let cornerSoftness: Double
   let shadowVignette: Double
   let grainLevel: Double
   let grainAmplitude: Double
@@ -56,7 +59,7 @@ struct CameraRecipe: Identifiable, Equatable {
     .lut("polaroid", exposure: 0.08, warmth: 0.08, saturation: 0.86, contrast: 0.90, shadows: 0.10, highlights: 0.30, vignette: 0.10, bloom: 0.10, grain: 0.08, grainSize: 0.9, faces: true, warmCast: true, decisions: ["Dynamic range compressed", "Cream warmth retained", "Edges softened chemically"]),
     .lut("super-8", exposure: 0.02, warmth: 0.10, saturation: 0.94, contrast: 1.05, shadows: 0.02, highlights: 0.18, vignette: 0.20, bloom: 0.12, grain: 0.18, grainSize: 1.2, faces: false, warmCast: true, decisions: ["Warm stock response retained", "Gate edges darkened", "Grain allowed to lead"]),
     .adaptive("lomo", exposure: -0.02, adaptive: 0.32, warmth: 0.02, saturation: 1.28, contrast: 1.20, shadows: -0.08, highlights: 0.06, vignette: 0.42, bloom: 0.04, grain: 0.12, grainSize: 1.15, faces: false, warmCast: true, decisions: ["Color exaggerated", "Corners sacrificed", "Exposure kept unpredictable"]),
-    .lut("kodachrome", exposure: -0.04, warmth: 0.06, saturation: 1.10, contrast: 1.13, shadows: -0.03, highlights: 0.14, vignette: 0.06, bloom: 0.02, grain: 0.035, grainSize: 0.7, postExposure: 0.12, postSaturation: 0.92, postContrast: 0.96, postMatrix: [1.242303, -0.216002, -0.130785, 0.070520, 1.107397, 0.010722, -0.073353, 0.111281, 1.324162, -0.031531, -0.038719, -0.027803], referenceSpatial: ReferenceSpatialProfile(intensity: 0.80, acutance: 0.22, shadowVignette: 0.46, grainLevel: 0.18, grainAmplitude: 1, grainChroma: 0.25, grainSize: 0.7), faces: true, warmCast: true, decisions: ["Reds held dense", "Shadow color preserved", "Slide highlights protected"]),
+    .lut("kodachrome", exposure: -0.04, warmth: 0.06, saturation: 1.10, contrast: 1.13, shadows: -0.03, highlights: 0.14, vignette: 0.06, bloom: 0.02, grain: 0.035, grainSize: 0.7, postExposure: 0.12, postSaturation: 0.92, postContrast: 0.96, postMatrix: [1.242303, -0.216002, -0.130785, 0.070520, 1.107397, 0.010722, -0.073353, 0.111281, 1.324162, -0.031531, -0.038719, -0.027803], referenceSpatial: ReferenceSpatialProfile(intensity: 0.80, acutance: 0.22, chromaticAberration: 0.12, distortion: 0.06, cornerSoftness: 0.20, shadowVignette: 0.46, grainLevel: 0.18, grainAmplitude: 1, grainChroma: 0.25, grainSize: 0.7), faces: true, warmCast: true, decisions: ["Reds held dense", "Shadow color preserved", "Slide highlights protected"]),
     .adaptive("security-cam", exposure: 0.12, adaptive: 0.90, warmth: -0.14, saturation: 0.28, contrast: 1.02, shadows: 0.14, highlights: 0.02, vignette: 0.24, bloom: 0, grain: 0.28, grainSize: 1.5, faces: false, warmCast: false, decisions: ["Auto gain raised the scene", "Color collapsed toward surveillance green", "Noise left as evidence"]),
     .adaptive("point-shoot", exposure: 0.14, adaptive: 0.72, warmth: -0.02, saturation: 1.14, contrast: 1.14, shadows: 0.02, highlights: 0.08, vignette: 0.08, bloom: 0.05, grain: 0.03, grainSize: 0.65, faces: true, warmCast: false, decisions: ["Face exposure favored", "Small-sensor clarity retained", "Flash color kept clean"]),
     .lut("pastel-cinema", exposure: 0.10, warmth: 0.04, saturation: 0.84, contrast: 0.86, shadows: 0.14, highlights: 0.34, vignette: 0.02, bloom: 0.07, grain: 0.04, grainSize: 0.75, faces: true, warmCast: true, decisions: ["Contrast flattened", "Pastels protected", "Highlights spread softly"]),
@@ -73,5 +76,6 @@ struct CameraRecipe: Identifiable, Equatable {
     CameraRecipe(id: id, engineClass: .adaptive, lutName: nil, postLUTExposure: 0, postLUTSaturation: 1, postLUTContrast: 1, postLUTMatrix: nil, referenceSpatial: nil, exposureBias: exposure, adaptiveExposure: adaptive, warmth: warmth, saturation: saturation, contrast: contrast, shadowLift: shadows, highlightCompression: highlights, vignette: vignette, bloom: bloom, grain: grain, grainSize: grainSize, monochrome: mono, protectsFaces: faces, preservesWarmCast: warmCast, decisionVocabulary: decisions)
   }
 }
+
 
 

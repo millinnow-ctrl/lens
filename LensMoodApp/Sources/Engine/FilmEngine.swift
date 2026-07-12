@@ -28,7 +28,10 @@ final class FilmEngine {
   private let analyzer: SceneAnalyzer
   private let lutLoader = LUTLoader()
   private let grainKernel: CIColorKernel?
+  private let referenceGeometryKernel: CIWarpKernel?
+  private let referenceChannelMergeKernel: CIColorKernel?
   private let referenceAcutanceKernel: CIColorKernel?
+  private let referenceCornerSoftnessKernel: CIColorKernel?
   private let referenceVignetteKernel: CIColorKernel?
   private let referenceGrainKernel: CIColorKernel?
 
@@ -49,12 +52,46 @@ final class FilmEngine {
         return vec4(clamp(pixel.rgb + vec3(noise), 0.0, 1.0), pixel.a);
       }
       """)
+    referenceGeometryKernel = CIWarpKernel(source: """
+      kernel vec2 lensMoodReferenceGeometry(
+        float centerX,
+        float centerY,
+        float radialScale,
+        float chromaticScale
+      ) {
+        vec2 center = vec2(centerX, centerY);
+        vec2 delta = destCoord() - center;
+        float d2 = dot(delta, delta) / max(radialScale * radialScale, 0.001);
+        float barrel = 1.0 + radialScale * 0.0 + chromaticScale * d2;
+        return center + delta * barrel;
+      }
+      """)
+    referenceChannelMergeKernel = CIColorKernel(source: """
+      kernel vec4 lensMoodReferenceChannelMerge(__sample red, __sample green, __sample blue) {
+        return vec4(red.r, green.g, blue.b, green.a);
+      }
+      """)
     referenceAcutanceKernel = CIColorKernel(source: """
       kernel vec4 lensMoodReferenceAcutance(__sample pixel, __sample blurred, float amount) {
         float luminance = dot(pixel.rgb, vec3(0.299, 0.587, 0.114));
         float weight = amount * (4.0 * luminance * (1.0 - luminance));
         vec3 result = pixel.rgb + (pixel.rgb - blurred.rgb) * weight;
         return vec4(clamp(result, 0.0, 1.0), pixel.a);
+      }
+      """)
+    referenceCornerSoftnessKernel = CIColorKernel(source: """
+      kernel vec4 lensMoodReferenceCornerSoftness(
+        __sample sharp,
+        __sample blurred,
+        float centerX,
+        float centerY,
+        float radialScale,
+        float clearStop,
+        float opacity
+      ) {
+        float radius = distance(destCoord(), vec2(centerX, centerY)) / max(radialScale, 0.001);
+        float mask = clamp((radius - clearStop) / max(1.0 - clearStop, 0.001), 0.0, 1.0);
+        return mix(sharp, blurred, mask * opacity);
       }
       """)
     referenceVignetteKernel = CIColorKernel(source: """
@@ -111,6 +148,10 @@ final class FilmEngine {
       image = scaled(image, maxPixelSize: maxPixelSize)
     }
 
+    if let profile = recipe.referenceSpatial {
+      image = applyReferenceGeometry(image, profile: profile)
+    }
+
     let adaptiveEV = adaptiveExposure(for: scene, recipe: recipe)
     if recipe.engineClass == .staticLUT, let lutName = recipe.lutName {
       // The baked cube is the complete per-pixel color core. Applying the
@@ -143,6 +184,7 @@ final class FilmEngine {
 
     if let profile = recipe.referenceSpatial {
       image = applyReferenceAcutance(image, profile: profile)
+      image = applyReferenceCornerSoftness(image, profile: profile)
     }
 
     if recipe.protectsFaces, !subject.faces.isEmpty {
@@ -379,6 +421,61 @@ final class FilmEngine {
     ) ?? image
   }
 
+  private func applyReferenceGeometry(
+    _ image: CIImage,
+    profile: ReferenceSpatialProfile
+  ) -> CIImage {
+    guard let referenceGeometryKernel, let referenceChannelMergeKernel else { return image }
+    let extent = image.extent
+    let referenceScale = max(extent.width, extent.height) / 1000
+    let radialScale = hypot(extent.width / 2, extent.height / 2)
+    let distortion = profile.distortion * 0.09 * profile.intensity
+    let caPixels = profile.chromaticAberration * 3 * profile.intensity * referenceScale
+    let chromatic = caPixels / radialScale
+    guard distortion > 0.0015 || caPixels >= 0.5 else { return image }
+
+    let source = image.clampedToExtent()
+    let roi: CIKernelROICallback = { _, rect in rect.insetBy(dx: -2, dy: -2) }
+    func warped(_ coefficient: Double) -> CIImage {
+      referenceGeometryKernel.apply(
+        extent: extent,
+        roiCallback: roi,
+        inputImage: source,
+        arguments: [extent.midX, extent.midY, radialScale, coefficient]
+      )?.cropped(to: extent) ?? image
+    }
+
+    let red = warped(distortion - chromatic)
+    let green = warped(distortion)
+    let blue = warped(distortion + chromatic)
+    return referenceChannelMergeKernel.apply(
+      extent: extent,
+      arguments: [red, green, blue]
+    ) ?? image
+  }
+
+  private func applyReferenceCornerSoftness(
+    _ image: CIImage,
+    profile: ReferenceSpatialProfile
+  ) -> CIImage {
+    guard let referenceCornerSoftnessKernel, profile.cornerSoftness > 0.02 else { return image }
+    let extent = image.extent
+    let referenceScale = max(extent.width, extent.height) / 1000
+    let softness = profile.cornerSoftness * profile.intensity
+    let radius = 2.6 * softness * referenceScale + 0.8
+    let blurred = image
+      .clampedToExtent()
+      .applyingFilter("CIGaussianBlur", parameters: [kCIInputRadiusKey: radius])
+      .cropped(to: extent)
+    let radialScale = hypot(extent.width, extent.height) / 2
+    let clearStop = max(0.05, 0.62 - softness * 0.2)
+    let opacity = min(1, 0.9 * softness)
+    return referenceCornerSoftnessKernel.apply(
+      extent: extent,
+      arguments: [image, blurred, extent.midX, extent.midY, radialScale, clearStop, opacity]
+    ) ?? image
+  }
+
   private func applyReferenceVignette(
     _ image: CIImage,
     profile: ReferenceSpatialProfile
@@ -508,5 +605,6 @@ private extension Double {
     min(range.upperBound, max(range.lowerBound, self))
   }
 }
+
 
 
