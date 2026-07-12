@@ -27,6 +27,11 @@ final class CameraController: NSObject, ObservableObject, AVCapturePhotoCaptureD
   // MARK: lifecycle
 
   func configure() {
+    // already configured (returning to the tab): just resume the session
+    guard device == nil else {
+      start()
+      return
+    }
     // No camera hardware at all (Simulator / CI / iPod-style device): never
     // raise the permission prompt — just fall back to the plate viewfinder.
     guard AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) != nil else {

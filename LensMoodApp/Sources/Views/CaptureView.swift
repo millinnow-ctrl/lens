@@ -20,7 +20,9 @@ struct CaptureView: View {
   @State private var shutterFlash = false
   @State private var errorMessage: String?
   @State private var saveConfirmation = false
+  @State private var isSavingShot = false
   @State private var renderToken = UUID()
+  @State private var cameraSeeded = false
 
   // legibility helpers: tap-to-focus confirmation, a mode explainer, and a
   // one-time guide so a first-time user knows what every control does
@@ -65,8 +67,12 @@ struct CaptureView: View {
       get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } }
     )) { Button("OK", role: .cancel) {} } message: { Text(errorMessage ?? "Try again.") }
     .onAppear {
-      camera.settings.autoRelight = true
-      camera.load(stock: loadedStock)
+      // seed once — returning to the tab must not wipe the photographer's dials
+      if !cameraSeeded {
+        cameraSeeded = true
+        camera.settings.autoRelight = true
+        camera.load(stock: loadedStock)
+      }
       camera.configure()
       // first-run guide — but never over a CI/screenshot launch (LENSMOOD_TAB set)
       let scripted = ProcessInfo.processInfo.environment["LENSMOOD_TAB"] != nil
@@ -439,8 +445,8 @@ struct CaptureView: View {
     NavigationStack {
       ScrollView {
         if model.library.isEmpty {
-          Text("Photographs you take appear here.")
-            .font(.system(size: 14)).foregroundStyle(CameraTheme.dim).padding(40)
+          Image(systemName: "photo.on.rectangle")
+            .font(.system(size: 30, weight: .light)).foregroundStyle(CameraTheme.dim).padding(48)
         } else {
           LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 8)], spacing: 8) {
             ForEach(model.library) { asset in
@@ -563,8 +569,10 @@ struct CaptureView: View {
         HStack(spacing: 12) {
           Button("Retake") { model.remove(asset); review = nil }
             .buttonStyle(InstrumentButtonStyle(kind: .secondary))
-          Button("Save to Photos") { save(asset) }
+            .disabled(isSavingShot)
+          Button(isSavingShot ? "Saving…" : "Save to Photos") { save(asset) }
             .buttonStyle(InstrumentButtonStyle(kind: .primary))
+            .disabled(isSavingShot)
         }.padding(.horizontal, 20).padding(.top, 4).padding(.bottom, 30)
       }.padding(.top, 60)
     }.transition(.opacity)
@@ -617,11 +625,15 @@ struct CaptureView: View {
   }
 
   private func save(_ asset: DevelopedAsset) {
+    guard !isSavingShot else { return }   // a double-tap must not develop twice
+    isSavingShot = true
     let stock = asset.stock, capture = camera.settings, source = asset.source
     DispatchQueue.global(qos: .userInitiated).async {
-      let full = try? FilmEngine.shared.develop(source, with: stock.recipe, maxPixelSize: 8192, seed: 43, capture: capture).image
+      // 4096 keeps peak memory safe on 2–3 GB devices (8192 risked jetsam)
+      let full = try? FilmEngine.shared.develop(source, with: stock.recipe, maxPixelSize: 4096, seed: 43, capture: capture).image
       DispatchQueue.main.async {
-        Task {
+        Task { @MainActor in
+          defer { isSavingShot = false }
           do {
             try await PhotoLibraryWriter.save(image: full ?? asset.image)
             saveConfirmation = true; review = nil

@@ -57,9 +57,18 @@ final class AppModel: ObservableObject {
 
   func add(_ asset: DevelopedAsset) {
     library.insert(asset, at: 0)
+    // full-resolution frames are heavy — bound the session roll so long
+    // sessions can't grow memory without limit
+    if library.count > 48 {
+      library.removeLast(library.count - 48)
+    }
   }
 
   func remove(_ asset: DevelopedAsset) {
     library.removeAll { $0.id == asset.id }
+  }
+
+  func remove(id: UUID) {
+    library.removeAll { $0.id == id }
   }
 }

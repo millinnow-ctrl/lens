@@ -42,16 +42,6 @@ struct CamcorderView: View {
             controls
           }
 
-          InstrumentPanel {
-            VStack(alignment: .leading, spacing: 10) {
-              TechnicalLabel(text: "Tape behavior")
-              Text("One authored response: muted tube color, slow auto-gain breathing, crawling luminance grain, restrained vignette, and a counting timecode.")
-                .font(.system(size: 13))
-                .foregroundStyle(Theme.inkSoft)
-                .lineSpacing(4)
-            }
-            .padding(16)
-          }
         }
         .padding(Theme.pagePadding)
         .padding(.bottom, 80)
@@ -62,14 +52,14 @@ struct CamcorderView: View {
       .navigationBarTitleDisplayMode(.inline)
       .sheet(isPresented: $cameraPresented) {
         VideoCameraPicker { url in
-          inputURL = url
-          developTape(url)
+          adopt(input: url)
         }
         .ignoresSafeArea()
       }
       .onChange(of: pickerItem) { item in
         importMovie(item)
       }
+      .onAppear { sweepOrphanedTapes() }
       .alert("Tape saved", isPresented: $saved) {
         Button("OK", role: .cancel) {}
       }
@@ -143,9 +133,6 @@ struct CamcorderView: View {
         Text("Developing tape")
           .font(.system(size: 15, weight: .semibold))
       }
-      Text("Color, grain, exposure breathing, and timecode are being rendered into every frame.")
-        .font(.system(size: 13))
-        .foregroundStyle(Theme.fog)
     }
     .padding(16)
     .frame(maxWidth: .infinity, alignment: .leading)
@@ -185,13 +172,12 @@ struct CamcorderView: View {
   private func importMovie(_ item: PhotosPickerItem?) {
     guard let item else { return }
     isExporting = true
-    Task {
+    Task { @MainActor in
       do {
         guard let movie = try await item.loadTransferable(type: ImportedMovie.self) else {
           throw VhsError.badInput("The selected clip could not be opened.")
         }
-        inputURL = movie.url
-        developTape(movie.url)
+        adopt(input: movie.url)
       } catch {
         isExporting = false
         errorMessage = error.localizedDescription
@@ -199,10 +185,38 @@ struct CamcorderView: View {
     }
   }
 
+  /// a new clip replaces the working pair — discard the old temp files first
+  private func adopt(input url: URL) {
+    discardTemp(inputURL)
+    discardTemp(outputURL)
+    inputURL = url
+    developTape(url)
+  }
+
+  /// remove one of our own temporary tape files (never touches user files)
+  private func discardTemp(_ url: URL?) {
+    guard let url, url.lastPathComponent.hasPrefix("lensmood-") else { return }
+    try? FileManager.default.removeItem(at: url)
+  }
+
+  /// clear temp tapes left behind by earlier sessions (they otherwise
+  /// accumulate for the app's lifetime)
+  private func sweepOrphanedTapes() {
+    let fm = FileManager.default
+    let tmp = fm.temporaryDirectory
+    let keep = Set([inputURL, outputURL].compactMap { $0?.lastPathComponent })
+    guard let names = try? fm.contentsOfDirectory(atPath: tmp.path) else { return }
+    for name in names
+    where (name.hasPrefix("lensmood-input-") || name.hasPrefix("lensmood-tape-")) && !keep.contains(name) {
+      try? fm.removeItem(at: tmp.appendingPathComponent(name))
+    }
+  }
+
   private func developTape(_ url: URL) {
     isExporting = true
+    discardTemp(outputURL)
     outputURL = nil
-    Task {
+    Task { @MainActor in
       do {
         let developed = try await VhsExporter.export(videoURL: url)
         outputURL = developed
@@ -218,7 +232,7 @@ struct CamcorderView: View {
   private func saveTape() {
     guard let outputURL else { return }
     isSaving = true
-    Task {
+    Task { @MainActor in
       do {
         try await PhotoLibraryWriter.save(videoAt: outputURL)
         isSaving = false

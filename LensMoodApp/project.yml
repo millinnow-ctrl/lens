@@ -23,6 +23,8 @@ targets:
         buildPhase: resources
       - path: Resources/fonts
         buildPhase: resources
+      - path: Resources/PrivacyInfo.xcprivacy
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.lensmood.ios
@@ -32,7 +34,7 @@ targets:
         GENERATE_INFOPLIST_FILE: true
         INFOPLIST_KEY_CFBundleDisplayName: LensMood
         INFOPLIST_KEY_UILaunchScreen_Generation: true
-        INFOPLIST_KEY_NSPhotoLibraryUsageDescription: LensMood develops photos you choose. Processing stays on this device.
+        # PHPicker reads need no permission; the app only ever ADDS to Photos
         INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: Save developed photographs and tapes to your library.
         INFOPLIST_KEY_NSCameraUsageDescription: Use the camera to make photographs and tapes in LensMood.
         INFOPLIST_KEY_NSMicrophoneUsageDescription: Record sound with your LensMood tape.

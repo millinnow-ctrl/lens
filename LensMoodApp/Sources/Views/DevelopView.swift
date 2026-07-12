@@ -31,6 +31,9 @@ struct DevelopView: View {
   @State private var sharePresented = false
   @State private var saveConfirmation = false
   @State private var renderID = UUID()
+  /// the library entry for the current photograph — switching cameras replaces
+  /// it instead of flooding the Gallery with one near-duplicate per camera
+  @State private var sessionAssetID: UUID?
 
   var body: some View {
     ScrollView {
@@ -49,7 +52,6 @@ struct DevelopView: View {
           if !decisions.isEmpty { decisionPanel }
         }
 
-        privacyNote
       }
       .padding(Theme.pagePadding)
     }
@@ -140,15 +142,14 @@ struct DevelopView: View {
   }
 
   private var cameraIdentity: some View {
-    VStack(alignment: .leading, spacing: 5) {
+    VStack(alignment: .center, spacing: 5) {
       TechnicalLabel(text: currentStock.exif)
       Text(currentStock.tagline)
         .font(.system(size: 23, weight: .heavy))
         .foregroundStyle(Theme.ink)
-      Text("Best for \(currentStock.bestFor.lowercased()).")
-        .font(.system(size: 14))
-        .foregroundStyle(Theme.inkSoft)
+        .multilineTextAlignment(.center)
     }
+    .frame(maxWidth: .infinity)
   }
 
   private var stage: some View {
@@ -165,11 +166,6 @@ struct DevelopView: View {
             .font(.system(size: 34, weight: .light))
           Text("Load one photograph")
             .font(.system(size: 17, weight: .semibold))
-          Text("\(currentStock.name) will read the light and subject before it develops the frame.")
-            .font(.system(size: 13))
-            .multilineTextAlignment(.center)
-            .foregroundStyle(Theme.viewfinderChrome.opacity(0.78))
-            .padding(.horizontal, 30)
         }
         .foregroundStyle(Theme.viewfinderChrome)
       }
@@ -256,9 +252,6 @@ struct DevelopView: View {
           .font(.system(size: 14, weight: .semibold))
           .foregroundStyle(Theme.ink)
       }
-      Text("Measuring light, color, contrast, and dynamic range.")
-        .font(.system(size: 13))
-        .foregroundStyle(Theme.fog)
     }
     .frame(maxWidth: .infinity, alignment: .leading)
     .padding(16)
@@ -309,25 +302,18 @@ struct DevelopView: View {
     }
   }
 
-  private var privacyNote: some View {
-    Label("Developed on this device", systemImage: "lock.fill")
-      .font(.system(size: 11, weight: .medium))
-      .foregroundStyle(Theme.fog)
-      .frame(maxWidth: .infinity, alignment: .center)
-      .padding(.vertical, 4)
-  }
-
   private func load(_ item: PhotosPickerItem?) {
     guard let item else { return }
     isDeveloping = true
     errorMessage = nil
-    Task {
+    Task { @MainActor in
       do {
         guard let data = try await item.loadTransferable(type: Data.self),
               let image = UIImage(data: data) else {
           throw FilmEngineError.unreadableImage
         }
         sourceImage = image
+        sessionAssetID = nil   // a new photograph starts a new library entry
         develop(image)
       } catch {
         isDeveloping = false
@@ -368,7 +354,9 @@ struct DevelopView: View {
             stock: currentStock,
             decisions: render.decisions
           )
+          if let previous = sessionAssetID { model.remove(id: previous) }
           model.add(asset)
+          sessionAssetID = asset.id
           UIImpactFeedbackGenerator(style: .light).impactOccurred()
         case .failure(let error):
           errorMessage = error.localizedDescription
@@ -384,12 +372,13 @@ struct DevelopView: View {
     let seed = Double(currentStock.id.unicodeScalars.reduce(17) { ($0 * 31 + Int($1.value)) % 100_000 })
     DispatchQueue.global(qos: .userInitiated).async {
       let result = Result {
-        try FilmEngine.shared.develop(sourceImage, with: recipe, maxPixelSize: 8192, seed: seed).image
+        // 4096 keeps peak memory safe on 2–3 GB devices (8192 risked jetsam)
+        try FilmEngine.shared.develop(sourceImage, with: recipe, maxPixelSize: 4096, seed: seed).image
       }
       DispatchQueue.main.async {
         switch result {
         case .success(let fullResolution):
-          Task {
+          Task { @MainActor in
             do {
               try await PhotoLibraryWriter.save(image: fullResolution)
               isSaving = false

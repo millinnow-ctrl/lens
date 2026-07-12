@@ -119,10 +119,6 @@ struct PrintRoomView: View {
           .font(.system(size: 34, weight: .ultraLight))
         Text("Develop a photograph first")
           .font(.system(size: 20, weight: .heavy))
-        Text("The Print Room uses a developed frame from your session library.")
-          .font(.system(size: 13))
-          .foregroundStyle(Theme.inkSoft)
-          .multilineTextAlignment(.center)
         Button("Choose a camera") {
           model.selectedTab = .cameras
         }

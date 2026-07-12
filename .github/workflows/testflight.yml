@@ -20,6 +20,9 @@ on:
   push:
     tags: ['v*'] # …or push a tag like v1.0.1
 
+permissions:
+  contents: read
+
 jobs:
   beta:
     runs-on: ubuntu-latest

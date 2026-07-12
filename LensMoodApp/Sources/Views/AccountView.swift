@@ -7,16 +7,14 @@ struct AccountView: View {
     NavigationStack {
       ScrollView {
         VStack(alignment: .leading, spacing: 28) {
-          VStack(alignment: .leading, spacing: 8) {
+          VStack(alignment: .center, spacing: 8) {
             TechnicalLabel(text: "LensMood")
             Text("Your darkroom")
               .font(.system(size: 32, weight: .heavy))
               .foregroundStyle(Theme.ink)
-            Text("Processing remains on this device. All camera personalities are available. You can decide what belongs in your library before anything is saved.")
-              .font(.system(size: 15))
-              .foregroundStyle(Theme.inkSoft)
-              .lineSpacing(4)
+              .multilineTextAlignment(.center)
           }
+          .frame(maxWidth: .infinity)
 
           InstrumentPanel {
             VStack(alignment: .leading, spacing: 0) {
@@ -30,7 +28,7 @@ struct AccountView: View {
 
           VStack(alignment: .leading, spacing: 8) {
             TechnicalLabel(text: "Privacy")
-            Text("LensMood does not need an account to develop photographs. Photos are read only when you choose them and are saved only when you ask.")
+            Text("Photos are read only when you choose them and saved only when you ask.")
               .font(.system(size: 14))
               .foregroundStyle(Theme.inkSoft)
               .lineSpacing(4)

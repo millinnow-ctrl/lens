@@ -15,6 +15,7 @@ struct HomeView: View {
   @State private var showSourceChooser = false
   @State private var showLibraryPicker = false
   @State private var heroPickedItem: PhotosPickerItem?
+  @State private var heroPickError: String?
 
   private let columns = [
     GridItem(.flexible(), spacing: 12),
@@ -41,7 +42,7 @@ struct HomeView: View {
           sectionHead(title: "Video", subtitle: nil)
           tapeCard
 
-          sectionHead(title: "Explore looks", subtitle: "\(Stock.all.count) cameras, one tap each")
+          sectionHead(title: "Explore looks", subtitle: nil)
           categoryChips
 
           LazyVGrid(columns: columns, spacing: 12) {
@@ -98,20 +99,27 @@ struct HomeView: View {
       }
       .photosPicker(isPresented: $showLibraryPicker, selection: $heroPickedItem, matching: .images)
       .onChange(of: heroPickedItem) { item in loadHeroPhoto(item) }
+      .alert("Could not open that photo", isPresented: Binding(
+        get: { heroPickError != nil }, set: { if !$0 { heroPickError = nil } }
+      )) { Button("OK", role: .cancel) {} } message: { Text(heroPickError ?? "Try another photo.") }
     }
   }
 
   /// carry a library pick into a fresh develop session
   private func loadHeroPhoto(_ item: PhotosPickerItem?) {
     guard let item else { return }
-    Task {
-      if let data = try? await item.loadTransferable(type: Data.self),
-         let image = UIImage(data: data) {
-        await MainActor.run {
-          model.pendingDevelopImage = image
-          heroPickedItem = nil
-          path.append(Stock.all[0])
+    Task { @MainActor in
+      defer { heroPickedItem = nil }
+      do {
+        guard let data = try await item.loadTransferable(type: Data.self),
+              let image = UIImage(data: data) else {
+          heroPickError = "That photo could not be read."
+          return
         }
+        model.pendingDevelopImage = image
+        path.append(Stock.all[0])
+      } catch {
+        heroPickError = error.localizedDescription
       }
     }
   }
@@ -166,20 +174,16 @@ struct HomeView: View {
     .padding(.top, 4)
   }
 
+  // headings stand alone and centered — the owner's copy principle
   private func sectionHead(title: String, subtitle: String?) -> some View {
-    VStack(alignment: .leading, spacing: 2) {
-      Text(title)
-        .font(.system(size: 26, weight: .heavy))
-        .tracking(-0.4)
-        .foregroundStyle(Theme.ink)
-      if let subtitle {
-        Text(subtitle)
-          .font(.system(size: 14, weight: .medium))
-          .foregroundStyle(Theme.fog)
-      }
-    }
-    .padding(.top, 24)
-    .padding(.bottom, 12)
+    Text(title)
+      .font(.system(size: 26, weight: .heavy))
+      .tracking(-0.4)
+      .foregroundStyle(Theme.ink)
+      .frame(maxWidth: .infinity)
+      .multilineTextAlignment(.center)
+      .padding(.top, 24)
+      .padding(.bottom, 12)
   }
 
   /// the camcorder is the whole story: one big 16:9 tape frame,
@@ -214,10 +218,6 @@ struct HomeView: View {
             .tracking(-0.4)
             .foregroundStyle(.white)
             .shadow(color: .black.opacity(0.55), radius: 8, y: 2)
-          Text("Any clip, filmed like 1994 — tap to load a tape.")
-            .font(.system(size: 14))
-            .foregroundStyle(.white.opacity(0.92))
-            .shadow(color: .black.opacity(0.45), radius: 5, y: 1)
         }
         .padding(16)
       }
@@ -538,11 +538,6 @@ struct HeroCard: View {
           }
           .foregroundStyle(.white)
           .shadow(color: .black.opacity(0.5), radius: 7, y: 1)
-
-          Text("The $7,000 camera look, from your camera roll.")
-            .font(.system(size: 13))
-            .foregroundStyle(.white.opacity(0.85))
-            .shadow(color: .black.opacity(0.55), radius: 4, y: 1)
 
           Button(action: onStart) {
             HStack(spacing: 8) {

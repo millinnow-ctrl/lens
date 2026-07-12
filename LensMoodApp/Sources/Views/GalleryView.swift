@@ -58,11 +58,6 @@ struct GalleryView: View {
         .font(.system(size: 36, weight: .ultraLight))
       Text("No developed frames")
         .font(.system(size: 25, weight: .heavy))
-      Text("Photographs developed in this session appear here as a contact sheet.")
-        .font(.system(size: 14))
-        .foregroundStyle(Theme.inkSoft)
-        .multilineTextAlignment(.center)
-        .padding(.horizontal, 38)
       Button("Choose a camera") {
         model.selectedTab = .cameras
       }
@@ -154,7 +149,7 @@ private struct GalleryDetailView: View {
 
   private func save() {
     isSaving = true
-    Task {
+    Task { @MainActor in
       do {
         try await PhotoLibraryWriter.save(image: asset.image)
         isSaving = false
