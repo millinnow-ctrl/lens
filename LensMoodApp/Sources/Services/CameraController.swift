@@ -248,10 +248,11 @@ final class CameraController: NSObject, ObservableObject, AVCapturePhotoCaptureD
   static func fallbackFrame(from image: UIImage, zoom: Double, mirrored: Bool) -> UIImage {
     var cg = image.cgImage
     if zoom > 1.01, let base = cg {
+      let z = CGFloat(zoom)
       let width = CGFloat(base.width), height = CGFloat(base.height)
       let crop = CGRect(
-        x: (width - width / zoom) / 2, y: (height - height / zoom) / 2,
-        width: width / zoom, height: height / zoom
+        x: (width - width / z) / 2, y: (height - height / z) / 2,
+        width: width / z, height: height / z
       )
       cg = base.cropping(to: crop) ?? base
     }

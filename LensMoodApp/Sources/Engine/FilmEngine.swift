@@ -224,7 +224,9 @@ final class FilmEngine {
     if recipe.protectsFaces, !subject.faces.isEmpty {
       image = applyFaceProtection(image, faces: subject.faces, amount: scene.isBacklit ? 0.22 : 0.10)
     }
-    if recipe.monochrome {
+    if recipe.monochrome, recipe.engineClass != .staticLUT {
+      // LUT stocks (noir) bake their own B&W + split-tone; a second mono pass
+      // strips the baked tint and double-applies the S-curve
       image = image.applyingFilter("CIPhotoEffectMono")
     }
     image = applyBloom(image, amount: recipe.bloom)
@@ -242,8 +244,9 @@ final class FilmEngine {
       image = applyCaptureLook(image, capture: capture, scene: scene,
                                subject: subject, recipe: recipe, seed: seed)
     }
-    if recipe.monochrome {
+    if recipe.monochrome, recipe.engineClass != .staticLUT {
       // Enforce the invariant after every spatial and lighting pass.
+      // (LUT stocks keep their baked split-tone — see the gate above.)
       image = image.applyingFilter("CIColorMonochrome", parameters: [
         kCIInputColorKey: CIColor.white,
         kCIInputIntensityKey: 1,
