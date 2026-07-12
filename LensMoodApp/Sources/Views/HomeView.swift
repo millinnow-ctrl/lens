@@ -88,24 +88,36 @@ struct HomeView: View {
   }
 
   /// StyleCarousel — the original home carousel: snap-scrolling portrait
-  /// cards, each wearing its camera's signature artwork, badge, and tagline
+  /// cards, each wearing its camera's signature artwork, badge, and tagline.
+  /// Scroll is signalled three ways: a coverflow 3D tilt as cards approach
+  /// the edges, deep drop shadows, and a trailing fade the cards slide under.
   private var styleCarousel: some View {
     ScrollView(.horizontal, showsIndicators: false) {
-      HStack(spacing: 12) {
+      HStack(spacing: 14) {
         ForEach(Array(Stock.all.enumerated()), id: \.element.id) { index, stock in
           Button {
             path.append(stock)
           } label: {
             CarouselCard(stock: stock, index: index)
+              .modifier(CarouselDepth())
           }
           .buttonStyle(.plain)
           .accessibilityLabel("\(stock.name). \(stock.tagline)")
         }
       }
-      .padding(.horizontal, 2)
-      .padding(.vertical, 12)
+      .padding(.horizontal, 4)
+      .padding(.vertical, 16)
     }
     .padding(.top, 4)
+    // the cards slide under a soft edge — signals there is more to the right
+    .overlay(alignment: .trailing) {
+      LinearGradient(
+        colors: [Theme.paper.opacity(0), Theme.paper],
+        startPoint: .leading, endPoint: .trailing
+      )
+      .frame(width: 26)
+      .allowsHitTesting(false)
+    }
   }
 
   private func sectionHead(title: String, subtitle: String?) -> some View {
@@ -248,6 +260,30 @@ enum StyleCategory: CaseIterable, Hashable {
   }
 }
 
+/// CarouselDepth — the coverflow scroll cue. As a card scrolls toward either
+/// edge it tilts in 3D around the vertical axis and eases back slightly, so
+/// the strip reads as a rotating rack of cards you can push. iOS 17+ uses the
+/// interactive scroll transition; on iOS 16 the deep shadow + edge fade + the
+/// peeking next card still signal scrollability.
+private struct CarouselDepth: ViewModifier {
+  func body(content: Content) -> some View {
+    if #available(iOS 17.0, *) {
+      content.scrollTransition(.interactive, axis: .horizontal) { view, phase in
+        view
+          .rotation3DEffect(
+            .degrees(phase.value * -20),
+            axis: (x: 0, y: 1, z: 0),
+            perspective: 0.5
+          )
+          .scaleEffect(phase.isIdentity ? 1 : 0.94)
+          .opacity(phase.isIdentity ? 1 : 0.85)
+      }
+    } else {
+      content
+    }
+  }
+}
+
 /// CarouselCard — one camera in the home carousel: 4:5 signature artwork,
 /// chrome badge, name + LM index + tagline. Ported from the original web
 /// StyleCarousel.
@@ -308,7 +344,9 @@ struct CarouselCard: View {
       RoundedRectangle(cornerRadius: 18, style: .continuous)
         .stroke(Theme.hairline, lineWidth: 1)
     )
-    .oceanCardShadow()
+    // a real drop shadow so the cards read as physical, stacked objects
+    .shadow(color: Color(hex: "#0C2430").opacity(0.16), radius: 16, x: 0, y: 12)
+    .shadow(color: Color(hex: "#0C2430").opacity(0.08), radius: 3, x: 0, y: 2)
   }
 
   @ViewBuilder
