@@ -40,7 +40,17 @@ targets:
       - Tests
     resources:
       - Tests/Fixtures
+      # all 10 scene-meter parity photos (see Tests/Fixtures/scene-metrics.json)
       - ../reference/photos/sample-golden.jpg
+      - ../reference/photos/sample-friends.jpg
+      - ../reference/photos/sample-brunch.jpg
+      - ../reference/photos/sample-street.jpg
+      - ../reference/photos/sample-night.jpg
+      - ../reference/photos/sample-concert.jpg
+      - ../reference/photos/sample-dog.jpg
+      - ../reference/photos-extended/degraded-blurry-from-brunch.png
+      - ../reference/photos-extended/degraded-noisy-from-friends.png
+      - ../reference/photos-extended/degraded-underexposed-from-golden.png
     dependencies:
       - target: LensMood
     settings:
