@@ -19,38 +19,20 @@ struct GalleryView: View {
         } else {
           ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-              HStack {
-                TechnicalLabel(text: "Session contact sheet")
-                Spacer()
-                Text("\(model.library.count) frames")
-                  .font(.system(size: 10, design: .monospaced))
-                  .foregroundStyle(Theme.fog)
-              }
-
               LazyVGrid(columns: columns, spacing: 14) {
-                ForEach(Array(model.library.enumerated()), id: \.element.id) { index, asset in
+                ForEach(model.library) { asset in
                   Button {
                     selected = asset
                   } label: {
-                    VStack(alignment: .leading, spacing: 6) {
-                      Color.clear
-                        .aspectRatio(0.8, contentMode: .fit)
-                        .overlay {
-                          Image(uiImage: asset.image)
-                            .resizable()
-                            .scaledToFill()
-                        }
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        .oceanCardShadow()
-                      HStack {
-                        Text(String(format: "%02d", model.library.count - index))
-                        Spacer()
-                        Text(asset.stock.name.uppercased())
-                          .lineLimit(1)
+                    Color.clear
+                      .aspectRatio(0.8, contentMode: .fit)
+                      .overlay {
+                        Image(uiImage: asset.image)
+                          .resizable()
+                          .scaledToFill()
                       }
-                      .font(.system(size: 8, weight: .medium, design: .monospaced))
-                      .foregroundStyle(Theme.fog)
-                    }
+                      .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                      .oceanCardShadow()
                   }
                   .buttonStyle(.plain)
                 }
@@ -138,7 +120,7 @@ private struct GalleryDetailView: View {
             model.remove(asset)
             dismiss()
           } label: {
-            Text("Remove from this session")
+            Text("Delete")
               .frame(maxWidth: .infinity)
               .frame(minHeight: Theme.controlHeight)
           }

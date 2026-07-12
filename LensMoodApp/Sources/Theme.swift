@@ -91,10 +91,10 @@ enum CameraTheme {
   static let bg = Color(hex: "#202024")     // lifted charcoal surround (not dead black)
   static let panel = Color(hex: "#2C2D31")  // control surface
   static let line = Color(hex: "#3B3C42")   // hairline
-  static let gold = Color(hex: "#D2A24E")   // muted warm accent (was the bright orange)
-  static let goldHi = Color(hex: "#E4BE73")
-  static let text = Color(hex: "#F1F2F4")   // light ink
-  static let dim = Color(hex: "#A6ACB4")    // secondary label
+  static let gold = Color(hex: "#FFFFFF")    // neutral "selected" accent (no warm cast)
+  static let goldHi = Color(hex: "#FFFFFF")
+  static let text = Color(hex: "#F1F2F4")   // primary light ink
+  static let dim = Color(hex: "#8A9098")    // secondary label (dimmer, so white selection pops)
   static let faint = Color(hex: "#7A8088")  // tertiary label
 }
 

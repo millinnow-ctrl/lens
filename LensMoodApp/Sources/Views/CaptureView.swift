@@ -109,7 +109,7 @@ struct CaptureView: View {
       VStack(spacing: 3) {
         Text(label).font(.system(size: 9, weight: .semibold)).tracking(0.12 * 9).foregroundStyle(CameraTheme.faint)
         Text(value).font(.system(size: 16, weight: .semibold, design: .monospaced))
-          .foregroundStyle(on ? CameraTheme.gold : CameraTheme.text)
+          .foregroundStyle(on ? CameraTheme.gold : CameraTheme.dim)
       }
       .frame(minWidth: 46)
     }.buttonStyle(.plain)
