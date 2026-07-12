@@ -32,7 +32,6 @@ final class FilmEngine {
   private let referenceChannelMergeKernel: CIColorKernel?
   private let referenceAcutanceKernel: CIColorKernel?
   private let referenceCornerSoftnessKernel: CIColorKernel?
-  private let referenceHalationKernel: CIColorKernel?
   private let referenceVignetteKernel: CIColorKernel?
   private let referenceGrainKernel: CIColorKernel?
 
@@ -93,12 +92,6 @@ final class FilmEngine {
         float radius = distance(destCoord(), vec2(centerX, centerY)) / max(radialScale, 0.001);
         float mask = clamp((radius - clearStop) / max(1.0 - clearStop, 0.001), 0.0, 1.0);
         return mix(sharp, blurred, mask * opacity);
-      }
-      """)
-    referenceHalationKernel = CIColorKernel(source: """
-      kernel vec4 lensMoodReferenceHalation(__sample base, __sample bloom, float opacity) {
-        vec3 screened = 1.0 - (1.0 - base.rgb) * (1.0 - bloom.rgb);
-        return vec4(mix(base.rgb, screened, opacity), base.a);
       }
       """)
     referenceVignetteKernel = CIColorKernel(source: """
@@ -200,12 +193,11 @@ final class FilmEngine {
     if recipe.monochrome {
       image = image.applyingFilter("CIPhotoEffectMono")
     }
+    image = applyBloom(image, amount: recipe.bloom)
     if let profile = recipe.referenceSpatial {
-      image = applyReferenceHalation(image, scene: scene, profile: profile)
       image = applyReferenceVignette(image, profile: profile)
       image = applyReferenceGrain(image, recipeID: recipe.id, profile: profile)
     } else {
-      image = applyBloom(image, amount: recipe.bloom)
       image = applyVignette(image, amount: recipe.vignette)
       image = applyGrain(image, amount: recipe.grain, size: recipe.grainSize, seed: seed)
     }
@@ -484,43 +476,6 @@ final class FilmEngine {
     ) ?? image
   }
 
-  private func applyReferenceHalation(
-    _ image: CIImage,
-    scene: SceneProfile,
-    profile: ReferenceSpatialProfile
-  ) -> CIImage {
-    guard let referenceHalationKernel, profile.halation > 0.01 else { return image }
-    let extent = image.extent
-    let referenceScale = max(extent.width, extent.height) / 1000
-    let crushed = image
-      .applyingFilter("CIColorMatrix", parameters: [
-        "inputRVector": CIVector(x: 0.46, y: 0, z: 0, w: 0),
-        "inputGVector": CIVector(x: 0, y: 0.46, z: 0, w: 0),
-        "inputBVector": CIVector(x: 0, y: 0, z: 0.46, w: 0),
-        "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 1),
-      ])
-      .applyingFilter("CIColorControls", parameters: [
-        kCIInputContrastKey: 3.8,
-        kCIInputSaturationKey: 1.5,
-      ])
-      .applyingFilter("CISepiaTone", parameters: [kCIInputIntensityKey: 0.5])
-      .clampedToExtent()
-      .applyingFilter("CIGaussianBlur", parameters: [kCIInputRadiusKey: 9 * referenceScale])
-      .cropped(to: extent)
-    let daylightStep = smoothstep(edge0: 0.55, edge1: 0.18, value: scene.meanLuminance)
-    let bloomScale = 0.35 + 0.65 * daylightStep
-    let opacity = profile.halation * profile.intensity * 0.8 * bloomScale
-    return referenceHalationKernel.apply(
-      extent: extent,
-      arguments: [image, crushed, opacity]
-    ) ?? image
-  }
-
-  private func smoothstep(edge0: Double, edge1: Double, value: Double) -> Double {
-    let t = ((value - edge0) / (edge1 - edge0)).clamped(to: 0...1)
-    return t * t * (3 - 2 * t)
-  }
-
   private func applyReferenceVignette(
     _ image: CIImage,
     profile: ReferenceSpatialProfile
@@ -650,7 +605,6 @@ private extension Double {
     min(range.upperBound, max(range.lowerBound, self))
   }
 }
-
 
 
 
