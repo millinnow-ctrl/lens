@@ -33,12 +33,13 @@ struct GalleryView: View {
                     selected = asset
                   } label: {
                     VStack(alignment: .leading, spacing: 6) {
-                      Image(uiImage: asset.image)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(maxWidth: .infinity)
-                        .aspectRatio(0.8, contentMode: .fill)
-                        .clipped()
+                      Color.clear
+                        .aspectRatio(0.8, contentMode: .fit)
+                        .overlay {
+                          Image(uiImage: asset.image)
+                            .resizable()
+                            .scaledToFill()
+                        }
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         .oceanCardShadow()
                       HStack {
