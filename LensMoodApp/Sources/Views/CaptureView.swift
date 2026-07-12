@@ -21,7 +21,7 @@ struct CaptureView: View {
           VStack(alignment: .leading, spacing: 7) {
             TechnicalLabel(text: "In-app camera")
             Text("Make the frame here.")
-              .font(.system(size: 32, weight: .bold, design: .serif))
+              .font(.system(size: 32, weight: .heavy))
               .foregroundStyle(Theme.ink)
             Text("Choose the camera personality before the shutter. LensMood develops the photograph immediately after capture.")
               .font(.system(size: 15))
@@ -146,7 +146,8 @@ struct CaptureView: View {
         .foregroundStyle(Theme.ink)
       }
     }
-    .overlay(Rectangle().stroke(Theme.ink, lineWidth: 1))
+    .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
+    .oceanCardShadow(deep: true)
   }
 
   private func develop(_ image: UIImage) {

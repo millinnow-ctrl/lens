@@ -75,7 +75,7 @@ struct DevelopView: View {
     VStack(alignment: .leading, spacing: 5) {
       TechnicalLabel(text: stock.exif)
       Text(stock.tagline)
-        .font(.system(size: 23, weight: .bold, design: .serif))
+        .font(.system(size: 23, weight: .heavy))
         .foregroundStyle(Theme.ink)
       Text("Best for \(stock.bestFor.lowercased()).")
         .font(.system(size: 14))
@@ -117,7 +117,8 @@ struct DevelopView: View {
       .foregroundStyle(Theme.viewfinderChrome)
       .padding(11)
     }
-    .overlay(Rectangle().stroke(Theme.ink, lineWidth: 1))
+    .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
+    .oceanCardShadow(deep: true)
     .accessibilityElement(children: .contain)
   }
 

@@ -4,17 +4,28 @@ import UIKit
 private enum PrintSurface: String, CaseIterable, Identifiable {
   case wood = "Walnut"
   case linen = "Linen"
-  case stone = "Stone"
-  case paper = "Paper"
+  case marble = "Marble"
+  case concrete = "Concrete"
 
   var id: String { rawValue }
 
+  /// bundled photographic surface plate (the reference app's scene assets)
+  var imageName: String {
+    switch self {
+    case .wood: return "wood"
+    case .linen: return "linen"
+    case .marble: return "marble"
+    case .concrete: return "concrete"
+    }
+  }
+
+  /// fallback + tint base when the plate is missing
   var color: Color {
     switch self {
     case .wood: return Color(hex: "#5B4636")
     case .linen: return Color(hex: "#D6CDBE")
-    case .stone: return Color(hex: "#A7A39B")
-    case .paper: return Color(hex: "#E8E3D9")
+    case .marble: return Color(hex: "#CFCBC4")
+    case .concrete: return Color(hex: "#A7A39B")
     }
   }
 
@@ -22,8 +33,19 @@ private enum PrintSurface: String, CaseIterable, Identifiable {
     switch self {
     case .wood: return Color(hex: "#8E6548")
     case .linen: return Color(hex: "#E4D8C8")
-    case .stone: return Color(hex: "#B8BAB7")
-    case .paper: return Color(hex: "#F0E9DB")
+    case .marble: return Color(hex: "#DDD8CF")
+    case .concrete: return Color(hex: "#B8BAB7")
+    }
+  }
+
+  /// contact shadow character: hard surfaces cast a tighter, darker shadow;
+  /// fabric diffuses it. Light stays top-leading everywhere on the stage.
+  var shadow: (opacity: Double, blur: Double) {
+    switch self {
+    case .wood: return (0.30, 0.016)
+    case .linen: return (0.20, 0.030)
+    case .marble: return (0.34, 0.012)
+    case .concrete: return (0.30, 0.018)
     }
   }
 }
@@ -50,7 +72,7 @@ struct PrintRoomView: View {
           VStack(alignment: .leading, spacing: 7) {
             TechnicalLabel(text: "Print room")
             Text("A photograph becomes an object.")
-              .font(.system(size: 31, weight: .bold, design: .serif))
+              .font(.system(size: 31, weight: .heavy))
               .foregroundStyle(Theme.ink)
             Text("Straight-down composition, true instant-print proportions, and light borrowed from the surface beneath it.")
               .font(.system(size: 14))
@@ -98,7 +120,7 @@ struct PrintRoomView: View {
         Image(systemName: "photo.artframe")
           .font(.system(size: 34, weight: .ultraLight))
         Text("Develop a photograph first")
-          .font(.system(size: 20, weight: .bold, design: .serif))
+          .font(.system(size: 20, weight: .heavy))
         Text("The Print Room uses a developed frame from your session library.")
           .font(.system(size: 13))
           .foregroundStyle(Theme.inkSoft)
@@ -196,46 +218,101 @@ private struct InstantPrintComposition: View {
   let asset: DevelopedAsset
   let surface: PrintSurface
 
+  /// deterministic per-print seed: same photograph always lands the same way
+  private var seed: Int {
+    asset.id.uuidString.unicodeScalars.reduce(0) { $0 + Int($1.value) }
+  }
+
   private var rotation: Double {
-    let value = asset.id.uuidString.unicodeScalars.reduce(0) { $0 + Int($1.value) }
-    return Double((value % 7) - 3) * 0.24
+    Double((seed % 7) - 3) * 0.24
+  }
+
+  /// seeded position variation — a real print never lands dead-center
+  private var offsetUnit: (x: Double, y: Double) {
+    (Double(((seed / 7) % 5) - 2) * 0.008, Double(((seed / 35) % 5) - 2) * 0.008)
   }
 
   var body: some View {
     GeometryReader { geometry in
       let size = geometry.size
       ZStack {
-        surface.color
+        // photographic surface plate, color fallback if the asset is missing
+        if let plate = UIImage(named: surface.imageName) {
+          Image(uiImage: plate)
+            .resizable()
+            .scaledToFill()
+            .frame(width: size.width, height: size.height)
+            .clipped()
+        } else {
+          surface.color
+        }
+        // lighting consistency: one top-leading key light over the stage
         RadialGradient(
-          colors: [surface.reflectedTint.opacity(0.34), .clear],
+          colors: [surface.reflectedTint.opacity(0.24), .clear],
           center: .topLeading,
           startRadius: 10,
           endRadius: size.width * 0.9
         )
+        LinearGradient(
+          colors: [.clear, Color.black.opacity(0.16)],
+          startPoint: .topLeading, endPoint: .bottomTrailing
+        )
 
-        VStack(spacing: 0) {
-          Image(uiImage: asset.image)
-            .resizable()
-            .scaledToFill()
-            .frame(width: size.width * 0.62, height: size.width * 0.62)
-            .clipped()
-            .padding(.top, size.width * 0.055)
-          Spacer(minLength: size.width * 0.11)
-        }
-        .frame(width: size.width * 0.70, height: size.width * 0.85)
-        .background(Color(hex: "#F3EBDD"))
-        .overlay(alignment: .bottomLeading) {
-          Text(asset.stock.name.uppercased())
-            .font(.system(size: max(8, size.width * 0.022), weight: .medium, design: .monospaced))
-            .tracking(0.7)
-            .foregroundStyle(Color.black.opacity(0.54))
-            .padding(.leading, size.width * 0.055)
-            .padding(.bottom, size.width * 0.04)
-        }
-        .overlay(Rectangle().stroke(Color.black.opacity(0.08), lineWidth: 1))
-        .shadow(color: Color.black.opacity(0.28), radius: size.width * 0.018, x: size.width * 0.008, y: size.width * 0.018)
-        .rotationEffect(.degrees(rotation))
+        printBody(size: size)
+          .rotationEffect(.degrees(rotation))
+          .offset(
+            x: size.width * offsetUnit.x,
+            y: size.width * offsetUnit.y
+          )
       }
+      .clipped()
     }
+  }
+
+  private func printBody(size: CGSize) -> some View {
+    VStack(spacing: 0) {
+      Image(uiImage: asset.image)
+        .resizable()
+        .scaledToFill()
+        .frame(width: size.width * 0.62, height: size.width * 0.62)
+        .clipped()
+        .padding(.top, size.width * 0.055)
+      Spacer(minLength: size.width * 0.11)
+    }
+    .frame(width: size.width * 0.70, height: size.width * 0.85)
+    .background(Color(hex: "#F3EBDD"))
+    // reflected surface color reaches the paper itself, not just the stage
+    .overlay(surface.reflectedTint.opacity(0.07).allowsHitTesting(false))
+    // gentle sheet curl: light falls off across the emulsion, top-leading key
+    .overlay(
+      LinearGradient(
+        colors: [Color.white.opacity(0.10), .clear, Color.black.opacity(0.05)],
+        startPoint: .topLeading, endPoint: .bottomTrailing
+      )
+      .allowsHitTesting(false)
+    )
+    .overlay(alignment: .bottomLeading) {
+      Text(asset.stock.name.uppercased())
+        .font(.system(size: max(8, size.width * 0.022), weight: .medium, design: .monospaced))
+        .tracking(0.7)
+        .foregroundStyle(Color.black.opacity(0.54))
+        .padding(.leading, size.width * 0.055)
+        .padding(.bottom, size.width * 0.04)
+    }
+    .overlay(Rectangle().stroke(Color.black.opacity(0.08), lineWidth: 1))
+    // paper thickness: a hairline of stacked edge showing on the lit sides
+    .background(
+      Rectangle()
+        .fill(Color(hex: "#D9D0BE"))
+        .offset(x: size.width * 0.0035, y: size.width * 0.0045)
+    )
+    // contact shadow: direction follows the stage's top-leading key light,
+    // character (tightness/darkness) follows the surface material
+    .shadow(
+      color: Color.black.opacity(surface.shadow.opacity),
+      radius: size.width * surface.shadow.blur,
+      x: size.width * 0.008,
+      y: size.width * 0.018
+    )
   }
 }

@@ -10,7 +10,7 @@ struct AccountView: View {
           VStack(alignment: .leading, spacing: 8) {
             TechnicalLabel(text: "LensMood")
             Text("Your darkroom")
-              .font(.system(size: 32, weight: .bold, design: .serif))
+              .font(.system(size: 32, weight: .heavy))
               .foregroundStyle(Theme.ink)
             Text("Processing remains on this device. All camera personalities are available. You can decide what belongs in your library before anything is saved.")
               .font(.system(size: 15))

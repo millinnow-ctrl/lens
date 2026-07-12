@@ -373,9 +373,13 @@ final class FilmEngine {
   }
 
   private func applyInstantFrame(to image: CIImage) -> CIImage {
-    let horizontal = round(image.extent.width * 31 / 420)
+    // reference geometry (engine.ts polaroid frame): margins are proportions
+    // of the LONGEST side, not the width — 0.055 border, 0.16 bottom lip.
+    // The previous width-based constants only matched 3:4 portraits.
+    let longest = max(image.extent.width, image.extent.height)
+    let horizontal = round(longest * 0.055)
     let top = horizontal
-    let bottom = round(image.extent.width * 90 / 420)
+    let bottom = round(longest * 0.16)
     let canvas = CGRect(
       x: image.extent.minX - horizontal,
       y: image.extent.minY - bottom,
@@ -589,9 +593,9 @@ final class FilmEngine {
     if abs(scene.warmth) > 0.06 {
       notes.append(recipe.preservesWarmCast ? "Ambient color retained" : "Color cast restrained")
     }
-    for note in recipe.decisionVocabulary where notes.count < 4 {
-      if !notes.contains(note) { notes.append(note) }
-    }
+    // Directive §8: decision notes come from real analysis only. The static
+    // per-camera vocabulary is intentionally NOT used as filler — an empty or
+    // short list is the honest result for a scene the camera left alone.
     return Array(notes.prefix(4))
   }
 

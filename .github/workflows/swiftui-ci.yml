@@ -22,8 +22,10 @@ concurrency:
   group: swiftui-ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# contents: write only so the run can force-push review captures to the
+# throwaway ci-captures branch below — never to code branches
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -109,5 +111,26 @@ jobs:
             LensMoodApp/xcodebuild.log
             LensMoodApp/xcodetest.log
           retention-days: 3
+
+      # The dev sandbox can git-fetch but cannot reach the artifact CDN, so
+      # screenshots + parity evidence also land on a throwaway force-pushed
+      # branch for direct review. Never contains source code.
+      - name: Publish captures to ci-captures branch
+        if: always()
+        run: |
+          set -e
+          DIR=$(mktemp -d)
+          if [ -d LensMoodApp/ui-artifacts ]; then
+            rsync -a --exclude '*.xcresult' LensMoodApp/ui-artifacts/ "$DIR"/ || true
+          fi
+          [ -n "$(ls -A "$DIR" 2>/dev/null)" ] || { echo "nothing to publish"; exit 0; }
+          echo "run ${{ github.run_number }} sha ${{ github.sha }} $(date -u +%FT%TZ)" > "$DIR/RUN.txt"
+          cd "$DIR"
+          git init -q -b ci-captures
+          git config user.email "actions@users.noreply.github.com"
+          git config user.name "CI Captures"
+          git add -A
+          git commit -q -m "captures: run ${{ github.run_number }} @ ${{ github.sha }}"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-captures
 
 

@@ -93,7 +93,7 @@ struct CamcorderView: View {
     VStack(alignment: .leading, spacing: 7) {
       TechnicalLabel(text: "Tape 94")
       Text("One camera. One tape.")
-        .font(.system(size: 33, weight: .bold, design: .serif))
+        .font(.system(size: 33, weight: .heavy))
         .foregroundStyle(Theme.ink)
       Text("There are no dials and no fake damage controls. Record a moment; the tape decides the rest.")
         .font(.system(size: 15))
@@ -134,7 +134,8 @@ struct CamcorderView: View {
       .foregroundStyle(Theme.viewfinderChrome)
       .padding(12)
     }
-    .overlay(Rectangle().stroke(Theme.ink, lineWidth: 1))
+    .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
+    .oceanCardShadow(deep: true)
   }
 
   private var exportState: some View {

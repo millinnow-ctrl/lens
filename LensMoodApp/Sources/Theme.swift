@@ -22,20 +22,51 @@ extension Color {
   }
 }
 
+/// Ocean darkroom palette — the owner-approved identity, ported 1:1 from the
+/// reference app (`lensmood-native/src/theme/colors.ts`). Cool gray-white
+/// paper, crisp white cards, one calm ocean-teal accent. The photograph stays
+/// the loudest color in the room.
 enum Theme {
-  static let paper = Color(hex: "#F4F1EA")
-  static let surface = Color(hex: "#FBF9F4")
-  static let ink = Color(hex: "#171613")
-  static let inkSoft = Color(hex: "#56524A")
-  static let fog = Color(hex: "#817B70")
-  static let hairline = Color(hex: "#D8D2C7")
-  static let accent = Color(hex: "#C63C2F")
-  static let viewfinder = Color(hex: "#11110F")
-  static let viewfinderChrome = Color(hex: "#D7D2C9")
+  static let paper = Color(hex: "#EEF2F5")
+  static let surface = Color(hex: "#FFFFFF")
+  static let ink = Color(hex: "#17242D")
+  static let inkSoft = Color(hex: "#586974")
+  static let fog = Color(hex: "#6E7C86")
+  static let hairline = Color(hex: "#E1E7EC")
+  static let accent = Color(hex: "#0E7487")
+  static let accentMid = Color(hex: "#1C8397")
+  static let accentLight = Color(hex: "#39A6BB")
+  static let clay = Color(hex: "#0C5568")
+  static let clayDeep = Color(hex: "#083C4A")
+  static let viewfinder = Color(hex: "#141A1F")
+  static let viewfinderChrome = Color(hex: "#8A96A0")
   static let recRed = Color(hex: "#E1251B")
 
-  static let pagePadding: CGFloat = 18
+  /// glossy ocean fill — the primary action (reference `gradients.brandFill`)
+  static let brandFill = LinearGradient(
+    colors: [Color(hex: "#128AA0"), Color(hex: "#0C5E70")],
+    startPoint: .top, endPoint: .bottom
+  )
+  /// deep teal → ocean → bright teal (reference `gradients.brandText`)
+  static let brandText = LinearGradient(
+    colors: [Color(hex: "#0C6376"), Color(hex: "#0F7D92"), Color(hex: "#2EA0B3")],
+    startPoint: .leading, endPoint: .trailing
+  )
+
+  static let pagePadding: CGFloat = 14
   static let controlHeight: CGFloat = 52
+  static let cardRadius: CGFloat = 18
+}
+
+extension View {
+  /// the reference app's soft card elevation (shadowOpacity 0.28 on the
+  /// deepest cards, lighter on white surfaces)
+  func oceanCardShadow(deep: Bool = false) -> some View {
+    shadow(
+      color: Color(hex: "#02070A").opacity(deep ? 0.28 : 0.10),
+      radius: deep ? 14 : 10, x: 0, y: deep ? 8 : 4
+    )
+  }
 }
 
 struct InstrumentButtonStyle: ButtonStyle {
@@ -53,28 +84,31 @@ struct InstrumentButtonStyle: ButtonStyle {
       .foregroundStyle(foreground)
       .frame(maxWidth: .infinity)
       .frame(minHeight: Theme.controlHeight)
-      .background(background.opacity(configuration.isPressed ? 0.76 : 1))
+      .background(background(pressed: configuration.isPressed))
+      .clipShape(Capsule())
       .overlay {
         if kind == .secondary {
-          Rectangle().stroke(Theme.ink, lineWidth: 1)
+          Capsule().stroke(Theme.hairline, lineWidth: 1)
         }
       }
-      .contentShape(Rectangle())
-      .opacity(configuration.isPressed ? 0.82 : 1)
+      .contentShape(Capsule())
+      .opacity(configuration.isPressed ? 0.92 : 1)
+      .scaleEffect(configuration.isPressed ? 0.985 : 1)
       .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
   }
 
-  private var background: Color {
+  @ViewBuilder
+  private func background(pressed: Bool) -> some View {
     switch kind {
-    case .primary: return Theme.ink
-    case .secondary: return Theme.surface
-    case .quiet: return .clear
+    case .primary: Theme.brandFill.opacity(pressed ? 0.9 : 1)
+    case .secondary: Theme.surface
+    case .quiet: Color.clear
     }
   }
 
   private var foreground: Color {
     switch kind {
-    case .primary: return Theme.paper
+    case .primary: return .white
     case .secondary, .quiet: return Theme.ink
     }
   }
@@ -86,7 +120,11 @@ struct InstrumentPanel<Content: View>: View {
   var body: some View {
     content
       .background(Theme.surface)
-      .overlay(Rectangle().stroke(Theme.hairline, lineWidth: 1))
+      .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+      .overlay(
+        RoundedRectangle(cornerRadius: 16, style: .continuous)
+          .stroke(Theme.hairline, lineWidth: 1)
+      )
   }
 }
 

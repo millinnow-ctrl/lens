@@ -74,7 +74,7 @@ struct GalleryView: View {
       Image(systemName: "rectangle.stack")
         .font(.system(size: 36, weight: .ultraLight))
       Text("No developed frames")
-        .font(.system(size: 25, weight: .bold, design: .serif))
+        .font(.system(size: 25, weight: .heavy))
       Text("Photographs developed in this session appear here as a contact sheet.")
         .font(.system(size: 14))
         .foregroundStyle(Theme.inkSoft)
@@ -116,7 +116,7 @@ private struct GalleryDetailView: View {
           VStack(alignment: .leading, spacing: 6) {
             TechnicalLabel(text: asset.stock.exif)
             Text(asset.stock.name)
-              .font(.system(size: 28, weight: .bold, design: .serif))
+              .font(.system(size: 28, weight: .heavy))
             Text(asset.stock.tagline)
               .font(.system(size: 14))
               .foregroundStyle(Theme.inkSoft)
