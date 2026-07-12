@@ -207,13 +207,29 @@ final class FilmEngineTests: XCTestCase {
   }
 
   private func sideBySide(_ reference: UIImage, _ rendered: UIImage) -> UIImage {
+    guard let referenceCG = reference.cgImage, let renderedCG = rendered.cgImage else {
+      return reference
+    }
     let size = CGSize(
-      width: reference.size.width + rendered.size.width,
-      height: max(reference.size.height, rendered.size.height)
+      width: referenceCG.width + renderedCG.width,
+      height: max(referenceCG.height, renderedCG.height)
     )
-    return UIGraphicsImageRenderer(size: size).image { _ in
-      reference.draw(at: .zero)
-      rendered.draw(at: CGPoint(x: reference.size.width, y: 0))
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = 1
+    return UIGraphicsImageRenderer(size: size, format: format).image { context in
+      context.cgContext.draw(
+        referenceCG,
+        in: CGRect(x: 0, y: 0, width: referenceCG.width, height: referenceCG.height)
+      )
+      context.cgContext.draw(
+        renderedCG,
+        in: CGRect(
+          x: referenceCG.width,
+          y: 0,
+          width: renderedCG.width,
+          height: renderedCG.height
+        )
+      )
     }
   }
 
@@ -273,4 +289,5 @@ final class FilmEngineTests: XCTestCase {
     return data as Data
   }
 }
+
 

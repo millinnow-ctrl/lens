@@ -28,6 +28,7 @@ final class FilmEngine {
   private let analyzer: SceneAnalyzer
   private let lutLoader = LUTLoader()
   private let grainKernel: CIColorKernel?
+  private let referenceAcutanceKernel: CIColorKernel?
   private let referenceVignetteKernel: CIColorKernel?
   private let referenceGrainKernel: CIColorKernel?
 
@@ -46,6 +47,14 @@ final class FilmEngine {
         float random = fract(sin(dot(cell, vec2(12.9898, 78.233)) + seed) * 43758.5453);
         float noise = (random - 0.5) * amount;
         return vec4(clamp(pixel.rgb + vec3(noise), 0.0, 1.0), pixel.a);
+      }
+      """)
+    referenceAcutanceKernel = CIColorKernel(source: """
+      kernel vec4 lensMoodReferenceAcutance(__sample pixel, __sample blurred, float amount) {
+        float luminance = dot(pixel.rgb, vec3(0.299, 0.587, 0.114));
+        float weight = amount * (4.0 * luminance * (1.0 - luminance));
+        vec3 result = pixel.rgb + (pixel.rgb - blurred.rgb) * weight;
+        return vec4(clamp(result, 0.0, 1.0), pixel.a);
       }
       """)
     referenceVignetteKernel = CIColorKernel(source: """
@@ -130,6 +139,10 @@ final class FilmEngine {
       image = applyWhiteBalance(image, scene: scene, recipe: recipe)
       image = applyTone(image, recipe: recipe)
       image = applyAdaptiveColor(image, scene: scene, recipe: recipe)
+    }
+
+    if let profile = recipe.referenceSpatial {
+      image = applyReferenceAcutance(image, profile: profile)
     }
 
     if recipe.protectsFaces, !subject.faces.isEmpty {
@@ -349,6 +362,23 @@ final class FilmEngine {
     ) ?? image
   }
 
+  private func applyReferenceAcutance(
+    _ image: CIImage,
+    profile: ReferenceSpatialProfile
+  ) -> CIImage {
+    guard let referenceAcutanceKernel else { return image }
+    let referenceScale = max(image.extent.width, image.extent.height) / 1000
+    let radius = 2.2 * referenceScale
+    let blurred = image
+      .clampedToExtent()
+      .applyingFilter("CIGaussianBlur", parameters: [kCIInputRadiusKey: radius])
+      .cropped(to: image.extent)
+    return referenceAcutanceKernel.apply(
+      extent: image.extent,
+      arguments: [image, blurred, profile.acutance * profile.intensity]
+    ) ?? image
+  }
+
   private func applyReferenceVignette(
     _ image: CIImage,
     profile: ReferenceSpatialProfile
@@ -478,4 +508,5 @@ private extension Double {
     min(range.upperBound, max(range.lowerBound, self))
   }
 }
+
 
