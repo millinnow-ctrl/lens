@@ -57,6 +57,17 @@ enum CaptureMode: String, CaseIterable, Equatable {
     case .video: return 0.46
     }
   }
+
+  /// a one-line, plain-language note shown when the mode is picked, so the
+  /// user understands what changed
+  var blurb: String {
+    switch self {
+    case .photo: return "Balanced everyday frame"
+    case .video: return "Opens the Tape camcorder"
+    case .portrait: return "Lifts the subject, softens the background"
+    case .night: return "Recovers shadows, cleans up grain"
+    }
+  }
 }
 
 /// The live state of the pro camera's controls. Every look term is measured

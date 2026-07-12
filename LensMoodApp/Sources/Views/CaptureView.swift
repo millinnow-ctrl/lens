@@ -22,6 +22,16 @@ struct CaptureView: View {
   @State private var saveConfirmation = false
   @State private var renderToken = UUID()
 
+  // legibility helpers: tap-to-focus confirmation, a mode explainer, and a
+  // one-time guide so a first-time user knows what every control does
+  @State private var focusPulse: FocusPulse?
+  @State private var modeHint: String?
+  @State private var modeHintToken = UUID()
+  @State private var guideShown = false
+  @AppStorage("cameraGuideSeen") private var guideSeen = false
+
+  struct FocusPulse: Equatable { let id = UUID(); let point: CGPoint }
+
   enum ActiveDial: CaseIterable { case aperture, shutter, iso, ev }
 
   var body: some View {
@@ -31,6 +41,7 @@ struct CaptureView: View {
         VStack(spacing: 0) {
           topBar
           viewfinder(size: geo.size)
+          modeHintBar
           filmBar
           modesRow
           captureRow
@@ -43,6 +54,7 @@ struct CaptureView: View {
     }
     .overlay { if isDeveloping { developingOverlay } }
     .overlay { if let review { reviewCard(review) } }
+    .overlay { if guideShown { guideOverlay } }
     .sheet(isPresented: $mountPickerShown) { mountPicker }
     .sheet(isPresented: $libraryShown) { librarySheet }
     .alert("Saved to Photos", isPresented: $saveConfirmation) { Button("OK", role: .cancel) {} }
@@ -53,6 +65,9 @@ struct CaptureView: View {
       camera.settings.autoRelight = true
       camera.load(stock: loadedStock)
       camera.configure()
+      // first-run guide — but never over a CI/screenshot launch (LENSMOOD_TAB set)
+      let scripted = ProcessInfo.processInfo.environment["LENSMOOD_TAB"] != nil
+      if !guideSeen && !scripted { guideShown = true }
     }
     .onDisappear { camera.stop() }
     .statusBarHidden(true)
@@ -119,14 +134,17 @@ struct CaptureView: View {
         placeholder: BundleMedia.image("style-\(loadedStock.id)")
       )
       .contentShape(Rectangle())
-      .onTapGesture { location in
-        camera.focus(at: CGPoint(x: location.x / size.width, y: max(0, location.y) / (size.height * 0.62)))
-      }
+      .onTapGesture { location in focusHere(location, in: size) }
 
       if showGrid {
         GridOverlay().stroke(Color.white.opacity(0.28), lineWidth: 0.5).allowsHitTesting(false)
       }
       reticle.allowsHitTesting(false)
+
+      // tap-to-focus confirmation: a gold box snaps onto the point you touched
+      if let pulse = focusPulse {
+        FocusReticle().position(pulse.point).id(pulse.id).allowsHitTesting(false)
+      }
 
       // right control stack
       VStack(spacing: 12) {
@@ -141,8 +159,17 @@ struct CaptureView: View {
         Text(activeDialLabel)
           .font(.system(size: 22, weight: .bold, design: .monospaced))
           .foregroundStyle(.white).shadow(color: .black.opacity(0.55), radius: 5)
-        CommandWheel(steps: activeStepCount, index: activeIndex) { setActiveDial(to: $0) }
-          .frame(height: 30).padding(.horizontal, 40)
+        HStack(spacing: 8) {
+          Image(systemName: "chevron.compact.left").foregroundStyle(.white.opacity(0.4))
+          CommandWheel(steps: activeStepCount, index: activeIndex) { setActiveDial(to: $0) }
+            .frame(height: 30)
+          Image(systemName: "chevron.compact.right").foregroundStyle(.white.opacity(0.4))
+        }
+        .font(.system(size: 15, weight: .semibold))
+        .padding(.horizontal, 30)
+        Text("DRAG TO \(activeDialName)")
+          .font(.system(size: 8, weight: .semibold, design: .monospaced)).tracking(1.5)
+          .foregroundStyle(.white.opacity(0.45))
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
       .padding(.bottom, 16)
@@ -248,7 +275,27 @@ struct CaptureView: View {
   private func selectMode(_ mode: CaptureMode) {
     if mode == .video { model.selectedTab = .tape; return }   // the camcorder owns video
     camera.settings.captureMode = mode
+    showModeHint(mode.blurb)
     tick()
+  }
+
+  /// a mode explainer that fades in under the viewfinder, then clears itself
+  private var modeHintBar: some View {
+    Text(modeHint ?? " ")
+      .font(.spaceMono(10))
+      .foregroundStyle(CameraTheme.gold)
+      .frame(maxWidth: .infinity)
+      .frame(height: 16)
+      .opacity(modeHint == nil ? 0 : 1)
+      .padding(.top, 6)
+  }
+
+  private func showModeHint(_ text: String) {
+    let token = UUID(); modeHintToken = token
+    withAnimation(.easeOut(duration: 0.2)) { modeHint = text }
+    DispatchQueue.main.asyncAfter(deadline: .now() + 1.9) {
+      if modeHintToken == token { withAnimation(.easeIn(duration: 0.3)) { modeHint = nil } }
+    }
   }
 
   // MARK: capture row
@@ -378,8 +425,54 @@ struct CaptureView: View {
       VStack(spacing: 12) {
         ProgressView().tint(CameraTheme.gold)
         Text("DEVELOPING").font(.system(size: 11, weight: .bold, design: .monospaced)).tracking(2).foregroundStyle(.white)
+        Text("metering · relighting · developing \(loadedStock.name)")
+          .font(.spaceMono(9)).foregroundStyle(CameraTheme.dim)
       }
     }
+  }
+
+  // MARK: first-run guide
+
+  private var guideOverlay: some View {
+    ZStack {
+      Color.black.opacity(0.82).ignoresSafeArea()
+      VStack(alignment: .leading, spacing: 18) {
+        Text("YOUR CAMERA").font(.spaceMono(12, bold: true)).tracking(2).foregroundStyle(CameraTheme.gold)
+        guideRow("camera.aperture", "Tap the shutter to shoot",
+                 "The frame is metered, auto-relit, and developed through the loaded film.")
+        guideRow("hand.draw", "Drag the dial to expose",
+                 "Tap ISO / Shutter / Aperture / EV up top, then drag the wheel to change it.")
+        guideRow("viewfinder", "Tap the frame to focus",
+                 "Sets focus and metering on the spot you touch.")
+        guideRow("photo.on.rectangle", "Where your photos go",
+                 "Every shot lands on your in-app Roll. Tap Save to Photos to export it to your iPhone’s camera roll.")
+        Button { dismissGuide() } label: { Text("Start shooting").frame(maxWidth: .infinity) }
+          .buttonStyle(InstrumentButtonStyle(kind: .primary)).padding(.top, 4)
+      }
+      .padding(24)
+      .background(CameraTheme.panel)
+      .clipShape(RoundedRectangle(cornerRadius: 20))
+      .overlay(RoundedRectangle(cornerRadius: 20).stroke(CameraTheme.line, lineWidth: 1))
+      .padding(28)
+    }
+    .transition(.opacity)
+  }
+
+  private func guideRow(_ icon: String, _ title: String, _ body: String) -> some View {
+    HStack(alignment: .top, spacing: 14) {
+      Image(systemName: icon).font(.system(size: 18)).foregroundStyle(CameraTheme.gold)
+        .frame(width: 26, alignment: .center)
+      VStack(alignment: .leading, spacing: 3) {
+        Text(title).font(.system(size: 14, weight: .semibold)).foregroundStyle(CameraTheme.text)
+        Text(body).font(.system(size: 12)).foregroundStyle(CameraTheme.dim)
+          .fixedSize(horizontal: false, vertical: true)
+      }
+    }
+  }
+
+  private func dismissGuide() {
+    withAnimation { guideShown = false }
+    guideSeen = true
   }
 
   private func reviewCard(_ asset: DevelopedAsset) -> some View {
@@ -416,15 +509,38 @@ struct CaptureView: View {
           .padding(.horizontal, 20).padding(.top, 4)
 
         Spacer()
+
+        // make the photo's destination unmistakable
+        HStack(spacing: 6) {
+          Image(systemName: "checkmark.circle.fill")
+          Text("On your Roll — Save to Photos to export to your iPhone")
+        }
+        .font(.spaceMono(10))
+        .foregroundStyle(CameraTheme.gold)
+        .frame(maxWidth: .infinity, alignment: .center)
+        .padding(.horizontal, 20)
+
         HStack(spacing: 12) {
-          Button("Retake") { review = nil }.buttonStyle(InstrumentButtonStyle(kind: .secondary))
-          Button("Save to Photos") { save(asset) }.buttonStyle(InstrumentButtonStyle(kind: .primary))
-        }.padding(.horizontal, 20).padding(.bottom, 30)
+          Button("Retake") { model.remove(asset); review = nil }
+            .buttonStyle(InstrumentButtonStyle(kind: .secondary))
+          Button("Save to Photos") { save(asset) }
+            .buttonStyle(InstrumentButtonStyle(kind: .primary))
+        }.padding(.horizontal, 20).padding(.top, 4).padding(.bottom, 30)
       }.padding(.top, 60)
     }.transition(.opacity)
   }
 
   // MARK: actions
+
+  private func focusHere(_ location: CGPoint, in size: CGSize) {
+    camera.focus(at: CGPoint(x: location.x / size.width, y: max(0, location.y) / (size.height * 0.62)))
+    let pulse = FocusPulse(point: location)
+    focusPulse = pulse
+    UISelectionFeedbackGenerator().selectionChanged()
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
+      if focusPulse?.id == pulse.id { withAnimation(.easeOut(duration: 0.25)) { focusPulse = nil } }
+    }
+  }
 
   private func shoot() {
     UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
@@ -512,6 +628,14 @@ struct CaptureView: View {
     case .ev: return fmtEV(camera.settings.exposureBiasEV)
     }
   }
+  private var activeDialName: String {
+    switch activeDial {
+    case .aperture: return "APERTURE"
+    case .shutter: return "SHUTTER"
+    case .iso: return "ISO"
+    case .ev: return "EXPOSURE"
+    }
+  }
 
   private var flashLabel: String {
     switch camera.settings.flashMode { case .off: return "OFF"; case .auto: return "AUTO"; case .on: return "ON" }
@@ -563,6 +687,20 @@ private struct CommandWheel: View {
         }
         .onEnded { _ in dragBase = nil }
     )
+  }
+}
+
+/// A tap-to-focus confirmation box that snaps in, then holds — the standard
+/// camera affordance that tells the user the focus point registered.
+private struct FocusReticle: View {
+  @State private var landed = false
+  var body: some View {
+    RoundedRectangle(cornerRadius: 5)
+      .stroke(CameraTheme.gold, lineWidth: 1.5)
+      .frame(width: 74, height: 74)
+      .scaleEffect(landed ? 1 : 1.4)
+      .opacity(landed ? 0.95 : 0)
+      .onAppear { withAnimation(.spring(response: 0.32, dampingFraction: 0.7)) { landed = true } }
   }
 }
 
