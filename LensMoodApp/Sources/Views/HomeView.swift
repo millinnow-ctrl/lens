@@ -1,4 +1,5 @@
 import AVFoundation
+import PhotosUI
 import SwiftUI
 
 /// Home — the ocean entry screen, restored to the owner-approved reference
@@ -9,6 +10,11 @@ struct HomeView: View {
   @EnvironmentObject private var model: AppModel
   @State private var category: StyleCategory = .all
   @State private var path = NavigationPath()
+
+  // "Start with a photo" → the standard iOS source chooser
+  @State private var showSourceChooser = false
+  @State private var showLibraryPicker = false
+  @State private var heroPickedItem: PhotosPickerItem?
 
   private let columns = [
     GridItem(.flexible(), spacing: 12),
@@ -24,7 +30,7 @@ struct HomeView: View {
       ScrollView {
         VStack(alignment: .leading, spacing: 0) {
           HeroCard {
-            path.append(Stock.all[0])
+            showSourceChooser = true
           }
           .padding(.top, 6)
 
@@ -84,6 +90,29 @@ struct HomeView: View {
           .accessibilityLabel("Account and privacy")
         }
       }
+      // the standard iOS "add a photo" chooser
+      .confirmationDialog("Start with a photo", isPresented: $showSourceChooser, titleVisibility: .visible) {
+        Button("Take Photo") { model.selectedTab = .capture }
+        Button("Choose from Library") { showLibraryPicker = true }
+        Button("Cancel", role: .cancel) {}
+      }
+      .photosPicker(isPresented: $showLibraryPicker, selection: $heroPickedItem, matching: .images)
+      .onChange(of: heroPickedItem) { item in loadHeroPhoto(item) }
+    }
+  }
+
+  /// carry a library pick into a fresh develop session
+  private func loadHeroPhoto(_ item: PhotosPickerItem?) {
+    guard let item else { return }
+    Task {
+      if let data = try? await item.loadTransferable(type: Data.self),
+         let image = UIImage(data: data) {
+        await MainActor.run {
+          model.pendingDevelopImage = image
+          heroPickedItem = nil
+          path.append(Stock.all[0])
+        }
+      }
     }
   }
 
@@ -92,32 +121,49 @@ struct HomeView: View {
   /// Scroll is signalled three ways: a coverflow 3D tilt as cards approach
   /// the edges, deep drop shadows, and a trailing fade the cards slide under.
   private var styleCarousel: some View {
-    ScrollView(.horizontal, showsIndicators: false) {
-      HStack(spacing: 14) {
-        ForEach(Array(Stock.all.enumerated()), id: \.element.id) { index, stock in
-          Button {
-            path.append(stock)
-          } label: {
-            CarouselCard(stock: stock, index: index)
-              .modifier(CarouselDepth())
+    VStack(spacing: 8) {
+      ScrollView(.horizontal, showsIndicators: false) {
+        HStack(spacing: 14) {
+          ForEach(Array(Stock.all.enumerated()), id: \.element.id) { index, stock in
+            Button {
+              path.append(stock)
+            } label: {
+              CarouselCard(stock: stock, index: index)
+                .modifier(CarouselDepth())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("\(stock.name). \(stock.tagline)")
           }
-          .buttonStyle(.plain)
-          .accessibilityLabel("\(stock.name). \(stock.tagline)")
         }
+        .padding(.horizontal, 4)
+        .padding(.vertical, 16)
       }
-      .padding(.horizontal, 4)
-      .padding(.vertical, 16)
+      // the cards slide under a soft edge with a chevron — more to the right
+      .overlay(alignment: .trailing) {
+        ZStack(alignment: .trailing) {
+          LinearGradient(
+            colors: [Theme.paper.opacity(0), Theme.paper],
+            startPoint: .leading, endPoint: .trailing
+          )
+          .frame(width: 46)
+          Image(systemName: "chevron.compact.right")
+            .font(.system(size: 27, weight: .semibold))
+            .foregroundStyle(Theme.fog.opacity(0.55))
+            .padding(.trailing, 2)
+        }
+        .allowsHitTesting(false)
+      }
+
+      // explicit swipe cue
+      HStack(spacing: 6) {
+        Image(systemName: "hand.draw").font(.system(size: 10, weight: .semibold))
+        Text("SWIPE FOR \(Stock.all.count) LOOKS")
+          .font(.system(size: 9, weight: .bold, design: .monospaced)).tracking(1)
+        Image(systemName: "arrow.right").font(.system(size: 9, weight: .bold))
+      }
+      .foregroundStyle(Theme.fog)
     }
     .padding(.top, 4)
-    // the cards slide under a soft edge — signals there is more to the right
-    .overlay(alignment: .trailing) {
-      LinearGradient(
-        colors: [Theme.paper.opacity(0), Theme.paper],
-        startPoint: .leading, endPoint: .trailing
-      )
-      .frame(width: 26)
-      .allowsHitTesting(false)
-    }
   }
 
   private func sectionHead(title: String, subtitle: String?) -> some View {
@@ -271,12 +317,12 @@ private struct CarouselDepth: ViewModifier {
       content.scrollTransition(.interactive, axis: .horizontal) { view, phase in
         view
           .rotation3DEffect(
-            .degrees(phase.value * -20),
+            .degrees(phase.value * -34),
             axis: (x: 0, y: 1, z: 0),
-            perspective: 0.5
+            perspective: 0.7
           )
-          .scaleEffect(phase.isIdentity ? 1 : 0.94)
-          .opacity(phase.isIdentity ? 1 : 0.85)
+          .scaleEffect(phase.isIdentity ? 1 : 0.86)
+          .opacity(phase.isIdentity ? 1 : 0.72)
       }
     } else {
       content
@@ -499,17 +545,25 @@ struct HeroCard: View {
             .shadow(color: .black.opacity(0.55), radius: 4, y: 1)
 
           Button(action: onStart) {
-            Text("Start with a photo")
-              .font(.system(size: 15, weight: .bold))
-              .foregroundStyle(Theme.ink)
-              .padding(.horizontal, 22)
-              .frame(height: 44)
-              .background(.white)
-              .clipShape(Capsule())
+            HStack(spacing: 8) {
+              Image(systemName: "photo.badge.plus")
+                .font(.system(size: 15, weight: .semibold))
+              Text("Start with a photo")
+                .font(.system(size: 15, weight: .bold))
+              Image(systemName: "chevron.down")
+                .font(.system(size: 10, weight: .bold))
+                .opacity(0.45)
+            }
+            .foregroundStyle(Theme.ink)
+            .padding(.horizontal, 20)
+            .frame(height: 44)
+            .background(.white)
+            .clipShape(Capsule())
           }
           .buttonStyle(.plain)
           .padding(.top, 8)
           .accessibilityLabel("Start with a photo")
+          .accessibilityHint("Opens options to take a photo or choose from your library")
         }
         .padding(16)
       }

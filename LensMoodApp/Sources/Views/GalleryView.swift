@@ -6,9 +6,9 @@ struct GalleryView: View {
   @State private var selected: DevelopedAsset?
 
   private let columns = [
-    GridItem(.flexible(), spacing: 3),
-    GridItem(.flexible(), spacing: 3),
-    GridItem(.flexible(), spacing: 3),
+    GridItem(.flexible(), spacing: 10),
+    GridItem(.flexible(), spacing: 10),
+    GridItem(.flexible(), spacing: 10),
   ]
 
   var body: some View {
@@ -27,18 +27,20 @@ struct GalleryView: View {
                   .foregroundStyle(Theme.fog)
               }
 
-              LazyVGrid(columns: columns, spacing: 3) {
+              LazyVGrid(columns: columns, spacing: 14) {
                 ForEach(Array(model.library.enumerated()), id: \.element.id) { index, asset in
                   Button {
                     selected = asset
                   } label: {
-                    VStack(alignment: .leading, spacing: 5) {
+                    VStack(alignment: .leading, spacing: 6) {
                       Image(uiImage: asset.image)
                         .resizable()
                         .scaledToFill()
                         .frame(maxWidth: .infinity)
                         .aspectRatio(0.8, contentMode: .fill)
                         .clipped()
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .oceanCardShadow()
                       HStack {
                         Text(String(format: "%02d", model.library.count - index))
                         Spacer()
@@ -46,21 +48,19 @@ struct GalleryView: View {
                           .lineLimit(1)
                       }
                       .font(.system(size: 8, weight: .medium, design: .monospaced))
-                      .foregroundStyle(Theme.viewfinderChrome)
+                      .foregroundStyle(Theme.fog)
                     }
                   }
                   .buttonStyle(.plain)
                 }
               }
             }
-            .padding(12)
-            .background(Theme.viewfinder)
             .padding(Theme.pagePadding)
           }
           .background(Theme.paper)
         }
       }
-      .navigationTitle("Library")
+      .navigationTitle("Gallery")
       .navigationBarTitleDisplayMode(.inline)
       .sheet(item: $selected) { asset in
         GalleryDetailView(asset: asset)

@@ -23,6 +23,9 @@ final class AppModel: ObservableObject {
   @Published var selectedTab: AppTab = .cameras
   @Published var library: [DevelopedAsset] = []
   @Published var accountPresented = false
+  /// a photo chosen on the Home hero ("Choose from Library"), handed to the
+  /// next DevelopView so it develops that frame straight away
+  @Published var pendingDevelopImage: UIImage?
 
   init(environment: [String: String] = ProcessInfo.processInfo.environment) {
     switch environment["LENSMOOD_TAB"] {

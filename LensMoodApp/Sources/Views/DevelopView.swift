@@ -59,6 +59,14 @@ struct DevelopView: View {
     .onChange(of: pickedItem) { item in
       load(item)
     }
+    .onAppear {
+      // a photo chosen from the Home hero develops immediately on arrival
+      if let pending = model.pendingDevelopImage {
+        model.pendingDevelopImage = nil
+        sourceImage = pending
+        develop(pending)
+      }
+    }
     .sheet(isPresented: $sharePresented) {
       if let developedImage {
         ActivitySheet(items: [developedImage])
