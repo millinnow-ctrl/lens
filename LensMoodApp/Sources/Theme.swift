@@ -82,6 +82,20 @@ enum Theme {
   static let cardRadius: CGFloat = 18
 }
 
+/// The camera is its own immersive instrument world — a warm-gold pro-camera
+/// palette on near-black, distinct from the app's ocean chrome (the directive
+/// treats Camera/Print/Tape as separate worlds).
+enum CameraTheme {
+  static let bg = Color(hex: "#08080A")
+  static let panel = Color(hex: "#0F0F11")
+  static let line = Color(hex: "#2A2B2F")
+  static let gold = Color(hex: "#F2B43E")
+  static let goldHi = Color(hex: "#FFC95A")
+  static let text = Color(hex: "#ECEEF1")
+  static let dim = Color(hex: "#9AA0A8")
+  static let faint = Color(hex: "#6B7178")
+}
+
 extension View {
   /// the reference app's soft card elevation (shadowOpacity 0.28 on the
   /// deepest cards, lighter on white surfaces)

@@ -27,7 +27,8 @@ struct RootView: View {
     }
     .tint(Theme.accent)
     .safeAreaInset(edge: .bottom, spacing: 0) {
-      OceanDock()
+      // the camera is a full-screen instrument — no app dock over it
+      if model.selectedTab != .capture { OceanDock() }
     }
     .sheet(isPresented: $model.accountPresented) {
       AccountView()

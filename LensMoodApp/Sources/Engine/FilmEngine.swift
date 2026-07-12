@@ -157,8 +157,8 @@ final class FilmEngine {
       throw FilmEngineError.unreadableImage
     }
 
-    // opt-in: only when a wide aperture actually asks for a subject cut-out
-    let wantsMask = capture?.wantsDepthOfField == true
+    // opt-in: subject cut-out for depth of field or the auto studio relight
+    let wantsMask = capture?.wantsDepthOfField == true || capture?.autoRelight == true
     image = image.orientedForDisplay
     let scene = try analyzer.analyze(image)
     let subject = analyzeSubjects
@@ -173,11 +173,17 @@ final class FilmEngine {
       image = applyReferenceGeometry(image, profile: profile)
     }
 
-    // Stage 1 of the in-app camera: re-light the color-core input so the
-    // exposure and white-balance dials change how the film renders. Opt-in
-    // and no-op at the loaded camera's home, so the default path is unchanged.
-    if let capture, !capture.isNeutral {
-      image = applyCaptureLight(image, capture: capture, recipe: recipe)
+    // The in-app camera's pre-core passes (all opt-in via `capture`; the
+    // default develop path with capture==nil is untouched):
+    //  · auto studio relight — balances lighting when you take the photo
+    //  · dial re-light — exposure/WB dials change how the film renders
+    if let capture {
+      if capture.autoRelight {
+        image = applyStudioRelight(image, capture: capture, scene: scene, subject: subject)
+      }
+      if !capture.isNeutral {
+        image = applyCaptureLight(image, capture: capture, recipe: recipe)
+      }
     }
 
     let adaptiveEV = adaptiveExposure(for: scene, recipe: recipe)

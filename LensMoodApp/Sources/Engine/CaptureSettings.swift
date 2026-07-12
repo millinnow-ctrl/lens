@@ -13,6 +13,52 @@ enum ExposureMode: String, CaseIterable, Equatable {
 
 enum CaptureFlashMode: Equatable { case off, on, auto }
 
+/// The capture mode dial — like a pro camera's scene modes. Each shapes both
+/// how the frame is metered and how it's developed.
+enum CaptureMode: String, CaseIterable, Equatable {
+  case photo = "Photo"
+  case video = "Video"
+  case portrait = "Portrait"
+  case night = "Night"
+
+  var systemImage: String {
+    switch self {
+    case .photo: return "camera.fill"
+    case .video: return "video.fill"
+    case .portrait: return "person.crop.rectangle"
+    case .night: return "moon.fill"
+    }
+  }
+
+  /// how hard the auto studio light lifts the subject
+  var subjectKeyEV: Double {
+    switch self {
+    case .photo: return 0.16
+    case .portrait: return 0.34
+    case .night: return 0.22
+    case .video: return 0.12
+    }
+  }
+  /// global shadow recovery
+  var shadowLift: Double {
+    switch self {
+    case .photo: return 0.18
+    case .portrait: return 0.16
+    case .night: return 0.42
+    case .video: return 0.14
+    }
+  }
+  /// how bright a scene the relight aims for (geometric-mean target)
+  var exposureTarget: Double {
+    switch self {
+    case .photo: return 0.48
+    case .portrait: return 0.50
+    case .night: return 0.40
+    case .video: return 0.46
+    }
+  }
+}
+
 /// The live state of the pro camera's controls. Every look term is measured
 /// as a deviation from the loaded camera's rated EXIF "home", so at home every
 /// term is zero and the developed frame equals the pure owner-approved recipe.
@@ -26,6 +72,11 @@ struct CaptureSettings: Equatable {
   var flashMode: CaptureFlashMode = .off
   var focalLength: Double = 35        // mm-equivalent
   var focusPoint: CGPoint = CGPoint(x: 0.5, y: 0.5)  // normalized, top-left origin
+  var captureMode: CaptureMode = .photo
+  var zoom: Double = 1                // 1× / 2× / 5×
+  var manualFocus = false             // AF vs MF
+  /// scene-aware auto studio lighting on capture (the camera turns this on)
+  var autoRelight = false
 
   // the loaded camera's rated home (parsed from its EXIF line)
   var homeAperture: Double = 2.8

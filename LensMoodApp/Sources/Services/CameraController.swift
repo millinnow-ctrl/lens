@@ -15,6 +15,8 @@ final class CameraController: NSObject, ObservableObject, AVCapturePhotoCaptureD
   @Published var settings = CaptureSettings()
   @Published private(set) var limits = CaptureLimits()
 
+  @Published private(set) var position: AVCaptureDevice.Position = .back
+
   let session = AVCaptureSession()
   private let photoOutput = AVCapturePhotoOutput()
   private var device: AVCaptureDevice?
@@ -113,6 +115,10 @@ final class CameraController: NSObject, ObservableObject, AVCapturePhotoCaptureD
     let home = CaptureSettings.home(for: stock)
     var next = home
     next.mode = settings.mode
+    next.captureMode = settings.captureMode
+    next.autoRelight = settings.autoRelight
+    next.zoom = settings.zoom
+    next.manualFocus = settings.manualFocus
     settings = next
     applyManualExposure()
   }
@@ -143,6 +149,33 @@ final class CameraController: NSObject, ObservableObject, AVCapturePhotoCaptureD
       }
       device.unlockForConfiguration()
       Task { @MainActor in self.settings.hardwareAppliedEV = realizedEV }
+    }
+  }
+
+  func applyZoom(_ factor: Double) {
+    settings.zoom = factor
+    guard isAvailable else { return }
+    sessionQueue.async { [weak self] in
+      guard let self, let device = self.device else { return }
+      guard (try? device.lockForConfiguration()) != nil else { return }
+      device.videoZoomFactor = max(1, min(device.maxAvailableVideoZoomFactor, CGFloat(factor)))
+      device.unlockForConfiguration()
+    }
+  }
+
+  func flip() {
+    let next: AVCaptureDevice.Position = position == .back ? .front : .back
+    position = next
+    guard isAvailable else { return }
+    sessionQueue.async { [weak self] in
+      guard let self,
+            let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: next),
+            let input = try? AVCaptureDeviceInput(device: camera) else { return }
+      self.session.beginConfiguration()
+      for existing in self.session.inputs { self.session.removeInput(existing) }
+      if self.session.canAddInput(input) { self.session.addInput(input) }
+      self.session.commitConfiguration()
+      self.device = camera
     }
   }
 

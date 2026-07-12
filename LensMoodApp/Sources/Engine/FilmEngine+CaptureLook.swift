@@ -41,6 +41,57 @@ extension FilmEngine {
     return out
   }
 
+  /// Scene-aware auto studio lighting — the "adjusts the lighting when you take
+  /// the photo" pass. Balances the scene toward a well-lit target, recovers
+  /// shadows, tames highlights, and lifts the detected subject like a key light,
+  /// per capture mode. Runs before the color core so the film develops the
+  /// relit scene. Computational (Vision + Core Image), not a neural relighter.
+  func applyStudioRelight(
+    _ image: CIImage,
+    capture: CaptureSettings,
+    scene: SceneProfile,
+    subject: SubjectAnalysis
+  ) -> CIImage {
+    let mode = capture.captureMode
+    let extent = image.extent
+    var out = image
+
+    // 1 — nudge global exposure toward the mode's target brightness
+    let median = max(0.04, scene.medianLuminance)
+    let ev = min(1.2, max(-0.8, log2(mode.exposureTarget / median))) * 0.7
+    if abs(ev) > 0.01 {
+      out = out.applyingFilter("CIExposureAdjust", parameters: [kCIInputEVKey: ev])
+    }
+
+    // 2 — recover shadows, hold highlights
+    out = out.applyingFilter("CIHighlightShadowAdjust", parameters: [
+      "inputShadowAmount": mode.shadowLift,
+      "inputHighlightAmount": 0.86,
+    ]).cropped(to: extent)
+
+    // 3 — key light on the detected subject
+    if let person = subject.personMask, mode.subjectKeyEV > 0.01 {
+      let sx = extent.width / max(1, person.extent.width)
+      let sy = extent.height / max(1, person.extent.height)
+      let mask = person.transformed(by: CGAffineTransform(scaleX: sx, y: sy)).cropped(to: extent)
+      let lit = out.applyingFilter("CIExposureAdjust", parameters: [kCIInputEVKey: mode.subjectKeyEV])
+      out = lit.applyingFilter("CIBlendWithMask", parameters: [
+        "inputBackgroundImage": out,
+        kCIInputMaskImageKey: mask,
+      ]).cropped(to: extent)
+    }
+
+    // 4 — night: soften sensor noise
+    if mode == .night {
+      out = out.applyingFilter("CINoiseReduction", parameters: [
+        "inputNoiseLevel": 0.03,
+        "inputSharpness": 0.4,
+      ]).cropped(to: extent)
+    }
+
+    return out.cropped(to: extent)
+  }
+
   /// Stage 2 — the physical look of the settings. Inserted after grain and
   /// before the monochrome invariant / instant-frame passes.
   func applyCaptureLook(

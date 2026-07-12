@@ -1,19 +1,19 @@
 import SwiftUI
 import UIKit
 
-/// The Red Ring — LensMood's own pro camera. A full-screen DSLR viewfinder with
-/// a top-plate LCD, command dials for aperture / shutter / ISO / exposure, a
-/// mechanical shutter, and a lens-mount picker for the loaded camera personality.
-/// The shot develops through that camera, with the dials genuinely changing the
-/// look. No system camera, no upload chooser.
+/// The LensMood camera — a warm-gold pro instrument. Full-screen viewfinder with
+/// a top-plate readout, aperture/shutter/ISO/EV dials, zoom + AF/MF, a film-canister
+/// stock selector, Photo/Video/Portrait/Night modes, and a mechanical shutter. On
+/// capture the scene is auto-relit and developed through the loaded camera.
 struct CaptureView: View {
   @EnvironmentObject private var model: AppModel
   @StateObject private var camera = CameraController()
 
   @State private var loadedStock = Stock.all[0]
   @State private var activeDial: ActiveDial = .aperture
-  @State private var showGrid = false
+  @State private var showGrid = true
   @State private var mountPickerShown = false
+  @State private var libraryShown = false
 
   @State private var isDeveloping = false
   @State private var review: DevelopedAsset?
@@ -27,35 +27,30 @@ struct CaptureView: View {
   var body: some View {
     GeometryReader { geo in
       ZStack {
-        Color.black.ignoresSafeArea()
-
-        // the frame the sensor sees
-        viewfinder(size: geo.size)
-
-        // pro-camera chrome over the frame
+        CameraTheme.bg.ignoresSafeArea()
         VStack(spacing: 0) {
-          topPlateLCD
-          Spacer()
-          bottomCluster
+          topBar
+          viewfinder(size: geo.size)
+          filmBar
+          modesRow
+          captureRow
         }
-        .padding(.top, geo.safeAreaInsets.top > 0 ? 0 : 8)
 
-        if shutterFlash {
-          Color.white.ignoresSafeArea().transition(.opacity)
-        }
+        closeButton
+        if shutterFlash { Color.white.ignoresSafeArea().transition(.opacity) }
       }
       .ignoresSafeArea(edges: .bottom)
     }
     .overlay { if isDeveloping { developingOverlay } }
     .overlay { if let review { reviewCard(review) } }
     .sheet(isPresented: $mountPickerShown) { mountPicker }
-    .alert("Saved to Photos", isPresented: $saveConfirmation) {
-      Button("OK", role: .cancel) {}
-    }
+    .sheet(isPresented: $libraryShown) { librarySheet }
+    .alert("Saved to Photos", isPresented: $saveConfirmation) { Button("OK", role: .cancel) {} }
     .alert("Could not complete that", isPresented: Binding(
       get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } }
     )) { Button("OK", role: .cancel) {} } message: { Text(errorMessage ?? "Try again.") }
     .onAppear {
+      camera.settings.autoRelight = true
       camera.load(stock: loadedStock)
       camera.configure()
     }
@@ -63,270 +58,254 @@ struct CaptureView: View {
     .statusBarHidden(true)
   }
 
-  // MARK: viewfinder + framelines
+  // MARK: top readout
 
-  private func viewfinder(size: CGSize) -> some View {
-    let gateW = size.width
-    let gateH = gateW * 2 / 3          // full-frame 3:2
-    return ZStack {
-      CameraPreviewView(
-        session: camera.session,
-        isAvailable: camera.isAvailable,
-        placeholder: BundleMedia.image("style-\(loadedStock.id)")
-      )
-      .frame(width: size.width, height: size.height)
-      .contentShape(Rectangle())
-      .onTapGesture { location in
-        camera.focus(at: CGPoint(x: location.x / size.width, y: location.y / size.height))
-      }
-
-      // 3:2 letterbox mattes
-      VStack {
-        Rectangle().fill(Theme.viewfinder.opacity(0.86))
-          .frame(height: max(0, (size.height - gateH) / 2))
-        Spacer()
-        Rectangle().fill(Theme.viewfinder.opacity(0.86))
-          .frame(height: max(0, (size.height - gateH) / 2))
-      }
-      .allowsHitTesting(false)
-
-      // gate + corner ticks + optional grid
-      framelines(gateW: gateW, gateH: gateH)
-        .allowsHitTesting(false)
+  private var topBar: some View {
+    HStack(alignment: .bottom, spacing: 4) {
+      flashReadout
+      readout("ISO", "\(Int(camera.settings.iso))", .iso)
+      readout("SHUTTER", fmtShutter(camera.settings.shutter), .shutter)
+      readout("APERTURE", "ƒ/\(fmtF(camera.settings.aperture))", .aperture)
+      readout("EV", fmtEV(camera.settings.exposureBiasEV), .ev)
+      Spacer(minLength: 0)
+      Button {} label: {
+        Image(systemName: "gearshape")
+          .font(.system(size: 15)).foregroundStyle(CameraTheme.dim)
+          .frame(width: 34, height: 34)
+          .overlay(Circle().stroke(CameraTheme.line, lineWidth: 1))
+      }.buttonStyle(.plain)
     }
+    .padding(.horizontal, 18).padding(.top, 14).padding(.bottom, 12)
+    .background(Color.black)
   }
 
-  private func framelines(gateW: CGFloat, gateH: CGFloat) -> some View {
-    ZStack {
-      Rectangle().stroke(Theme.viewfinderChrome.opacity(0.55), lineWidth: 1)
-        .frame(width: gateW - 2, height: gateH)
-      if showGrid {
-        GridOverlay().stroke(Theme.viewfinderChrome.opacity(0.16), lineWidth: 0.5)
-          .frame(width: gateW - 2, height: gateH)
+  private func readout(_ label: String, _ value: String, _ dial: ActiveDial) -> some View {
+    let on = activeDial == dial
+    return Button { activeDial = dial; tick() } label: {
+      VStack(spacing: 3) {
+        Text(label).font(.system(size: 9, weight: .semibold)).tracking(0.12 * 9).foregroundStyle(CameraTheme.faint)
+        Text(value).font(.system(size: 16, weight: .semibold, design: .monospaced))
+          .foregroundStyle(on ? CameraTheme.gold : CameraTheme.text)
       }
-      CornerTicks().stroke(Theme.viewfinderChrome, lineWidth: 1.5)
-        .frame(width: gateW - 2, height: gateH)
-      // center AF reticle
-      Rectangle().stroke(Theme.viewfinderChrome.opacity(0.8), lineWidth: 1)
-        .frame(width: 62, height: 62)
-    }
-  }
-
-  // MARK: top-plate LCD
-
-  private var topPlateLCD: some View {
-    VStack(spacing: 8) {
-      HStack(spacing: 14) {
-        lcdToken(camera.settings.mode.rawValue, dial: nil, wide: true)
-        lcdToken("ƒ/\(fmtF(camera.settings.aperture))", dial: .aperture)
-        lcdToken(fmtShutter(camera.settings.shutter), dial: .shutter)
-        lcdToken("ISO \(Int(camera.settings.iso))", dial: .iso)
-        lcdToken(fmtEV(camera.settings.exposureBiasEV), dial: .ev)
-        Spacer(minLength: 0)
-        VStack(alignment: .trailing, spacing: 3) {
-          Text(loadedStock.name.uppercased())
-            .font(.system(size: 10, weight: .bold, design: .monospaced))
-            .foregroundStyle(Theme.viewfinderChrome)
-          LinearGradient(colors: [Color(hex: loadedStock.g0), Color(hex: loadedStock.g1)],
-                         startPoint: .leading, endPoint: .trailing)
-            .frame(width: 54, height: 3).clipShape(Capsule())
-        }
-      }
-      // EV ruler
-      evRuler
-      if !camera.isAvailable {
-        Text("SIM · NO CAM")
-          .font(.system(size: 8, weight: .semibold, design: .monospaced))
-          .tracking(1)
-          .foregroundStyle(Theme.viewfinderChrome.opacity(0.7))
-          .frame(maxWidth: .infinity, alignment: .leading)
-      }
-    }
-    .padding(.horizontal, 16).padding(.vertical, 10)
-    .background(Theme.viewfinder.opacity(0.72))
-  }
-
-  private func lcdToken(_ text: String, dial: ActiveDial?, wide: Bool = false) -> some View {
-    let isActive = dial != nil && dial == activeDial
-    return Text(text)
-      .font(.system(size: wide ? 15 : 13, weight: .semibold, design: .monospaced))
-      .foregroundStyle(dialBeyondHardware(dial) ? Theme.viewfinderChrome.opacity(0.45) : Theme.viewfinderChrome)
-      .overlay(alignment: .bottom) {
-        if isActive { Rectangle().fill(Theme.accentLight).frame(height: 2).offset(y: 5) }
-      }
-      .overlay(alignment: .topTrailing) {
-        if dialBeyondHardware(dial) {
-          Text("LOOK").font(.system(size: 6, weight: .bold)).foregroundStyle(Theme.accentLight).offset(x: 4, y: -4)
-        }
-      }
-      .contentShape(Rectangle())
-      .onTapGesture { if let dial { activeDial = dial; tick() } }
-  }
-
-  private var evRuler: some View {
-    GeometryReader { g in
-      let mid = g.size.width / 2
-      let ev = camera.settings.captureEV
-      ZStack(alignment: .leading) {
-        ForEach(-9...9, id: \.self) { i in
-          Rectangle()
-            .fill(Theme.viewfinderChrome.opacity(i % 3 == 0 ? 0.5 : 0.25))
-            .frame(width: 1, height: i % 3 == 0 ? 8 : 5)
-            .offset(x: mid + CGFloat(i) * (mid / 9.5) - 0.5, y: i % 3 == 0 ? 0 : 1.5)
-        }
-        Circle().fill(Theme.recRed)
-          .frame(width: 6, height: 6)
-          .offset(x: mid + CGFloat(min(3, max(-3, ev)) / 3) * (mid * 0.95) - 3, y: 1)
-      }
-    }
-    .frame(height: 12)
-  }
-
-  // MARK: bottom command cluster
-
-  private var bottomCluster: some View {
-    VStack(spacing: 14) {
-      commandWheel
-      modeChips
-      HStack(alignment: .center) {
-        mountChip
-        Spacer()
-        shutterButton
-        Spacer()
-        reviewThumb
-      }
-      .padding(.horizontal, 26)
-      HStack(spacing: 10) {
-        focalPill
-        flashButton
-        gridButton
-      }
-    }
-    .padding(.top, 16)
-    .padding(.bottom, 30)
-    .background(
-      LinearGradient(colors: [.clear, Theme.viewfinder.opacity(0.92)],
-                     startPoint: .top, endPoint: .bottom)
-    )
-  }
-
-  private var commandWheel: some View {
-    VStack(spacing: 4) {
-      Text(activeDialLabel)
-        .font(.system(size: 22, weight: .bold, design: .monospaced))
-        .foregroundStyle(.white)
-        .shadow(color: .black.opacity(0.5), radius: 4)
-      CommandWheel(steps: activeStepCount, index: activeIndex) { newIndex in
-        setActiveDial(to: newIndex)
-      }
-      .frame(height: 46)
-      Text(activeDialCaption)
-        .font(.system(size: 9, weight: .semibold, design: .monospaced))
-        .tracking(1.5)
-        .foregroundStyle(Theme.viewfinderChrome)
-    }
-    .padding(.horizontal, 24)
-  }
-
-  private var modeChips: some View {
-    HStack(spacing: 8) {
-      ForEach(ExposureMode.allCases, id: \.self) { mode in
-        let on = camera.settings.mode == mode
-        Text(mode.rawValue)
-          .font(.system(size: 13, weight: .bold, design: .monospaced))
-          .foregroundStyle(on ? .white : Theme.viewfinderChrome)
-          .frame(width: 40, height: 30)
-          .background(on ? AnyShapeStyle(Theme.brandFill) : AnyShapeStyle(Color.white.opacity(0.06)))
-          .clipShape(Capsule())
-          .onTapGesture { camera.settings.mode = mode; camera.applyManualExposure(); tick() }
-      }
-    }
-  }
-
-  private var shutterButton: some View {
-    Button { shoot() } label: {
-      ZStack {
-        Circle().fill(Theme.surface).frame(width: 78, height: 78)
-        Circle().stroke(Theme.recRed, lineWidth: 3).frame(width: 66, height: 66)
-        Circle().fill(Theme.surface).frame(width: 58, height: 58)
-      }
-      .shadow(color: .black.opacity(0.4), radius: 8, y: 3)
-      .scaleEffect(camera.isCapturing ? 0.92 : 1)
-    }
-    .buttonStyle(.plain)
-    .disabled(camera.isCapturing || isDeveloping)
-    .accessibilityLabel("Shutter")
-  }
-
-  private var mountChip: some View {
-    Button { mountPickerShown = true } label: {
-      ZStack {
-        Circle().fill(Color.white.opacity(0.08)).frame(width: 52, height: 52)
-        Circle().stroke(LinearGradient(colors: [Color(hex: loadedStock.g0), Color(hex: loadedStock.g1)],
-                                       startPoint: .top, endPoint: .bottom), lineWidth: 3)
-          .frame(width: 46, height: 46)
-        Image(systemName: loadedStock.symbol).font(.system(size: 18)).foregroundStyle(.white)
-      }
-    }
-    .buttonStyle(.plain)
-    .accessibilityLabel("Choose camera: \(loadedStock.name)")
-  }
-
-  private var reviewThumb: some View {
-    Button { if let last = model.library.first { review = last } } label: {
-      ZStack {
-        RoundedRectangle(cornerRadius: 8).stroke(Theme.viewfinderChrome, lineWidth: 1).frame(width: 48, height: 48)
-        if let last = model.library.first {
-          Image(uiImage: last.image).resizable().scaledToFill().frame(width: 46, height: 46)
-            .clipShape(RoundedRectangle(cornerRadius: 7))
-        } else {
-          Image(systemName: "photo.on.rectangle").font(.system(size: 16)).foregroundStyle(Theme.viewfinderChrome)
-        }
-      }
-    }
-    .buttonStyle(.plain)
-    .accessibilityLabel("Review last frame")
-  }
-
-  private var focalPill: some View {
-    let focals: [Double] = [24, 35, 50, 85]
-    return Button {
-      let i = focals.firstIndex(of: camera.settings.focalLength) ?? 1
-      camera.settings.focalLength = focals[(i + 1) % focals.count]; tick()
-    } label: {
-      Text("\(Int(camera.settings.focalLength))mm")
-        .font(.system(size: 12, weight: .semibold, design: .monospaced))
-        .foregroundStyle(.white).padding(.horizontal, 12).frame(height: 30)
-        .background(Color.white.opacity(0.08)).clipShape(Capsule())
+      .frame(minWidth: 46)
     }.buttonStyle(.plain)
   }
 
-  private var flashButton: some View {
+  private var flashReadout: some View {
     Button {
       camera.settings.flashMode = camera.settings.flashMode == .off ? .auto
         : (camera.settings.flashMode == .auto ? .on : .off)
       tick()
     } label: {
-      HStack(spacing: 4) {
-        Image(systemName: camera.settings.flashMode == .off ? "bolt.slash" : "bolt.fill")
-        Text(flashLabel).font(.system(size: 11, weight: .semibold, design: .monospaced))
+      VStack(spacing: 3) {
+        Image(systemName: camera.settings.flashMode == .off ? "bolt.slash.fill" : "bolt.fill")
+          .font(.system(size: 15))
+          .foregroundStyle(camera.settings.flashMode == .off ? CameraTheme.text : CameraTheme.gold)
+        Text(flashLabel).font(.system(size: 9, weight: .semibold)).tracking(1).foregroundStyle(CameraTheme.faint)
+      }.frame(minWidth: 44)
+    }.buttonStyle(.plain)
+  }
+
+  // MARK: viewfinder
+
+  private func viewfinder(size: CGSize) -> some View {
+    ZStack {
+      CameraPreviewView(
+        session: camera.session,
+        isAvailable: camera.isAvailable,
+        placeholder: BundleMedia.image("style-\(loadedStock.id)")
+      )
+      .contentShape(Rectangle())
+      .onTapGesture { location in
+        camera.focus(at: CGPoint(x: location.x / size.width, y: max(0, location.y) / (size.height * 0.62)))
       }
-      .foregroundStyle(camera.settings.flashMode == .off ? Theme.viewfinderChrome : Theme.accentLight)
-      .padding(.horizontal, 12).frame(height: 30)
-      .background(Color.white.opacity(0.08)).clipShape(Capsule())
-    }.buttonStyle(.plain)
+
+      if showGrid {
+        GridOverlay().stroke(Color.white.opacity(0.28), lineWidth: 0.5).allowsHitTesting(false)
+      }
+      reticle.allowsHitTesting(false)
+
+      // right control stack
+      VStack(spacing: 12) {
+        zoomPill
+        afmfPill
+      }
+      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
+      .padding(.trailing, 14)
+
+      // command wheel — bottom-aligned; empty area above stays tappable (focus)
+      VStack(spacing: 4) {
+        Text(activeDialLabel)
+          .font(.system(size: 22, weight: .bold, design: .monospaced))
+          .foregroundStyle(.white).shadow(color: .black.opacity(0.55), radius: 5)
+        CommandWheel(steps: activeStepCount, index: activeIndex) { setActiveDial(to: $0) }
+          .frame(height: 30).padding(.horizontal, 40)
+      }
+      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+      .padding(.bottom, 16)
+    }
+    .frame(height: size.height * 0.62)
+    .clipped()
   }
 
-  private var gridButton: some View {
-    Button { showGrid.toggle(); tick() } label: {
-      Image(systemName: "grid")
-        .foregroundStyle(showGrid ? Theme.accentLight : Theme.viewfinderChrome)
-        .frame(width: 34, height: 30)
-        .background(Color.white.opacity(0.08)).clipShape(Capsule())
-    }.buttonStyle(.plain)
+  private var reticle: some View {
+    ZStack {
+      CornerTicks().stroke(.white, lineWidth: 2).frame(width: 108, height: 108)
+      Image(systemName: "plus").font(.system(size: 16, weight: .regular)).foregroundStyle(.white)
+    }
   }
 
-  // MARK: mount picker
+  private var zoomPill: some View {
+    VStack(spacing: 2) {
+      ForEach([1.0, 2.0, 5.0], id: \.self) { z in
+        let on = abs(camera.settings.zoom - z) < 0.01
+        Button { camera.applyZoom(z); tick() } label: {
+          Text(z == 1 ? "1×" : "\(Int(z))")
+            .font(.system(size: 13, weight: .semibold, design: .monospaced))
+            .foregroundStyle(on ? CameraTheme.gold : CameraTheme.dim)
+            .frame(width: 40, height: 32)
+        }.buttonStyle(.plain)
+      }
+    }
+    .background(Color.black.opacity(0.55)).clipShape(RoundedRectangle(cornerRadius: 20))
+    .overlay(RoundedRectangle(cornerRadius: 20).stroke(.white.opacity(0.12), lineWidth: 1))
+  }
+
+  private var afmfPill: some View {
+    VStack(spacing: 2) {
+      ForEach([false, true], id: \.self) { manual in
+        let on = camera.settings.manualFocus == manual
+        Button { camera.settings.manualFocus = manual; tick() } label: {
+          Text(manual ? "MF" : "AF")
+            .font(.system(size: 13, weight: .semibold, design: .monospaced))
+            .foregroundStyle(on ? CameraTheme.gold : CameraTheme.dim)
+            .frame(width: 40, height: 32)
+        }.buttonStyle(.plain)
+      }
+    }
+    .background(Color.black.opacity(0.55)).clipShape(RoundedRectangle(cornerRadius: 20))
+    .overlay(RoundedRectangle(cornerRadius: 20).stroke(.white.opacity(0.12), lineWidth: 1))
+  }
+
+  // MARK: film canister selector
+
+  private var filmBar: some View {
+    Button { mountPickerShown = true } label: {
+      HStack(spacing: 10) {
+        canisterIcon
+        Text(loadedStock.name).font(.system(size: 16, weight: .semibold)).foregroundStyle(CameraTheme.text)
+        Image(systemName: "chevron.down").font(.system(size: 11, weight: .semibold)).foregroundStyle(CameraTheme.dim)
+        Spacer()
+        Button { showGrid.toggle(); tick() } label: {
+          Image(systemName: "grid")
+            .font(.system(size: 15))
+            .foregroundStyle(showGrid ? CameraTheme.gold : CameraTheme.dim)
+            .frame(width: 34, height: 34)
+            .overlay(RoundedRectangle(cornerRadius: 9).stroke(showGrid ? CameraTheme.gold : CameraTheme.line, lineWidth: 1))
+        }.buttonStyle(.plain)
+      }
+      .padding(.horizontal, 12).padding(.vertical, 10)
+      .background(CameraTheme.panel)
+      .clipShape(RoundedRectangle(cornerRadius: 16))
+      .overlay(RoundedRectangle(cornerRadius: 16).stroke(CameraTheme.line, lineWidth: 1))
+    }
+    .buttonStyle(.plain)
+    .padding(.horizontal, 14).padding(.top, 12)
+  }
+
+  @ViewBuilder
+  private var canisterIcon: some View {
+    if let img = BundleMedia.image("film-canister") {
+      Image(uiImage: img).resizable().scaledToFit().frame(width: 30, height: 38)
+    } else {
+      Image(systemName: "film").font(.system(size: 20)).foregroundStyle(CameraTheme.gold).frame(width: 30, height: 38)
+    }
+  }
+
+  // MARK: modes
+
+  private var modesRow: some View {
+    HStack(spacing: 0) {
+      ForEach(CaptureMode.allCases, id: \.self) { mode in
+        let on = camera.settings.captureMode == mode
+        Button { selectMode(mode) } label: {
+          VStack(spacing: 4) {
+            Image(systemName: mode.systemImage).font(.system(size: 20))
+            Text(mode.rawValue).font(.system(size: 12, weight: on ? .semibold : .regular))
+            Rectangle().fill(on ? CameraTheme.gold : .clear).frame(width: 18, height: 2).clipShape(Capsule())
+          }
+          .foregroundStyle(on ? CameraTheme.gold : CameraTheme.dim)
+          .frame(maxWidth: .infinity)
+        }.buttonStyle(.plain)
+      }
+    }
+    .padding(.horizontal, 12).padding(.top, 16).padding(.bottom, 4)
+  }
+
+  private func selectMode(_ mode: CaptureMode) {
+    if mode == .video { model.selectedTab = .tape; return }   // the camcorder owns video
+    camera.settings.captureMode = mode
+    tick()
+  }
+
+  // MARK: capture row
+
+  private var captureRow: some View {
+    HStack {
+      Button { libraryShown = true } label: {
+        Group {
+          if let last = model.library.first {
+            Image(uiImage: last.image).resizable().scaledToFill()
+          } else {
+            LinearGradient(colors: [Color(hex: loadedStock.g0), Color(hex: loadedStock.g1)],
+                           startPoint: .topLeading, endPoint: .bottomTrailing)
+          }
+        }
+        .frame(width: 56, height: 56).clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(.white.opacity(0.7), lineWidth: 2))
+      }
+      .buttonStyle(.plain).accessibilityLabel("Library")
+
+      Spacer()
+      shutterButton
+      Spacer()
+
+      Button { camera.flip() } label: {
+        Image(systemName: "arrow.triangle.2.circlepath")
+          .font(.system(size: 20)).foregroundStyle(CameraTheme.dim)
+          .frame(width: 52, height: 52).overlay(Circle().stroke(CameraTheme.line, lineWidth: 1))
+      }.buttonStyle(.plain).accessibilityLabel("Flip camera")
+    }
+    .padding(.horizontal, 30).padding(.top, 6).padding(.bottom, 22)
+  }
+
+  private var shutterButton: some View {
+    Button { shoot() } label: {
+      ZStack {
+        Circle().fill(.white).frame(width: 74, height: 74)
+        Circle().stroke(.black, lineWidth: 4).frame(width: 74, height: 74)
+        Circle().stroke(.white.opacity(0.85), lineWidth: 2).frame(width: 82, height: 82)
+      }
+      .scaleEffect(camera.isCapturing ? 0.92 : 1)
+    }
+    .buttonStyle(.plain).disabled(camera.isCapturing || isDeveloping)
+    .accessibilityLabel("Shutter")
+  }
+
+  private var closeButton: some View {
+    VStack {
+      HStack {
+        Button { model.selectedTab = .cameras } label: {
+          Image(systemName: "xmark").font(.system(size: 15, weight: .semibold)).foregroundStyle(.white)
+            .frame(width: 34, height: 34).background(Color.black.opacity(0.4)).clipShape(Circle())
+        }.buttonStyle(.plain)
+        Spacer()
+      }.padding(.leading, 14).padding(.top, 6)
+      Spacer()
+    }
+  }
+
+  // MARK: pickers + review
 
   private var mountPicker: some View {
     NavigationStack {
@@ -342,29 +321,50 @@ struct CaptureView: View {
                   .fill(LinearGradient(colors: [Color(hex: stock.g0), Color(hex: stock.g1)],
                                        startPoint: .topLeading, endPoint: .bottomTrailing))
                   .frame(height: 66)
-                  .overlay(RoundedRectangle(cornerRadius: 12).stroke(
-                    stock.id == loadedStock.id ? Theme.accent : .clear, lineWidth: 2.5))
-                Text(stock.name).font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.ink).lineLimit(1)
-                Text(stock.exif).font(.system(size: 8, weight: .medium, design: .monospaced)).foregroundStyle(Theme.fog).lineLimit(1)
+                  .overlay(RoundedRectangle(cornerRadius: 12).stroke(stock.id == loadedStock.id ? CameraTheme.gold : .clear, lineWidth: 2.5))
+                Text(stock.name).font(.system(size: 12, weight: .semibold)).foregroundStyle(CameraTheme.text).lineLimit(1)
+                Text(stock.exif).font(.system(size: 8, weight: .medium, design: .monospaced)).foregroundStyle(CameraTheme.dim).lineLimit(1)
               }
             }.buttonStyle(.plain)
           }
         }.padding(16)
       }
-      .background(Theme.paper)
-      .navigationTitle("Mount a camera")
-      .navigationBarTitleDisplayMode(.inline)
+      .background(CameraTheme.bg)
+      .navigationTitle("Load a film").navigationBarTitleDisplayMode(.inline)
+      .toolbarColorScheme(.dark, for: .navigationBar)
     }
     .presentationDetents([.medium, .large])
   }
 
-  // MARK: review
+  private var librarySheet: some View {
+    NavigationStack {
+      ScrollView {
+        if model.library.isEmpty {
+          Text("Photographs you take appear here.")
+            .font(.system(size: 14)).foregroundStyle(CameraTheme.dim).padding(40)
+        } else {
+          LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 8)], spacing: 8) {
+            ForEach(model.library) { asset in
+              Button { libraryShown = false; review = asset } label: {
+                Image(uiImage: asset.image).resizable().scaledToFill()
+                  .frame(height: 140).clipped().clipShape(RoundedRectangle(cornerRadius: 10))
+              }.buttonStyle(.plain)
+            }
+          }.padding(12)
+        }
+      }
+      .background(CameraTheme.bg)
+      .navigationTitle("Roll").navigationBarTitleDisplayMode(.inline)
+      .toolbarColorScheme(.dark, for: .navigationBar)
+    }
+    .presentationDetents([.medium, .large])
+  }
 
   private var developingOverlay: some View {
     ZStack {
-      Color.black.opacity(0.55).ignoresSafeArea()
+      Color.black.opacity(0.6).ignoresSafeArea()
       VStack(spacing: 12) {
-        ProgressView().tint(.white)
+        ProgressView().tint(CameraTheme.gold)
         Text("DEVELOPING").font(.system(size: 11, weight: .bold, design: .monospaced)).tracking(2).foregroundStyle(.white)
       }
     }
@@ -375,42 +375,34 @@ struct CaptureView: View {
       Color.black.ignoresSafeArea()
       VStack(spacing: 16) {
         HStack {
-          Text("REVIEW").font(.system(size: 11, weight: .bold, design: .monospaced)).tracking(2).foregroundStyle(Theme.viewfinderChrome)
+          Text("REVIEW").font(.system(size: 11, weight: .bold, design: .monospaced)).tracking(2).foregroundStyle(CameraTheme.dim)
           Spacer()
           Button { review = nil } label: { Image(systemName: "xmark").foregroundStyle(.white) }
         }.padding(.horizontal, 20)
 
         Image(uiImage: asset.image).resizable().scaledToFit()
-          .clipShape(RoundedRectangle(cornerRadius: 12))
-          .padding(.horizontal, 16)
+          .clipShape(RoundedRectangle(cornerRadius: 12)).padding(.horizontal, 16)
 
         HStack {
           Text(asset.stock.name.uppercased())
           Spacer()
-          Text("ƒ/\(fmtF(camera.settings.aperture)) · \(fmtShutter(camera.settings.shutter)) · ISO \(Int(camera.settings.iso))")
+          Text("\(camera.settings.captureMode.rawValue.uppercased()) · ƒ/\(fmtF(camera.settings.aperture)) · ISO \(Int(camera.settings.iso))")
         }
-        .font(.system(size: 10, weight: .semibold, design: .monospaced))
-        .foregroundStyle(Theme.viewfinderChrome).padding(.horizontal, 20)
+        .font(.system(size: 10, weight: .semibold, design: .monospaced)).foregroundStyle(CameraTheme.dim).padding(.horizontal, 20)
 
         if !asset.decisions.isEmpty {
           VStack(alignment: .leading, spacing: 6) {
-            ForEach(asset.decisions, id: \.self) { d in
-              Text("· \(d)").font(.system(size: 12)).foregroundStyle(.white.opacity(0.85))
-            }
+            ForEach(asset.decisions, id: \.self) { Text("· \($0)").font(.system(size: 12)).foregroundStyle(.white.opacity(0.85)) }
           }.frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 20)
         }
 
         Spacer()
         HStack(spacing: 12) {
-          Button("Retake") { review = nil }
-            .buttonStyle(InstrumentButtonStyle(kind: .secondary))
-          Button("Save to Photos") { save(asset) }
-            .buttonStyle(InstrumentButtonStyle(kind: .primary))
+          Button("Retake") { review = nil }.buttonStyle(InstrumentButtonStyle(kind: .secondary))
+          Button("Save to Photos") { save(asset) }.buttonStyle(InstrumentButtonStyle(kind: .primary))
         }.padding(.horizontal, 20).padding(.bottom, 30)
-      }
-      .padding(.top, 60)
-    }
-    .transition(.opacity)
+      }.padding(.top, 60)
+    }.transition(.opacity)
   }
 
   // MARK: actions
@@ -421,10 +413,7 @@ struct CaptureView: View {
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.09) {
       withAnimation(.easeIn(duration: 0.12)) { shutterFlash = false }
     }
-    let plate = BundleMedia.image("style-\(loadedStock.id)")
-    camera.capture(fallback: plate) { image in
-      develop(image)
-    }
+    camera.capture(fallback: BundleMedia.image("style-\(loadedStock.id)")) { develop($0) }
   }
 
   private func develop(_ image: UIImage) {
@@ -453,17 +442,14 @@ struct CaptureView: View {
   }
 
   private func save(_ asset: DevelopedAsset) {
-    let stock = asset.stock
-    let capture = camera.settings
-    let source = asset.source
+    let stock = asset.stock, capture = camera.settings, source = asset.source
     DispatchQueue.global(qos: .userInitiated).async {
       let full = try? FilmEngine.shared.develop(source, with: stock.recipe, maxPixelSize: 8192, seed: 43, capture: capture).image
       DispatchQueue.main.async {
         Task {
           do {
             try await PhotoLibraryWriter.save(image: full ?? asset.image)
-            saveConfirmation = true
-            review = nil
+            saveConfirmation = true; review = nil
             UINotificationFeedbackGenerator().notificationOccurred(.success)
           } catch { errorMessage = error.localizedDescription }
         }
@@ -480,8 +466,7 @@ struct CaptureView: View {
     case .iso: camera.settings.iso = Self.isos[clamp(index, Self.isos)]
     case .ev: camera.settings.exposureBiasEV = Self.evs[clamp(index, Self.evs)]
     }
-    camera.applyManualExposure()
-    tick()
+    camera.applyManualExposure(); tick()
   }
 
   private var activeIndex: Int {
@@ -508,33 +493,13 @@ struct CaptureView: View {
     case .ev: return fmtEV(camera.settings.exposureBiasEV)
     }
   }
-  private var activeDialCaption: String {
-    switch activeDial {
-    case .aperture: return "APERTURE"
-    case .shutter: return "SHUTTER"
-    case .iso: return "ISO"
-    case .ev: return "EXPOSURE COMP"
-    }
-  }
-
-  private func dialBeyondHardware(_ dial: ActiveDial?) -> Bool {
-    guard camera.isAvailable, let dial else { return false }
-    switch dial {
-    case .iso: return camera.settings.iso < camera.limits.minISO || camera.settings.iso > camera.limits.maxISO
-    case .shutter: return camera.settings.shutter < camera.limits.minShutter || camera.settings.shutter > camera.limits.maxShutter
-    case .aperture: return true   // the iPhone lens aperture is fixed — always a look control
-    case .ev: return false
-    }
-  }
 
   private var flashLabel: String {
     switch camera.settings.flashMode { case .off: return "OFF"; case .auto: return "AUTO"; case .on: return "ON" }
   }
-
   private func tick() { UISelectionFeedbackGenerator().selectionChanged() }
 
-  // value tables (1/3-stop)
-  static let apertures: [Double] = [1.2,1.4,1.6,1.8,2,2.2,2.5,2.8,3.2,3.5,4,4.5,5,5.6,6.3,7.1,8,9,10,11,13,14,16,18,20,22]
+  static let apertures: [Double] = [1.2,1.4,1.6,1.8,2,2.2,2.5,2.8,3.2,3.5,4,4.5,5,5.6,6.3,7.1,8,9,11,13,16,22]
   static let shutters: [Double] = [30,15,8,4,2,1,0.5,0.25,1.0/8,1.0/15,1.0/30,1.0/60,1.0/125,1.0/250,1.0/500,1.0/1000,1.0/2000,1.0/4000,1.0/8000]
   static let isos: [Double] = [25,50,64,100,125,160,200,250,320,400,640,800,1250,1600,3200,6400,12800]
   static let evs: [Double] = stride(from: -3.0, through: 3.0, by: 1.0/3).map { ($0 * 100).rounded() / 100 }
@@ -548,28 +513,26 @@ struct CaptureView: View {
   private func fmtEV(_ e: Double) -> String { abs(e) < 0.05 ? "±0.0" : String(format: "%+.1f", e) }
 }
 
-/// A horizontal command wheel: drag to scrub the active parameter in detented
-/// 1/3-stop steps, with a fixed center index and tick marks that slide beneath.
+/// A horizontal command wheel: drag to scrub the active parameter in 1/3-stop
+/// detents, with a fixed gold center index and ticks that slide beneath.
 private struct CommandWheel: View {
   let steps: Int
   let index: Int
   let onChange: (Int) -> Void
   @State private var dragBase: Int?
-
-  private let spacing: CGFloat = 14
+  private let spacing: CGFloat = 13
 
   var body: some View {
     ZStack {
-      RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.06))
       HStack(spacing: spacing - 1) {
         ForEach(0..<40, id: \.self) { i in
-          Rectangle().fill(Theme.viewfinderChrome.opacity(i % 5 == 0 ? 0.5 : 0.22))
-            .frame(width: 1, height: i % 5 == 0 ? 22 : 14)
+          Rectangle().fill(Color.white.opacity(i % 5 == 0 ? 0.5 : 0.22))
+            .frame(width: 1, height: i % 5 == 0 ? 20 : 12)
         }
       }
       .offset(x: -CGFloat(index) * spacing)
-      .mask(RoundedRectangle(cornerRadius: 12))
-      Rectangle().fill(Theme.accentLight).frame(width: 2, height: 30)   // fixed center
+      .mask(Rectangle())
+      Rectangle().fill(CameraTheme.gold).frame(width: 2, height: 26)
     }
     .contentShape(Rectangle())
     .gesture(
@@ -586,7 +549,7 @@ private struct CommandWheel: View {
 
 private struct CornerTicks: Shape {
   func path(in rect: CGRect) -> Path {
-    var p = Path(); let t: CGFloat = 14
+    var p = Path(); let t: CGFloat = 18
     for corner in [rect.topLeft, rect.topRight, rect.bottomLeft, rect.bottomRight] {
       let dx: CGFloat = corner.x == rect.minX ? t : -t
       let dy: CGFloat = corner.y == rect.minY ? t : -t

@@ -83,6 +83,20 @@ final class FilmEngineCaptureParityTests: XCTestCase {
     XCTAssertEqual(mae(a, b), 0, "the same seed + settings must render identically")
   }
 
+  func testAutoRelightChangesFrameAndStaysDeterministic() throws {
+    let img = try source()
+    let stock = Stock.find("kodachrome")
+    var s = CaptureSettings.home(for: stock)
+    s.autoRelight = true
+    s.captureMode = .night
+    XCTAssertTrue(s.isNeutral, "dials are at home; relight is a separate opt-in")
+    let pure = try FilmEngine.shared.develop(img, with: stock.recipe, maxPixelSize: 560, seed: 1).image
+    let relit = try FilmEngine.shared.develop(img, with: stock.recipe, maxPixelSize: 560, seed: 1, capture: s).image
+    XCTAssertGreaterThan(mae(pure, relit), 1.0, "auto relight should change the frame")
+    let relit2 = try FilmEngine.shared.develop(img, with: stock.recipe, maxPixelSize: 560, seed: 1, capture: s).image
+    XCTAssertEqual(mae(relit, relit2), 0, "relight must be deterministic")
+  }
+
   func testExifHomeParsesEveryStock() {
     for stock in Stock.all {
       let home = CaptureSettings.home(for: stock)
