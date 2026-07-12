@@ -79,7 +79,14 @@ jobs:
           xcrun simctl install "$DEVICE_ID" "$APP_PATH"
           for tab in cameras capture library print tape; do
             xcrun simctl terminate "$DEVICE_ID" app.lensmood.ios || true
-            SIMCTL_CHILD_LENSMOOD_TAB=$tab xcrun simctl launch "$DEVICE_ID" app.lensmood.ios
+            # seed a demo contact sheet for the library-backed surfaces so their
+            # populated state is captured (the Simulator has no camera/roll)
+            case $tab in
+              capture|library|print) DEMO=1 ;;
+              *) DEMO= ;;
+            esac
+            SIMCTL_CHILD_LENSMOOD_TAB=$tab SIMCTL_CHILD_LENSMOOD_DEMO=$DEMO \
+              xcrun simctl launch "$DEVICE_ID" app.lensmood.ios
             sleep 3
             xcrun simctl io "$DEVICE_ID" screenshot ui-artifacts/$tab.png
           done
