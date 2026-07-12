@@ -34,6 +34,8 @@ final class FilmEngine {
   private let referenceCornerSoftnessKernel: CIColorKernel?
   private let referenceVignetteKernel: CIColorKernel?
   private let referenceGrainKernel: CIColorKernel?
+  // internal so the opt-in capture-look extension (a separate file) can use it
+  let captureNoiseKernel: CIColorKernel?
 
   init() {
     let sRGB = CGColorSpace(name: CGColorSpace.sRGB)!
@@ -122,6 +124,22 @@ final class FilmEngine {
         return vec4(clamp(result, 0.0, 1.0), pixel.a);
       }
       """)
+    // ISO sensor noise for the in-app camera — shadow-weighted, deterministic
+    captureNoiseKernel = CIColorKernel(source: """
+      kernel vec4 lensMoodSensorNoise(__sample pixel, float amount, float seed, float sizeMul, float chroma, float mono) {
+        vec2 cell = floor(destCoord() / max(sizeMul, 0.5));
+        float lum = dot(pixel.rgb, vec3(0.299, 0.587, 0.114));
+        float shadowWeight = 0.35 + 0.65 * (1.0 - lum);
+        float r = fract(sin(dot(cell, vec2(12.9898, 78.233)) + seed) * 43758.5453);
+        vec3 result = pixel.rgb + vec3((r - 0.5) * amount * shadowWeight);
+        if (chroma > 0.5 && mono < 0.5) {
+          float rc = fract(sin(dot(cell, vec2(39.3468, 11.135)) + seed) * 24634.6345);
+          float bc = fract(sin(dot(cell, vec2(93.9898, 67.345)) + seed) * 13221.1234);
+          result += vec3((rc - 0.5), 0.0, (bc - 0.5)) * amount * 0.5;
+        }
+        return vec4(clamp(result, 0.0, 1.0), pixel.a);
+      }
+      """)
   }
 
   func develop(
@@ -129,7 +147,8 @@ final class FilmEngine {
     with recipe: CameraRecipe,
     maxPixelSize: CGFloat? = nil,
     seed: Double = 1,
-    analyzeSubjects: Bool = true
+    analyzeSubjects: Bool = true,
+    capture: CaptureSettings? = nil
   ) throws -> FilmRenderResult {
     guard var image = CIImage(
       image: source,
@@ -138,10 +157,12 @@ final class FilmEngine {
       throw FilmEngineError.unreadableImage
     }
 
+    // opt-in: only when a wide aperture actually asks for a subject cut-out
+    let wantsMask = capture?.wantsDepthOfField == true
     image = image.orientedForDisplay
     let scene = try analyzer.analyze(image)
     let subject = analyzeSubjects
-      ? ((try? VisionService.analyze(source)) ?? SubjectAnalysis(faces: [], personMask: nil))
+      ? ((try? VisionService.analyze(source, includePersonMask: wantsMask)) ?? SubjectAnalysis(faces: [], personMask: nil))
       : SubjectAnalysis(faces: [], personMask: nil)
 
     if let maxPixelSize {
@@ -150,6 +171,13 @@ final class FilmEngine {
 
     if let profile = recipe.referenceSpatial {
       image = applyReferenceGeometry(image, profile: profile)
+    }
+
+    // Stage 1 of the in-app camera: re-light the color-core input so the
+    // exposure and white-balance dials change how the film renders. Opt-in
+    // and no-op at the loaded camera's home, so the default path is unchanged.
+    if let capture, !capture.isNeutral {
+      image = applyCaptureLight(image, capture: capture, recipe: recipe)
     }
 
     let adaptiveEV = adaptiveExposure(for: scene, recipe: recipe)
@@ -200,6 +228,13 @@ final class FilmEngine {
     } else {
       image = applyVignette(image, amount: recipe.vignette)
       image = applyGrain(image, amount: recipe.grain, size: recipe.grainSize, seed: seed)
+    }
+    // Stage 2 of the in-app camera: the physical look of the exposure triangle
+    // (depth of field, motion, sensor grain, flash). Before mono-enforce and
+    // the instant frame, so those invariants are re-applied on top.
+    if let capture, !capture.isNeutral {
+      image = applyCaptureLook(image, capture: capture, scene: scene,
+                               subject: subject, recipe: recipe, seed: seed)
     }
     if recipe.monochrome {
       // Enforce the invariant after every spatial and lighting pass.
@@ -356,7 +391,7 @@ final class FilmEngine {
     return protected
   }
 
-  private func applyBloom(_ image: CIImage, amount: Double) -> CIImage {
+  func applyBloom(_ image: CIImage, amount: Double) -> CIImage {
     guard amount > 0.001 else { return image }
     return image.applyingFilter("CIBloom", parameters: [
       kCIInputRadiusKey: 3 + amount * 18,
