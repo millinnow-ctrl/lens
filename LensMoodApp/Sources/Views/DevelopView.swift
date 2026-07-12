@@ -11,7 +11,12 @@ private enum PreviewMode: String, CaseIterable, Identifiable {
 }
 
 struct DevelopView: View {
-  let stock: Stock
+  init(stock: Stock) {
+    _currentStock = State(initialValue: stock)
+  }
+
+  /// the loaded camera — switchable in place via the StyleRail below the stage
+  @State private var currentStock: Stock
 
   @EnvironmentObject private var model: AppModel
   @State private var pickedItem: PhotosPickerItem?
@@ -32,6 +37,7 @@ struct DevelopView: View {
       VStack(alignment: .leading, spacing: 20) {
         cameraIdentity
         stage
+        styleRail
         previewControl
 
         if isDeveloping {
@@ -48,7 +54,7 @@ struct DevelopView: View {
       .padding(Theme.pagePadding)
     }
     .background(Theme.paper)
-    .navigationTitle(stock.name)
+    .navigationTitle(currentStock.name)
     .navigationBarTitleDisplayMode(.inline)
     .onChange(of: pickedItem) { item in
       load(item)
@@ -71,13 +77,67 @@ struct DevelopView: View {
     }
   }
 
+  /// StyleRail — the horizontal camera switcher from the reference app:
+  /// gradient swatch chips, ocean ring on the active camera. Selecting
+  /// re-develops the loaded photograph in place.
+  private var styleRail: some View {
+    ScrollViewReader { proxy in
+      ScrollView(.horizontal, showsIndicators: false) {
+        HStack(spacing: 8) {
+          ForEach(Stock.all) { item in
+            railChip(item)
+          }
+        }
+        .padding(.vertical, 2)
+      }
+      .onAppear { proxy.scrollTo(currentStock.id, anchor: .center) }
+    }
+    .accessibilityLabel("Camera switcher")
+  }
+
+  private func railChip(_ item: Stock) -> some View {
+    let active = item.id == currentStock.id
+    return Button {
+      guard item.id != currentStock.id else { return }
+      currentStock = item
+      UISelectionFeedbackGenerator().selectionChanged()
+      if let sourceImage {
+        develop(sourceImage)
+      }
+    } label: {
+      VStack(spacing: 5) {
+        RoundedRectangle(cornerRadius: 12, style: .continuous)
+          .fill(
+            LinearGradient(
+              colors: [Color(hex: item.g0), Color(hex: item.g1)],
+              startPoint: .topLeading, endPoint: .bottomTrailing
+            )
+          )
+          .frame(width: 40, height: 40)
+          .overlay {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+              .stroke(active ? Theme.accent : Theme.hairline, lineWidth: active ? 2.5 : 1)
+          }
+        Text(item.name)
+          .font(.system(size: 10, weight: active ? .bold : .medium))
+          .foregroundStyle(active ? Theme.ink : Theme.fog)
+          .lineLimit(1)
+      }
+      .frame(width: 62)
+    }
+    .buttonStyle(.plain)
+    .id(item.id)
+    .accessibilityLabel("Develop with \(item.name)")
+    .accessibilityAddTraits(active ? .isSelected : [])
+  }
+
   private var cameraIdentity: some View {
     VStack(alignment: .leading, spacing: 5) {
-      TechnicalLabel(text: stock.exif)
-      Text(stock.tagline)
+      TechnicalLabel(text: currentStock.exif)
+      Text(currentStock.tagline)
         .font(.system(size: 23, weight: .heavy))
         .foregroundStyle(Theme.ink)
-      Text("Best for \(stock.bestFor.lowercased()).")
+      Text("Best for \(currentStock.bestFor.lowercased()).")
         .font(.system(size: 14))
         .foregroundStyle(Theme.inkSoft)
     }
@@ -93,11 +153,11 @@ struct DevelopView: View {
         preview(source: sourceImage, developed: developedImage)
       } else {
         VStack(spacing: 12) {
-          Image(systemName: stock.symbol)
+          Image(systemName: currentStock.symbol)
             .font(.system(size: 34, weight: .light))
           Text("Load one photograph")
             .font(.system(size: 17, weight: .semibold))
-          Text("\(stock.name) will read the light and subject before it develops the frame.")
+          Text("\(currentStock.name) will read the light and subject before it develops the frame.")
             .font(.system(size: 13))
             .multilineTextAlignment(.center)
             .foregroundStyle(Theme.viewfinderChrome.opacity(0.78))
@@ -108,9 +168,9 @@ struct DevelopView: View {
     }
     .overlay(alignment: .top) {
       HStack {
-        Text(stock.name.uppercased())
+        Text(currentStock.name.uppercased())
         Spacer()
-        Text(isDeveloping ? "DEVELOPING" : stock.exif)
+        Text(isDeveloping ? "DEVELOPING" : currentStock.exif)
       }
       .font(.system(size: 9, weight: .semibold, design: .monospaced))
       .tracking(0.8)
@@ -274,8 +334,8 @@ struct DevelopView: View {
     isDeveloping = true
     developedImage = nil
     decisions = []
-    let recipe = stock.recipe
-    let seed = Double(stock.id.unicodeScalars.reduce(17) { ($0 * 31 + Int($1.value)) % 100_000 })
+    let recipe = currentStock.recipe
+    let seed = Double(currentStock.id.unicodeScalars.reduce(17) { ($0 * 31 + Int($1.value)) % 100_000 })
 
     DispatchQueue.global(qos: .userInitiated).async {
       let result = Result {
@@ -297,7 +357,7 @@ struct DevelopView: View {
           let asset = DevelopedAsset(
             image: render.image,
             source: image,
-            stock: stock,
+            stock: currentStock,
             decisions: render.decisions
           )
           model.add(asset)
@@ -312,8 +372,8 @@ struct DevelopView: View {
   private func save() {
     guard let sourceImage else { return }
     isSaving = true
-    let recipe = stock.recipe
-    let seed = Double(stock.id.unicodeScalars.reduce(17) { ($0 * 31 + Int($1.value)) % 100_000 })
+    let recipe = currentStock.recipe
+    let seed = Double(currentStock.id.unicodeScalars.reduce(17) { ($0 * 31 + Int($1.value)) % 100_000 })
     DispatchQueue.global(qos: .userInitiated).async {
       let result = Result {
         try FilmEngine.shared.develop(sourceImage, with: recipe, maxPixelSize: 8192, seed: seed).image
