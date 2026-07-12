@@ -108,6 +108,13 @@ struct HomeView: View {
         tapePoster
           .aspectRatio(16.0 / 9.0, contentMode: .fit)
 
+        // reference videoScrim: keeps the title legible over the cover's own
+        // baked-in tape timestamp
+        LinearGradient(
+          colors: [.clear, .black.opacity(0.62)],
+          startPoint: .center, endPoint: .bottom
+        )
+
         VStack(alignment: .leading, spacing: 0) {
           HStack(spacing: 7) {
             Circle().fill(Theme.recRed).frame(width: 9, height: 9)
