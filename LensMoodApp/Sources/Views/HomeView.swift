@@ -28,6 +28,10 @@ struct HomeView: View {
           }
           .padding(.top, 6)
 
+          // the camera carousel — first thing under the hero, like the
+          // original home: signature artwork cards, one camera per card
+          styleCarousel
+
           sectionHead(title: "Video", subtitle: nil)
           tapeCard
 
@@ -81,6 +85,27 @@ struct HomeView: View {
         }
       }
     }
+  }
+
+  /// StyleCarousel — the original home carousel: snap-scrolling portrait
+  /// cards, each wearing its camera's signature artwork, badge, and tagline
+  private var styleCarousel: some View {
+    ScrollView(.horizontal, showsIndicators: false) {
+      HStack(spacing: 12) {
+        ForEach(Array(Stock.all.enumerated()), id: \.element.id) { index, stock in
+          Button {
+            path.append(stock)
+          } label: {
+            CarouselCard(stock: stock, index: index)
+          }
+          .buttonStyle(.plain)
+          .accessibilityLabel("\(stock.name). \(stock.tagline)")
+        }
+      }
+      .padding(.horizontal, 2)
+      .padding(.vertical, 12)
+    }
+    .padding(.top, 4)
   }
 
   private func sectionHead(title: String, subtitle: String?) -> some View {
@@ -220,6 +245,84 @@ enum StyleCategory: CaseIterable, Hashable {
     if self == .all { return stocks }
     let wanted = ids
     return stocks.filter { wanted.contains($0.id) }
+  }
+}
+
+/// CarouselCard — one camera in the home carousel: 4:5 signature artwork,
+/// chrome badge, name + LM index + tagline. Ported from the original web
+/// StyleCarousel.
+struct CarouselCard: View {
+  let stock: Stock
+  let index: Int
+
+  private var badgeLabel: String? {
+    switch stock.badge {
+    case "trending": return "TRENDING"
+    case "featured": return "THIS WEEK"
+    case "new": return "NEW"
+    default: return nil
+    }
+  }
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 0) {
+      ZStack(alignment: .topTrailing) {
+        artwork
+          .frame(width: 144, height: 180)
+          .clipped()
+        if let badgeLabel {
+          Text(badgeLabel)
+            .font(.system(size: 8.5, weight: .heavy))
+            .tracking(0.8)
+            .foregroundStyle(.white)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3.5)
+            .background(.black.opacity(0.55))
+            .clipShape(Capsule())
+            .padding(6)
+        }
+      }
+
+      VStack(alignment: .leading, spacing: 2) {
+        HStack(alignment: .firstTextBaseline) {
+          Text(stock.name)
+            .font(.system(size: 13, weight: .bold))
+            .foregroundStyle(Theme.ink)
+            .lineLimit(1)
+          Spacer(minLength: 4)
+          Text("LM·\(String(format: "%02d", index + 1))")
+            .font(.system(size: 8.5, weight: .semibold, design: .monospaced))
+            .foregroundStyle(Theme.fog)
+        }
+        Text(stock.tagline)
+          .font(.system(size: 11))
+          .foregroundStyle(Theme.inkSoft)
+          .lineLimit(2, reservesSpace: true)
+      }
+      .padding(10)
+    }
+    .frame(width: 144)
+    .background(Theme.surface)
+    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+    .overlay(
+      RoundedRectangle(cornerRadius: 18, style: .continuous)
+        .stroke(Theme.hairline, lineWidth: 1)
+    )
+    .oceanCardShadow()
+  }
+
+  @ViewBuilder
+  private var artwork: some View {
+    if let art = BundleMedia.image("style-\(stock.id)") {
+      Image(uiImage: art)
+        .resizable()
+        .scaledToFill()
+    } else {
+      LinearGradient(
+        colors: [Color(hex: stock.g0), Color(hex: stock.g1)],
+        startPoint: .topLeading, endPoint: .bottomTrailing
+      )
+    }
   }
 }
 

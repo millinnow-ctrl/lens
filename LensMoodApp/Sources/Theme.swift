@@ -9,9 +9,10 @@ enum BundleMedia {
   static func image(_ name: String) -> UIImage? {
     if let direct = UIImage(named: name) { return direct }
     for ext in ["jpg", "png"] {
-      if let url = Bundle.main.url(forResource: name, withExtension: ext)
-        ?? Bundle.main.url(forResource: name, withExtension: ext, subdirectory: "images") {
-        return UIImage(contentsOfFile: url.path)
+      for subdirectory in [nil, "images", "images/art", "art"] {
+        if let url = Bundle.main.url(forResource: name, withExtension: ext, subdirectory: subdirectory) {
+          return UIImage(contentsOfFile: url.path)
+        }
       }
     }
     return nil
