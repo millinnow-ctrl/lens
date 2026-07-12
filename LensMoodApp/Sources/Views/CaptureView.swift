@@ -89,18 +89,36 @@ struct CaptureView: View {
       readout("APERTURE", "ƒ/\(fmtF(camera.settings.aperture))", .aperture)
       readout("EV", fmtEV(camera.settings.exposureBiasEV), .ev)
       Spacer(minLength: 0)
-      if camera.settings.autoRelight {
-        HStack(spacing: 5) {
-          Image(systemName: "wand.and.stars").font(.system(size: 10))
-          Text("AUTO LIGHT").font(.spaceMono(9, bold: true)).tracking(0.5)
-        }
-        .foregroundStyle(CameraTheme.gold)
-        .padding(.horizontal, 8).padding(.vertical, 5)
-        .background(CameraTheme.gold.opacity(0.12)).clipShape(Capsule())
-      }
+      autoLightToggle
     }
     .padding(.horizontal, 18).padding(.top, 14).padding(.bottom, 12)
     .background(.ultraThinMaterial)
+  }
+
+  /// the scene-relight switch — tapping it turns the Vision + Core Image
+  /// lighting model on/off for the next shot, and says so
+  private var autoLightToggle: some View {
+    let on = camera.settings.autoRelight
+    return Button {
+      camera.settings.autoRelight.toggle()
+      showModeHint(camera.settings.autoRelight
+        ? "Auto light on — the next shot is scene-relit"
+        : "Auto light off — the film develops the frame as metered")
+      tick()
+    } label: {
+      HStack(spacing: 5) {
+        Image(systemName: on ? "wand.and.stars" : "wand.and.stars.inverse").font(.system(size: 10))
+        Text("AUTO LIGHT").font(.spaceMono(9, bold: true)).tracking(0.5)
+      }
+      .foregroundStyle(on ? CameraTheme.gold : CameraTheme.dim)
+      .padding(.horizontal, 8).padding(.vertical, 5)
+      .background(on ? CameraTheme.gold.opacity(0.14) : .clear)
+      .clipShape(Capsule())
+      .overlay(Capsule().stroke(on ? CameraTheme.gold.opacity(0.5) : CameraTheme.line, lineWidth: 1))
+    }
+    .buttonStyle(.plain)
+    .accessibilityLabel("Auto light")
+    .accessibilityAddTraits(on ? .isSelected : [])
   }
 
   private func readout(_ label: String, _ value: String, _ dial: ActiveDial) -> some View {
@@ -139,6 +157,14 @@ struct CaptureView: View {
         isAvailable: camera.isAvailable,
         placeholder: BundleMedia.image("style-\(loadedStock.id)")
       )
+      // no hardware (Simulator): the plate itself answers the zoom and flip
+      // controls, so every button still visibly changes the frame
+      .scaleEffect(
+        x: plateZoom * (plateMirrored ? -1 : 1),
+        y: plateZoom
+      )
+      .animation(.easeOut(duration: 0.22), value: camera.settings.zoom)
+      .animation(.easeOut(duration: 0.22), value: camera.position)
       .contentShape(Rectangle())
       .onTapGesture { location in focusHere(location, in: size) }
 
@@ -654,6 +680,10 @@ struct CaptureView: View {
   private var flashLabel: String {
     switch camera.settings.flashMode { case .off: return "OFF"; case .auto: return "AUTO"; case .on: return "ON" }
   }
+
+  // hardware answers zoom/flip on a device; without hardware the plate does
+  private var plateZoom: CGFloat { camera.isAvailable ? 1 : CGFloat(max(1, camera.settings.zoom)) }
+  private var plateMirrored: Bool { !camera.isAvailable && camera.position == .front }
   private func tick() { UISelectionFeedbackGenerator().selectionChanged() }
 
   static let apertures: [Double] = [1.2,1.4,1.6,1.8,2,2.2,2.5,2.8,3.2,3.5,4,4.5,5,5.6,6.3,7.1,8,9,11,13,16,22]

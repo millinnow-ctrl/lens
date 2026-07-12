@@ -181,7 +181,9 @@ final class CameraController: NSObject, ObservableObject, AVCapturePhotoCaptureD
 
   func focus(at point: CGPoint) {
     settings.focusPoint = point
-    guard isAvailable else { return }
+    // MF: the tap places the focal plane for the developer's depth of field
+    // only — the lens stays where the photographer left it
+    guard isAvailable, !settings.manualFocus else { return }
     sessionQueue.async { [weak self] in
       guard let self, let device = self.device else { return }
       guard (try? device.lockForConfiguration()) != nil else { return }
@@ -203,9 +205,11 @@ final class CameraController: NSObject, ObservableObject, AVCapturePhotoCaptureD
   func capture(fallback: UIImage?, completion: @escaping (UIImage) -> Void) {
     isCapturing = true
     guard isAvailable else {
-      // Simulator / CI: hand back the plate so develop + review still run
+      // Simulator / CI: hand back the plate so develop + review still run —
+      // honoring zoom and facing, so those controls change the shot too
       isCapturing = false
-      completion(fallback ?? Self.solidPlaceholder())
+      let plate = fallback ?? Self.solidPlaceholder()
+      completion(Self.fallbackFrame(from: plate, zoom: settings.zoom, mirrored: position == .front))
       return
     }
     captureCompletion = completion
@@ -231,6 +235,23 @@ final class CameraController: NSObject, ObservableObject, AVCapturePhotoCaptureD
       self.captureCompletion?(result)
       self.captureCompletion = nil
     }
+  }
+
+  /// What the "sensor" hands back when there is no hardware: the test plate
+  /// center-cropped by the zoom factor and mirrored for the front camera, so
+  /// every control produces a genuinely different photograph.
+  static func fallbackFrame(from image: UIImage, zoom: Double, mirrored: Bool) -> UIImage {
+    var cg = image.cgImage
+    if zoom > 1.01, let base = cg {
+      let width = CGFloat(base.width), height = CGFloat(base.height)
+      let crop = CGRect(
+        x: (width - width / zoom) / 2, y: (height - height / zoom) / 2,
+        width: width / zoom, height: height / zoom
+      )
+      cg = base.cropping(to: crop) ?? base
+    }
+    guard let final = cg else { return image }
+    return UIImage(cgImage: final, scale: image.scale, orientation: mirrored ? .upMirrored : image.imageOrientation)
   }
 
   private static func solidPlaceholder() -> UIImage {

@@ -82,20 +82,20 @@ enum Theme {
   static let cardRadius: CGFloat = 18
 }
 
-/// The camera instrument world. Chrome is a lifted charcoal with frosted-glass
-/// controls — like the iOS default camera: grey rather than dead black so the
-/// screen reads brighter, with translucent panels the photograph shows through.
-/// A single restrained warm accent (muted, not the old bright orange). The
-/// photograph in the viewfinder stays the loudest thing on the screen.
+/// The camera instrument world, wearing the app's ocean identity: the same
+/// cool charcoal family as the viewfinder wells, frosted-glass controls (grey,
+/// not dead black, so the screen reads brighter), and the brand's teal as the
+/// single "selected" accent — no warm cast anywhere. The photograph in the
+/// viewfinder stays the loudest thing on the screen.
 enum CameraTheme {
-  static let bg = Color(hex: "#202024")     // lifted charcoal surround (not dead black)
-  static let panel = Color(hex: "#2C2D31")  // control surface
-  static let line = Color(hex: "#3B3C42")   // hairline
-  static let gold = Color(hex: "#FFFFFF")    // neutral "selected" accent (no warm cast)
-  static let goldHi = Color(hex: "#FFFFFF")
-  static let text = Color(hex: "#F1F2F4")   // primary light ink
-  static let dim = Color(hex: "#8A9098")    // secondary label (dimmer, so white selection pops)
-  static let faint = Color(hex: "#7A8088")  // tertiary label
+  static let bg = Color(hex: "#12181D")     // ocean charcoal surround (kin to Theme.viewfinder)
+  static let panel = Color(hex: "#1A2228")  // control surface
+  static let line = Color(hex: "#2C363E")   // hairline
+  static let gold = Color(hex: "#39A6BB")   // brand teal "selected" accent (Theme.accentLight)
+  static let goldHi = Color(hex: "#5FC3D6")
+  static let text = Color(hex: "#EDF1F4")   // primary light ink
+  static let dim = Color(hex: "#93A0A9")    // secondary label (dim, so the teal selection pops)
+  static let faint = Color(hex: "#6B7780")  // tertiary label
 }
 
 extension View {
