@@ -50,6 +50,9 @@ struct CaptureView: View {
         closeButton
         if shutterFlash { Color.white.ignoresSafeArea().transition(.opacity) }
       }
+      // pin to the screen box so an intrinsically-wide child (the dial) can
+      // never push the centered viewfinder off to one side
+      .frame(width: geo.size.width, height: geo.size.height)
       .ignoresSafeArea(edges: .bottom)
     }
     .overlay { if isDeveloping { developingOverlay } }
@@ -71,6 +74,9 @@ struct CaptureView: View {
     }
     .onDisappear { camera.stop() }
     .statusBarHidden(true)
+    // the camera is a dark instrument, so frosted materials render as the iOS
+    // camera's translucent charcoal glass rather than white
+    .environment(\.colorScheme, .dark)
   }
 
   // MARK: top readout
@@ -94,7 +100,7 @@ struct CaptureView: View {
       }
     }
     .padding(.horizontal, 18).padding(.top, 14).padding(.bottom, 12)
-    .background(Color.black)
+    .background(.ultraThinMaterial)
   }
 
   private func readout(_ label: String, _ value: String, _ dial: ActiveDial) -> some View {
@@ -162,7 +168,8 @@ struct CaptureView: View {
         HStack(spacing: 8) {
           Image(systemName: "chevron.compact.left").foregroundStyle(.white.opacity(0.4))
           CommandWheel(steps: activeStepCount, index: activeIndex) { setActiveDial(to: $0) }
-            .frame(height: 30)
+            .frame(maxWidth: .infinity, minHeight: 30, maxHeight: 30)
+            .clipped()
           Image(systemName: "chevron.compact.right").foregroundStyle(.white.opacity(0.4))
         }
         .font(.system(size: 15, weight: .semibold))
@@ -174,7 +181,7 @@ struct CaptureView: View {
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
       .padding(.bottom, 16)
     }
-    .frame(height: size.height * 0.62)
+    .frame(width: size.width, height: size.height * 0.62)
     .clipped()
   }
 
@@ -197,8 +204,8 @@ struct CaptureView: View {
         }.buttonStyle(.plain)
       }
     }
-    .background(Color.black.opacity(0.55)).clipShape(RoundedRectangle(cornerRadius: 20))
-    .overlay(RoundedRectangle(cornerRadius: 20).stroke(.white.opacity(0.12), lineWidth: 1))
+    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
+    .overlay(RoundedRectangle(cornerRadius: 20).stroke(.white.opacity(0.45), lineWidth: 1))
   }
 
   private var afmfPill: some View {
@@ -213,8 +220,8 @@ struct CaptureView: View {
         }.buttonStyle(.plain)
       }
     }
-    .background(Color.black.opacity(0.55)).clipShape(RoundedRectangle(cornerRadius: 20))
-    .overlay(RoundedRectangle(cornerRadius: 20).stroke(.white.opacity(0.12), lineWidth: 1))
+    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
+    .overlay(RoundedRectangle(cornerRadius: 20).stroke(.white.opacity(0.45), lineWidth: 1))
   }
 
   // MARK: film canister selector
@@ -307,12 +314,14 @@ struct CaptureView: View {
           if let last = model.library.first {
             Image(uiImage: last.image).resizable().scaledToFill()
           } else {
-            LinearGradient(colors: [Color(hex: loadedStock.g0), Color(hex: loadedStock.g1)],
-                           startPoint: .topLeading, endPoint: .bottomTrailing)
+            ZStack {
+              CameraTheme.panel
+              Image(systemName: "photo").font(.system(size: 18)).foregroundStyle(CameraTheme.dim)
+            }
           }
         }
         .frame(width: 56, height: 56).clipShape(RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(.white.opacity(0.7), lineWidth: 2))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(CameraTheme.line, lineWidth: 1.5))
       }
       .buttonStyle(.plain).accessibilityLabel("Library")
 
@@ -332,9 +341,13 @@ struct CaptureView: View {
   private var shutterButton: some View {
     Button { shoot() } label: {
       ZStack {
-        Circle().fill(.white).frame(width: 74, height: 74)
-        Circle().stroke(.black, lineWidth: 4).frame(width: 74, height: 74)
-        Circle().stroke(.white.opacity(0.85), lineWidth: 2).frame(width: 82, height: 82)
+        // glassy outer rim (frosted, like the iOS default camera)
+        Circle().stroke(.ultraThinMaterial, lineWidth: 6).frame(width: 84, height: 84)
+        Circle().strokeBorder(Color.white.opacity(0.9), lineWidth: 1.5).frame(width: 84, height: 84)
+        // solid white shutter button with a soft edge
+        Circle().fill(.white).frame(width: 66, height: 66)
+          .overlay(Circle().stroke(Color.black.opacity(0.06), lineWidth: 1))
+          .shadow(color: .black.opacity(0.18), radius: 4, y: 1)
       }
       .scaleEffect(camera.isCapturing ? 0.92 : 1)
     }
@@ -350,10 +363,11 @@ struct CaptureView: View {
             Image(systemName: "chevron.left").font(.system(size: 13, weight: .bold))
             Text("LensMood").font(.spaceMono(13, bold: true))
           }
-          .foregroundStyle(CameraTheme.gold)
+          .foregroundStyle(CameraTheme.text)
           .padding(.horizontal, 14).frame(height: 38)
-          .background(Color.black.opacity(0.55)).clipShape(Capsule())
-          .overlay(Capsule().stroke(CameraTheme.gold.opacity(0.55), lineWidth: 1))
+          .background(.regularMaterial, in: Capsule())
+          .overlay(Capsule().stroke(Color.white.opacity(0.5), lineWidth: 1))
+          .shadow(color: .black.opacity(0.12), radius: 6, y: 2)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Back to LensMood")
@@ -426,7 +440,7 @@ struct CaptureView: View {
         ProgressView().tint(CameraTheme.gold)
         Text("DEVELOPING").font(.system(size: 11, weight: .bold, design: .monospaced)).tracking(2).foregroundStyle(.white)
         Text("metering · relighting · developing \(loadedStock.name)")
-          .font(.spaceMono(9)).foregroundStyle(CameraTheme.dim)
+          .font(.spaceMono(9)).foregroundStyle(.white.opacity(0.7))
       }
     }
   }

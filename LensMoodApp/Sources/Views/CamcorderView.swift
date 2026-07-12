@@ -90,16 +90,14 @@ struct CamcorderView: View {
   }
 
   private var introduction: some View {
-    VStack(alignment: .leading, spacing: 7) {
+    VStack(alignment: .center, spacing: 8) {
       TechnicalLabel(text: "Tape 94")
       Text("One camera. One tape.")
         .font(.system(size: 33, weight: .heavy))
         .foregroundStyle(Theme.ink)
-      Text("There are no dials and no fake damage controls. Record a moment; the tape decides the rest.")
-        .font(.system(size: 15))
-        .foregroundStyle(Theme.inkSoft)
-        .lineSpacing(4)
+        .multilineTextAlignment(.center)
     }
+    .frame(maxWidth: .infinity)
   }
 
   private var tapeWindow: some View {

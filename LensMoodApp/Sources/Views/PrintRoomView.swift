@@ -69,16 +69,14 @@ struct PrintRoomView: View {
     NavigationStack {
       ScrollView {
         VStack(alignment: .leading, spacing: 20) {
-          VStack(alignment: .leading, spacing: 7) {
+          VStack(alignment: .center, spacing: 8) {
             TechnicalLabel(text: "Print room")
             Text("A photograph becomes an object.")
               .font(.system(size: 31, weight: .heavy))
               .foregroundStyle(Theme.ink)
-            Text("Straight-down composition, true instant-print proportions, and light borrowed from the surface beneath it.")
-              .font(.system(size: 14))
-              .foregroundStyle(Theme.inkSoft)
-              .lineSpacing(4)
+              .multilineTextAlignment(.center)
           }
+          .frame(maxWidth: .infinity)
 
           if model.library.isEmpty {
             emptyState

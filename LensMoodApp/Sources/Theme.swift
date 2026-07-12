@@ -82,18 +82,20 @@ enum Theme {
   static let cardRadius: CGFloat = 18
 }
 
-/// The camera is its own immersive instrument world — a warm-gold pro-camera
-/// palette on near-black, distinct from the app's ocean chrome (the directive
-/// treats Camera/Print/Tape as separate worlds).
+/// The camera instrument world. Chrome is a lifted charcoal with frosted-glass
+/// controls — like the iOS default camera: grey rather than dead black so the
+/// screen reads brighter, with translucent panels the photograph shows through.
+/// A single restrained warm accent (muted, not the old bright orange). The
+/// photograph in the viewfinder stays the loudest thing on the screen.
 enum CameraTheme {
-  static let bg = Color(hex: "#08080A")
-  static let panel = Color(hex: "#0F0F11")
-  static let line = Color(hex: "#2A2B2F")
-  static let gold = Color(hex: "#F2B43E")
-  static let goldHi = Color(hex: "#FFC95A")
-  static let text = Color(hex: "#ECEEF1")
-  static let dim = Color(hex: "#9AA0A8")
-  static let faint = Color(hex: "#6B7178")
+  static let bg = Color(hex: "#202024")     // lifted charcoal surround (not dead black)
+  static let panel = Color(hex: "#2C2D31")  // control surface
+  static let line = Color(hex: "#3B3C42")   // hairline
+  static let gold = Color(hex: "#D2A24E")   // muted warm accent (was the bright orange)
+  static let goldHi = Color(hex: "#E4BE73")
+  static let text = Color(hex: "#F1F2F4")   // light ink
+  static let dim = Color(hex: "#A6ACB4")    // secondary label
+  static let faint = Color(hex: "#7A8088")  // tertiary label
 }
 
 extension View {
