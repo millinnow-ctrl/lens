@@ -97,6 +97,15 @@ final class SceneAnalyzer {
   /// back — sRGB, 8-bit, premultiplied-last, top-down row-major. Photographs
   /// are opaque so premultiplication is a no-op and the buffer layout matches
   /// the reference's straight-alpha `getImageData` / `readPixels` exactly.
+  ///
+  /// The resample is a hand-rolled 4-tap bilinear at destination pixel
+  /// centers (s = (d + 0.5) * S/D - 0.5, edge-clamped) — the same sampling
+  /// the reference's Skia `drawImage` performs at the canvas default filter
+  /// quality. CoreGraphics' own scaler was measured to area-average a 12x
+  /// downscale, erasing exactly the noise, speculars, and small light blobs
+  /// the meter exists to read (CI parity run 151: p99 low by 0.17 on night,
+  /// saturation 0.32 vs 0.51 on the noisy fixture). Doing the arithmetic
+  /// ourselves removes the platform resampler from the equation entirely.
   private func thumbPixels(_ source: CIImage, w: Int, h: Int) throws -> [UInt8] {
     guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) else {
       throw SceneAnalysisError.renderFailed
@@ -109,24 +118,53 @@ final class SceneAnalyzer {
     ) else {
       throw SceneAnalysisError.renderFailed
     }
-    var px = [UInt8](repeating: 0, count: w * h * 4)
-    let rendered = px.withUnsafeMutableBytes { (buffer: UnsafeMutableRawBufferPointer) -> Bool in
+    let sw = cgSource.width
+    let sh = cgSource.height
+    guard sw > 0, sh > 0 else { throw SceneAnalysisError.renderFailed }
+
+    // decode at native size, 1:1 — no resampling happens in this draw
+    var src = [UInt8](repeating: 0, count: sw * sh * 4)
+    let decoded = src.withUnsafeMutableBytes { (buffer: UnsafeMutableRawBufferPointer) -> Bool in
       guard let cg = CGContext(
         data: buffer.baseAddress,
-        width: w,
-        height: h,
+        width: sw,
+        height: sh,
         bitsPerComponent: 8,
-        bytesPerRow: w * 4,
+        bytesPerRow: sw * 4,
         space: colorSpace,
         bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
       ) else { return false }
-      // resampling filters differ across platforms by design (the reference
-      // uses the canvas default); the meter's statistics are robust to this
-      cg.interpolationQuality = .high
-      cg.draw(cgSource, in: CGRect(x: 0, y: 0, width: w, height: h))
+      cg.interpolationQuality = .none
+      cg.draw(cgSource, in: CGRect(x: 0, y: 0, width: sw, height: sh))
       return true
     }
-    guard rendered else { throw SceneAnalysisError.renderFailed }
+    guard decoded else { throw SceneAnalysisError.renderFailed }
+
+    var px = [UInt8](repeating: 0, count: w * h * 4)
+    let xRatio = Double(sw) / Double(w)
+    let yRatio = Double(sh) / Double(h)
+    for dy in 0..<h {
+      let sy = (Double(dy) + 0.5) * yRatio - 0.5
+      let y0 = min(max(Int(sy.rounded(.down)), 0), sh - 1)
+      let y1 = min(y0 + 1, sh - 1)
+      let fy = min(max(sy - Double(y0), 0), 1)
+      for dx in 0..<w {
+        let sx = (Double(dx) + 0.5) * xRatio - 0.5
+        let x0 = min(max(Int(sx.rounded(.down)), 0), sw - 1)
+        let x1 = min(x0 + 1, sw - 1)
+        let fx = min(max(sx - Double(x0), 0), 1)
+        let i00 = (y0 * sw + x0) * 4
+        let i10 = (y0 * sw + x1) * 4
+        let i01 = (y1 * sw + x0) * 4
+        let i11 = (y1 * sw + x1) * 4
+        let out = (dy * w + dx) * 4
+        for c in 0..<4 {
+          let top = Double(src[i00 + c]) + (Double(src[i10 + c]) - Double(src[i00 + c])) * fx
+          let bottom = Double(src[i01 + c]) + (Double(src[i11 + c]) - Double(src[i01 + c])) * fx
+          px[out + c] = UInt8(min(255, max(0, (top + (bottom - top) * fy).rounded())))
+        }
+      }
+    }
     return px
   }
 

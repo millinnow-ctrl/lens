@@ -95,6 +95,23 @@ final class FilmEngineTests: XCTestCase {
     XCTAssertEqual(Set(fingerprints.map(String.init(describing:))).count, 18)
   }
 
+  /// CI-measured Class A baselines (run 148, head 714f070) plus ~1/255
+  /// runner headroom. This is a REGRESSION gate, not a parity claim: only
+  /// Slide 64 meets the approved <=2.0 target so far; the other nine values
+  /// record honestly how far each camera still is, and may only go down.
+  static let maeRegressionCeiling: [String: Double] = [
+    "kodachrome": 2.0,
+    "pastel-cinema": 18.3,
+    "polaroid": 18.9,
+    "gq-editorial": 19.7,
+    "a24-still": 23.1,
+    "leica-street": 25.2,
+    "tokyo-neon": 28.2,
+    "super-8": 34.3,
+    "film-noir": 43.1,
+    "tintype": 47.9,
+  ]
+
   func testAllClassACamerasAgainstGoldenFixtures() throws {
     let testsDirectory = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
     let sourceURL = testsDirectory
@@ -124,18 +141,22 @@ final class FilmEngineTests: XCTestCase {
 
       let error = meanAbsoluteRGBError(rendered, reference)
       print("Class A \(cameraID) MAE: \(error)/255")
+      try writeParityEvidence(cameraID: cameraID, source: source, reference: reference, rendered: rendered)
       if cameraID == "kodachrome" {
-        try writeSlide64Artifacts(source: source, reference: reference, rendered: rendered)
         XCTAssertLessThanOrEqual(
           error,
           2,
           "Slide 64 must meet the approved parity target before completion."
         )
       }
-      XCTAssertLessThan(
+      let ceiling = try XCTUnwrap(
+        Self.maeRegressionCeiling[cameraID],
+        "no recorded baseline for \(cameraID)"
+      )
+      XCTAssertLessThanOrEqual(
         error,
-        80,
-        "\(cameraID) drifted beyond the broad bring-up threshold."
+        ceiling,
+        "\(cameraID) drifted above its recorded CI baseline. Parity may only improve toward the 2.0 target — never regress."
       )
 
       let renderedAttachment = XCTAttachment(image: rendered)
@@ -150,7 +171,8 @@ final class FilmEngineTests: XCTestCase {
     }
   }
 
-  private func writeSlide64Artifacts(
+  private func writeParityEvidence(
+    cameraID: String,
     source: UIImage,
     reference: UIImage,
     rendered: UIImage
@@ -158,7 +180,7 @@ final class FilmEngineTests: XCTestCase {
     let testsDirectory = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
     let outputDirectory = testsDirectory
       .deletingLastPathComponent()
-      .appendingPathComponent("ui-artifacts/parity/slide-64")
+      .appendingPathComponent("ui-artifacts/parity/\(cameraID)")
     try FileManager.default.createDirectory(
       at: outputDirectory,
       withIntermediateDirectories: true
@@ -216,13 +238,13 @@ final class FilmEngineTests: XCTestCase {
     )
     let format = UIGraphicsImageRendererFormat()
     format.scale = 1
-    return UIGraphicsImageRenderer(size: size, format: format).image { context in
-      context.cgContext.draw(
-        referenceCG,
+    // UIImage.draw is UIKit-coordinate aware; raw CGContext.draw rendered
+    // both panes upside down in the review evidence
+    return UIGraphicsImageRenderer(size: size, format: format).image { _ in
+      UIImage(cgImage: referenceCG).draw(
         in: CGRect(x: 0, y: 0, width: referenceCG.width, height: referenceCG.height)
       )
-      context.cgContext.draw(
-        renderedCG,
+      UIImage(cgImage: renderedCG).draw(
         in: CGRect(
           x: referenceCG.width,
           y: 0,

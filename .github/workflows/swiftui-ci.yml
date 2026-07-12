@@ -93,12 +93,12 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Upload Slide 64 parity evidence
+      - name: Upload Class A parity evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: slide-64-parity
-          path: LensMoodApp/ui-artifacts/parity/slide-64/
+          name: class-a-parity
+          path: LensMoodApp/ui-artifacts/parity/
           if-no-files-found: warn
           retention-days: 7
 
