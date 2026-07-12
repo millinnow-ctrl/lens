@@ -16,6 +16,11 @@ enum BundleMedia {
     }
     return nil
   }
+
+  static func videoURL(_ name: String) -> URL? {
+    Bundle.main.url(forResource: name, withExtension: "mp4")
+      ?? Bundle.main.url(forResource: name, withExtension: "mp4", subdirectory: "video")
+  }
 }
 
 extension Color {

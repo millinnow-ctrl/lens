@@ -1,3 +1,4 @@
+import AVFoundation
 import SwiftUI
 
 /// Home — the ocean entry screen, restored to the owner-approved reference
@@ -275,8 +276,10 @@ struct StyleCard: View {
   }
 }
 
-/// HeroCard — the living hero: dark viewfinder card with the chrome strip,
-/// the rotating warm word and the white "Start with a photo" pill.
+/// HeroCard — the living hero, restored from the original web home: the
+/// ambient summer-picnic loop (a Y2K digicam frame) under the rotating
+/// headline "Every photo has a mood. / look. / texture. / glow." Falls back
+/// to the poster, then to the dusk gradient, when the loop is absent.
 struct HeroCard: View {
   var onStart: () -> Void
 
@@ -285,14 +288,14 @@ struct HeroCard: View {
 
   var body: some View {
     VStack(spacing: 0) {
-      // chrome strip
+      // chrome strip — the readout names the roll on frame
       HStack {
         HStack(spacing: 7) {
           Circle().fill(Theme.recRed).frame(width: 7, height: 7)
-          Text("GOLDEN HOUR")
+          Text("SUMMER ROLL")
         }
         Spacer()
-        Text("ƒ1.4 · 50MM · WARM")
+        Text("Y2K DIGICAM · SUNNY")
       }
       .font(.system(size: 10.5, weight: .semibold, design: .monospaced))
       .tracking(1)
@@ -301,42 +304,44 @@ struct HeroCard: View {
       .frame(height: 34)
       .background(Theme.viewfinder)
 
-      // frame: dusk-road gradient poster with a low sun
-      ZStack {
-        LinearGradient(
-          colors: [
-            Color(hex: "#2C3E50"), Color(hex: "#7A6247"),
-            Color(hex: "#C99B62"), Color(hex: "#8A5A33"),
-          ],
-          startPoint: .top, endPoint: .init(x: 0.2, y: 1)
-        )
-        GeometryReader { geo in
-          Circle()
-            .fill(
-              RadialGradient(
-                colors: [
-                  Color(hex: "#FFEEC8").opacity(0.95),
-                  Color(hex: "#FFC878").opacity(0.25),
-                  Color(hex: "#FFC878").opacity(0),
-                ],
-                center: .center,
-                startRadius: 0,
-                endRadius: geo.size.width * 0.3
-              )
-            )
-            .frame(width: geo.size.width * 0.6, height: geo.size.width * 0.6)
-            .position(x: geo.size.width * 0.78, y: geo.size.height * 0.42)
-        }
+      ZStack(alignment: .bottomLeading) {
+        poster
 
-        VStack(spacing: 14) {
-          VStack(spacing: 0) {
-            Text("Give every photo")
+        // scrim carries the words
+        LinearGradient(
+          stops: [
+            .init(color: .clear, location: 0),
+            .init(color: .black.opacity(0.45), location: 0.55),
+            .init(color: .black.opacity(0.85), location: 1),
+          ],
+          startPoint: .top, endPoint: .bottom
+        )
+
+        // "shot on" tag — these are real frames from the engine's cameras
+        VStack {
+          HStack(spacing: 6) {
+            Circle().fill(Theme.recRed).frame(width: 4, height: 4)
+            Text("SHOT ON LENSMOOD")
+              .font(.system(size: 9, weight: .semibold, design: .monospaced))
+              .tracking(1.2)
+          }
+          .foregroundStyle(.white.opacity(0.9))
+          .padding(.horizontal, 10)
+          .frame(height: 24)
+          .background(.black.opacity(0.45))
+          .clipShape(Capsule())
+          .frame(maxWidth: .infinity, alignment: .leading)
+          Spacer()
+        }
+        .padding(12)
+
+        VStack(alignment: .leading, spacing: 6) {
+          HStack(alignment: .firstTextBaseline, spacing: 0) {
+            Text("Every photo has a ")
               .font(.system(size: 30, weight: .heavy))
-              .tracking(-0.5)
-              .foregroundStyle(.white)
             Text(Self.words[word])
-              .font(.system(size: 34, weight: .heavy))
-              .tracking(-0.5)
+              .font(.system(size: 30, weight: .heavy, design: .serif))
+              .italic()
               .foregroundStyle(Color(hex: "#FFD9A0"))
               .id(word)
               .transition(.asymmetric(
@@ -344,33 +349,97 @@ struct HeroCard: View {
                 removal: .move(edge: .top).combined(with: .opacity)
               ))
           }
-          .shadow(color: .black.opacity(0.4), radius: 8, y: 2)
+          .foregroundStyle(.white)
+          .shadow(color: .black.opacity(0.5), radius: 7, y: 1)
+
+          Text("The $7,000 camera look, from your camera roll.")
+            .font(.system(size: 13))
+            .foregroundStyle(.white.opacity(0.85))
+            .shadow(color: .black.opacity(0.55), radius: 4, y: 1)
 
           Button(action: onStart) {
             Text("Start with a photo")
-              .font(.system(size: 16, weight: .bold))
+              .font(.system(size: 15, weight: .bold))
               .foregroundStyle(Theme.ink)
-              .padding(.horizontal, 24)
-              .frame(height: 46)
+              .padding(.horizontal, 22)
+              .frame(height: 44)
               .background(.white)
               .clipShape(Capsule())
-              .oceanCardShadow()
           }
           .buttonStyle(.plain)
+          .padding(.top, 8)
           .accessibilityLabel("Start with a photo")
         }
-        .padding(.vertical, 30)
+        .padding(16)
       }
-      .frame(minHeight: 250)
+      .aspectRatio(4.0 / 3.6, contentMode: .fit)
+      .clipped()
     }
     .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
     .oceanCardShadow(deep: true)
     .onReceive(Timer.publish(every: 3.4, on: .main, in: .common).autoconnect()) { _ in
-      withAnimation(.easeInOut(duration: 0.45)) {
+      withAnimation(.easeInOut(duration: 0.34)) {
         word = (word + 1) % Self.words.count
       }
     }
     .accessibilityElement(children: .contain)
+  }
+
+  @ViewBuilder
+  private var poster: some View {
+    if let url = BundleMedia.videoURL("hero-summer") {
+      LoopingVideoView(url: url)
+    } else if let still = BundleMedia.image("hero-summer-poster") {
+      Image(uiImage: still)
+        .resizable()
+        .scaledToFill()
+    } else {
+      LinearGradient(
+        colors: [
+          Color(hex: "#2C3E50"), Color(hex: "#7A6247"),
+          Color(hex: "#C99B62"), Color(hex: "#8A5A33"),
+        ],
+        startPoint: .top, endPoint: .init(x: 0.2, y: 1)
+      )
+    }
+  }
+}
+
+/// a muted, endlessly looping, aspect-filling video layer — the ambient
+/// hero loop. No controls, no audio session impact.
+private struct LoopingVideoView: UIViewRepresentable {
+  let url: URL
+
+  func makeUIView(context: Context) -> LoopingPlayerUIView {
+    let view = LoopingPlayerUIView()
+    view.configure(url: url)
+    return view
+  }
+
+  func updateUIView(_ uiView: LoopingPlayerUIView, context: Context) {}
+}
+
+final class LoopingPlayerUIView: UIView {
+  private var looper: AVPlayerLooper?
+  private var player: AVQueuePlayer?
+
+  override class var layerClass: AnyClass { AVPlayerLayer.self }
+
+  private var playerLayer: AVPlayerLayer {
+    // swiftlint:disable:next force_cast
+    layer as! AVPlayerLayer
+  }
+
+  func configure(url: URL) {
+    let item = AVPlayerItem(url: url)
+    let queue = AVQueuePlayer()
+    queue.isMuted = true
+    queue.preventsDisplaySleepDuringVideoPlayback = false
+    looper = AVPlayerLooper(player: queue, templateItem: item)
+    playerLayer.player = queue
+    playerLayer.videoGravity = .resizeAspectFill
+    queue.play()
+    player = queue
   }
 }
 

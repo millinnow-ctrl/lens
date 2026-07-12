@@ -19,6 +19,8 @@ targets:
         type: folder
       - path: Resources/images
         buildPhase: resources
+      - path: Resources/video
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.lensmood.ios
