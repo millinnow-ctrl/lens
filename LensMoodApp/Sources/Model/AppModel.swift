@@ -43,9 +43,11 @@ final class AppModel: ObservableObject {
 
   /// fill the session library with bundled sample frames (screenshot fixtures)
   private func seedDemoLibrary() {
+    // point-shoot leads: its clean flash frame reads like a photo straight
+    // off the iPhone, which is what the Print stage shows first
     let picks = [
-      "disposable", "leica-street", "kodachrome", "tokyo-neon", "polaroid",
-      "a24-still", "film-noir", "gq-editorial", "point-shoot", "pastel-cinema",
+      "point-shoot", "leica-street", "disposable", "kodachrome", "tokyo-neon",
+      "polaroid", "a24-still", "film-noir", "gq-editorial", "pastel-cinema",
       "super-8", "y2k-digicam",
     ]
     for id in picks {

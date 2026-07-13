@@ -1,3 +1,4 @@
+import PhotosUI
 import SwiftUI
 import UIKit
 
@@ -52,18 +53,17 @@ private enum PrintSurface: String, CaseIterable, Identifiable {
 
 struct PrintRoomView: View {
   @EnvironmentObject private var model: AppModel
-  @State private var selectedID: UUID?
+  @State private var pickedPrintItem: PhotosPickerItem?
+  @State private var pickedAsset: DevelopedAsset?
   @State private var surface: PrintSurface = .wood
   @State private var saved = false
   @State private var isSaving = false
   @State private var errorMessage: String?
   @State private var printReveal: CGFloat = 1
 
+  /// a photo added here wins; otherwise the latest developed frame prints
   private var selected: DevelopedAsset? {
-    if let selectedID {
-      return model.library.first { $0.id == selectedID }
-    }
-    return model.library.first
+    pickedAsset ?? model.library.first
   }
 
   var body: some View {
@@ -76,10 +76,11 @@ struct PrintRoomView: View {
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
 
-          if model.library.isEmpty {
+          addPhotoBubble
+
+          if selected == nil {
             emptyState
           } else {
-            framePicker
             surfacePicker
             printStage
 
@@ -127,33 +128,38 @@ struct PrintRoomView: View {
     }
   }
 
-  private var framePicker: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      TechnicalLabel(text: "Frame")
-      ScrollView(.horizontal, showsIndicators: false) {
-        HStack(spacing: 8) {
-          ForEach(model.library) { asset in
-            Button {
-              selectedID = asset.id
-              UISelectionFeedbackGenerator().selectionChanged()
-            } label: {
-              Image(uiImage: asset.image)
-                .resizable()
-                .scaledToFill()
-                .frame(width: 64, height: 78)
-                .clipped()
-                .overlay {
-                  Rectangle().stroke(
-                    selected?.id == asset.id ? Theme.accent : Theme.hairline,
-                    lineWidth: selected?.id == asset.id ? 2 : 1
-                  )
-                }
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(asset.stock.name)
-          }
-        }
+  /// the photo choice lives at the top: one bubble that opens the library
+  private var addPhotoBubble: some View {
+    PhotosPicker(selection: $pickedPrintItem, matching: .images) {
+      HStack(spacing: 8) {
+        Image(systemName: "photo.badge.plus")
+          .font(.system(size: 15, weight: .semibold))
+        Text("Add a photo")
+          .font(.system(size: 15, weight: .bold))
       }
+      .foregroundStyle(.white)
+      .padding(.horizontal, 24)
+      .frame(height: 46)
+      .background(Theme.brandFill)
+      .clipShape(Capsule())
+      .oceanCardShadow()
+    }
+    .frame(maxWidth: .infinity)
+    .onChange(of: pickedPrintItem) { item in loadPrintPhoto(item) }
+    .accessibilityHint("Choose a photo from your library to print")
+  }
+
+  private func loadPrintPhoto(_ item: PhotosPickerItem?) {
+    guard let item else { return }
+    Task { @MainActor in
+      defer { pickedPrintItem = nil }
+      guard let data = try? await item.loadTransferable(type: Data.self),
+            let image = UIImage(data: data) else {
+        errorMessage = "That photo could not be read."
+        return
+      }
+      pickedAsset = DevelopedAsset(image: image, source: image, stock: Stock.all[0], decisions: [])
+      UISelectionFeedbackGenerator().selectionChanged()
     }
   }
 

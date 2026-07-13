@@ -95,15 +95,22 @@ struct CamcorderView: View {
 
       if let url = outputURL ?? inputURL {
         VideoPlayer(player: AVPlayer(url: url))
+      } else if let cover = BundleMedia.image("camcorder-cover") {
+        // idle deck: the VHS cover art fills the window instead of a bare void
+        Image(uiImage: cover)
+          .resizable()
+          .scaledToFill()
+          .overlay(
+            LinearGradient(
+              colors: [.black.opacity(0.20), .clear, .black.opacity(0.45)],
+              startPoint: .top, endPoint: .bottom
+            )
+          )
+          .allowsHitTesting(false)
       } else {
-        VStack(spacing: 12) {
-          Image(systemName: "video.fill")
-            .font(.system(size: 34, weight: .light))
-          Text("NO TAPE")
-            .font(.system(size: 11, weight: .bold, design: .monospaced))
-            .tracking(1.6)
-        }
-        .foregroundStyle(Theme.viewfinderChrome)
+        Image(systemName: "video.fill")
+          .font(.system(size: 34, weight: .light))
+          .foregroundStyle(Theme.viewfinderChrome)
       }
     }
     .overlay(alignment: .top) {

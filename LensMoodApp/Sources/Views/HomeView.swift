@@ -145,7 +145,8 @@ struct HomeView: View {
           }
         }
         .padding(.horizontal, 4)
-        .padding(.vertical, 16)
+        .padding(.top, 16)
+        .padding(.bottom, 8)
         .background(
           GeometryReader { g in
             Color.clear.preference(
@@ -181,15 +182,16 @@ struct HomeView: View {
       }
 
       // page dots — the scroll position, one dot per camera
-      HStack(spacing: 5) {
+      HStack(spacing: 6) {
         ForEach(0..<Stock.all.count, id: \.self) { i in
           Capsule()
-            .fill(i == carouselIndex ? Theme.accent : Theme.hairline)
-            .frame(width: i == carouselIndex ? 14 : 5, height: 5)
+            .fill(i == carouselIndex ? Theme.accent : Theme.fog.opacity(0.45))
+            .frame(width: i == carouselIndex ? 20 : 7, height: 7)
             .animation(.spring(response: 0.3, dampingFraction: 0.8), value: carouselIndex)
         }
       }
       .frame(maxWidth: .infinity)
+      .padding(.bottom, 6)
     }
     .padding(.top, 4)
   }
