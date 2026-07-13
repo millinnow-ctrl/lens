@@ -95,8 +95,9 @@ struct CamcorderView: View {
 
       if let url = outputURL ?? inputURL {
         VideoPlayer(player: AVPlayer(url: url))
-      } else if let cover = BundleMedia.image("camcorder-cover") {
-        // idle deck: the VHS cover art fills the window instead of a bare void
+      } else if let cover = BundleMedia.image("tape-idle") ?? BundleMedia.image("camcorder-cover") {
+        // idle deck: a purpose-made 3:4 camcorder frame fills the window
+        // (falls back to the 16:9 cover if the portrait asset is missing)
         Image(uiImage: cover)
           .resizable()
           .scaledToFill()
