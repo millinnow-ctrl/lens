@@ -57,6 +57,7 @@ struct PrintRoomView: View {
   @State private var saved = false
   @State private var isSaving = false
   @State private var errorMessage: String?
+  @State private var printReveal: CGFloat = 1
 
   private var selected: DevelopedAsset? {
     if let selectedID {
@@ -69,14 +70,11 @@ struct PrintRoomView: View {
     NavigationStack {
       ScrollView {
         VStack(alignment: .leading, spacing: 20) {
-          VStack(alignment: .center, spacing: 8) {
-            TechnicalLabel(text: "Print room")
-            Text("A photograph becomes an object.")
-              .font(.system(size: 31, weight: .heavy))
-              .foregroundStyle(Theme.ink)
-              .multilineTextAlignment(.center)
-          }
-          .frame(maxWidth: .infinity)
+          Text("A photograph becomes an object.")
+            .font(.system(size: 31, weight: .heavy))
+            .foregroundStyle(Theme.ink)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
 
           if model.library.isEmpty {
             emptyState
@@ -174,11 +172,19 @@ struct PrintRoomView: View {
   @ViewBuilder
   private var printStage: some View {
     if let selected {
-      InstantPrintComposition(asset: selected, surface: surface)
+      InstantPrintComposition(asset: selected, surface: surface, reveal: printReveal)
         .aspectRatio(1, contentMode: .fit)
         .overlay(Rectangle().stroke(Theme.hairline, lineWidth: 1))
         .accessibilityLabel("Instant print of \(selected.stock.name) on \(surface.rawValue)")
+        .onAppear { developIn() }
+        .onChange(of: selected.id) { _ in developIn() }
     }
+  }
+
+  /// the print-develop ceremony: each new print starts milky and clears
+  private func developIn() {
+    printReveal = 0
+    withAnimation(.easeOut(duration: 2.2)) { printReveal = 1 }
   }
 
   private func savePrint() {
@@ -211,6 +217,8 @@ struct PrintRoomView: View {
 private struct InstantPrintComposition: View {
   let asset: DevelopedAsset
   let surface: PrintSurface
+  /// 0 = fresh milky print, 1 = fully developed (drives the reveal ceremony)
+  var reveal: CGFloat = 1
 
   /// deterministic per-print seed: same photograph always lands the same way
   private var seed: Int {
@@ -285,14 +293,15 @@ private struct InstantPrintComposition: View {
       )
       .allowsHitTesting(false)
     )
-    .overlay(alignment: .bottomLeading) {
-      Text(asset.stock.name.uppercased())
-        .font(.system(size: max(8, size.width * 0.022), weight: .medium, design: .monospaced))
-        .tracking(0.7)
-        .foregroundStyle(Color.black.opacity(0.54))
-        .padding(.leading, size.width * 0.055)
-        .padding(.bottom, size.width * 0.04)
-    }
+    // no printed branding — the print reads as a photograph you took,
+    // not a labeled product (owner ruling)
+    .overlay(
+      // develop-in ceremony: the image emerges from the milky emulsion
+      Rectangle()
+        .fill(Color(hex: "#EDE7D8"))
+        .opacity(Double(1 - reveal))
+        .allowsHitTesting(false)
+    )
     .overlay(Rectangle().stroke(Color.black.opacity(0.08), lineWidth: 1))
     // paper thickness: a hairline of stacked edge showing on the lit sides
     .background(

@@ -80,14 +80,11 @@ struct CamcorderView: View {
   }
 
   private var introduction: some View {
-    VStack(alignment: .center, spacing: 8) {
-      TechnicalLabel(text: "Tape 94")
-      Text("One camera. One tape.")
-        .font(.system(size: 33, weight: .heavy))
-        .foregroundStyle(Theme.ink)
-        .multilineTextAlignment(.center)
-    }
-    .frame(maxWidth: .infinity)
+    Text("One camera. One tape.")
+      .font(.system(size: 33, weight: .heavy))
+      .foregroundStyle(Theme.ink)
+      .multilineTextAlignment(.center)
+      .frame(maxWidth: .infinity)
   }
 
   private var tapeWindow: some View {
@@ -154,14 +151,18 @@ struct CamcorderView: View {
       .buttonStyle(InstrumentButtonStyle(kind: .primary))
 
       PhotosPicker(selection: $pickerItem, matching: .videos) {
-        Text("Load an existing clip")
+        Label("Load an existing clip", systemImage: "video.badge.plus")
           .frame(maxWidth: .infinity)
       }
       .buttonStyle(InstrumentButtonStyle(kind: .secondary))
 
       if outputURL != nil {
-        Button(isSaving ? "Saving developed tape" : "Save developed tape") {
+        Button {
           saveTape()
+        } label: {
+          Label(isSaving ? "Saving developed tape" : "Save developed tape",
+                systemImage: "square.and.arrow.down")
+            .frame(maxWidth: .infinity)
         }
         .buttonStyle(InstrumentButtonStyle(kind: .secondary))
         .disabled(isSaving)

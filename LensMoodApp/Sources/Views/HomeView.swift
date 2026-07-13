@@ -16,6 +16,7 @@ struct HomeView: View {
   @State private var showLibraryPicker = false
   @State private var heroPickedItem: PhotosPickerItem?
   @State private var heroPickError: String?
+  @State private var carouselIndex = 0
 
   private let columns = [
     GridItem(.flexible(), spacing: 12),
@@ -145,6 +146,23 @@ struct HomeView: View {
         }
         .padding(.horizontal, 4)
         .padding(.vertical, 16)
+        .background(
+          GeometryReader { g in
+            Color.clear.preference(
+              key: CarouselOffsetKey.self,
+              value: -g.frame(in: .named("carousel")).minX
+            )
+          }
+        )
+      }
+      .coordinateSpace(name: "carousel")
+      .onPreferenceChange(CarouselOffsetKey.self) { offset in
+        // 144pt card + 14pt gap; tick the haptic as each card passes center
+        let index = max(0, min(Stock.all.count - 1, Int((offset / 158).rounded())))
+        if index != carouselIndex {
+          carouselIndex = index
+          UISelectionFeedbackGenerator().selectionChanged()
+        }
       }
       // the cards slide under a soft edge with a chevron — more to the right
       .overlay(alignment: .trailing) {
@@ -162,14 +180,16 @@ struct HomeView: View {
         .allowsHitTesting(false)
       }
 
-      // explicit swipe cue
-      HStack(spacing: 6) {
-        Image(systemName: "hand.draw").font(.system(size: 10, weight: .semibold))
-        Text("SWIPE FOR \(Stock.all.count) LOOKS")
-          .font(.system(size: 9, weight: .bold, design: .monospaced)).tracking(1)
-        Image(systemName: "arrow.right").font(.system(size: 9, weight: .bold))
+      // page dots — the scroll position, one dot per camera
+      HStack(spacing: 5) {
+        ForEach(0..<Stock.all.count, id: \.self) { i in
+          Capsule()
+            .fill(i == carouselIndex ? Theme.accent : Theme.hairline)
+            .frame(width: i == carouselIndex ? 14 : 5, height: 5)
+            .animation(.spring(response: 0.3, dampingFraction: 0.8), value: carouselIndex)
+        }
       }
-      .foregroundStyle(Theme.fog)
+      .frame(maxWidth: .infinity)
     }
     .padding(.top, 4)
   }
@@ -304,6 +324,13 @@ enum StyleCategory: CaseIterable, Hashable {
     let wanted = ids
     return stocks.filter { wanted.contains($0.id) }
   }
+}
+
+/// reports how far the carousel strip has scrolled, so the page dots and the
+/// per-card haptic tick can follow the finger
+private struct CarouselOffsetKey: PreferenceKey {
+  static var defaultValue: CGFloat = 0
+  static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = nextValue() }
 }
 
 /// CarouselDepth — the coverflow scroll cue. As a card scrolls toward either
