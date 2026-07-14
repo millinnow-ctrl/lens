@@ -13,6 +13,25 @@ struct StoredAsset: Codable {
   let stockID: String
   let decisions: [String]
   let createdAt: Date
+  let favorite: Bool
+
+  init(id: UUID, stockID: String, decisions: [String], createdAt: Date, favorite: Bool) {
+    self.id = id
+    self.stockID = stockID
+    self.decisions = decisions
+    self.createdAt = createdAt
+    self.favorite = favorite
+  }
+
+  // backward-compatible: index files written before favorites lack the key
+  init(from decoder: Decoder) throws {
+    let c = try decoder.container(keyedBy: CodingKeys.self)
+    id = try c.decode(UUID.self, forKey: .id)
+    stockID = try c.decode(String.self, forKey: .stockID)
+    decisions = try c.decode([String].self, forKey: .decisions)
+    createdAt = try c.decode(Date.self, forKey: .createdAt)
+    favorite = try c.decodeIfPresent(Bool.self, forKey: .favorite) ?? false
+  }
 }
 
 enum LibraryStore {
@@ -63,7 +82,8 @@ enum LibraryStore {
           source: image,
           stock: Stock.find(entry.stockID),
           decisions: entry.decisions,
-          createdAt: entry.createdAt
+          createdAt: entry.createdAt,
+          favorite: entry.favorite
         )
       }
   }
@@ -78,9 +98,22 @@ enum LibraryStore {
       id: asset.id,
       stockID: asset.stock.id,
       decisions: asset.decisions,
-      createdAt: asset.createdAt
+      createdAt: asset.createdAt,
+      favorite: asset.favorite
     ))
     writeIndex(index)
+  }
+
+  /// Flip a stored asset's favorite flag in place (no image rewrite).
+  static func setFavorite(id: UUID, favorite: Bool) {
+    let updated = loadIndex().map { entry -> StoredAsset in
+      guard entry.id == id else { return entry }
+      return StoredAsset(
+        id: entry.id, stockID: entry.stockID, decisions: entry.decisions,
+        createdAt: entry.createdAt, favorite: favorite
+      )
+    }
+    writeIndex(updated)
   }
 
   static func delete(id: UUID) {

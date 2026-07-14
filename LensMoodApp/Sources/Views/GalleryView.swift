@@ -31,10 +31,21 @@ struct GalleryView: View {
                           .resizable()
                           .scaledToFill()
                       }
+                      .overlay(alignment: .topTrailing) {
+                        if asset.favorite {
+                          Image(systemName: "heart.fill")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(5)
+                            .background(.black.opacity(0.28), in: Circle())
+                            .padding(6)
+                        }
+                      }
                       .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                       .oceanCardShadow()
                   }
                   .buttonStyle(.plain)
+                  .accessibilityLabel("\(asset.stock.name)\(asset.favorite ? ", favorite" : "")")
                 }
               }
             }
@@ -81,6 +92,11 @@ private struct GalleryDetailView: View {
   @State private var saveConfirmation = false
   @State private var errorMessage: String?
 
+  /// live favorite state (the passed asset is a snapshot; the model is truth)
+  private var isFavorite: Bool {
+    model.library.first(where: { $0.id == asset.id })?.favorite ?? asset.favorite
+  }
+
   var body: some View {
     NavigationStack {
       ScrollView {
@@ -126,6 +142,15 @@ private struct GalleryDetailView: View {
       .navigationTitle("Frame")
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
+        ToolbarItem(placement: .topBarLeading) {
+          Button {
+            model.toggleFavorite(id: asset.id)
+          } label: {
+            Image(systemName: isFavorite ? "heart.fill" : "heart")
+              .foregroundStyle(isFavorite ? Color(hex: "#E1251B") : Theme.inkSoft)
+          }
+          .accessibilityLabel(isFavorite ? "Remove favorite" : "Add favorite")
+        }
         ToolbarItem(placement: .confirmationAction) {
           Button("Done") { dismiss() }
         }

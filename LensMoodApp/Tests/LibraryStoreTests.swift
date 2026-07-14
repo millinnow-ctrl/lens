@@ -80,6 +80,16 @@ final class LibraryStoreTests: XCTestCase {
     XCTAssertEqual(LibraryStore.load().map(\.id), [keep.id])
   }
 
+  func testFavoriteFlagPersistsAndToggles() {
+    let a = asset()
+    LibraryStore.persist(a)
+    XCTAssertEqual(LibraryStore.load().first?.favorite, false)
+
+    LibraryStore.setFavorite(id: a.id, favorite: true)
+    XCTAssertEqual(LibraryStore.load().first?.favorite, true)
+    XCTAssertEqual(LibraryStore.loadIndex().count, 1, "toggling must not duplicate the entry")
+  }
+
   func testStoredFrameIsDownsizedToBound() {
     // a frame larger than the 2048 cap must come back within bounds
     let big = plate(.red, size: CGSize(width: 4000, height: 3000))

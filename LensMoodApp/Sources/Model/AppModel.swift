@@ -16,6 +16,7 @@ struct DevelopedAsset: Identifiable {
   let stock: Stock
   let decisions: [String]
   let createdAt: Date
+  var favorite: Bool
 
   init(
     id: UUID = UUID(),
@@ -23,7 +24,8 @@ struct DevelopedAsset: Identifiable {
     source: UIImage,
     stock: Stock,
     decisions: [String],
-    createdAt: Date = Date()
+    createdAt: Date = Date(),
+    favorite: Bool = false
   ) {
     self.id = id
     self.image = image
@@ -31,6 +33,7 @@ struct DevelopedAsset: Identifiable {
     self.stock = stock
     self.decisions = decisions
     self.createdAt = createdAt
+    self.favorite = favorite
   }
 }
 
@@ -72,11 +75,22 @@ final class AppModel: ObservableObject {
       "polaroid", "a24-still", "film-noir", "gq-editorial", "pastel-cinema",
       "super-8", "y2k-digicam",
     ]
-    for id in picks {
+    for (offset, id) in picks.enumerated() {
       guard let stock = Stock.all.first(where: { $0.id == id }),
             let image = BundleMedia.image("style-\(id)") else { continue }
-      library.append(DevelopedAsset(image: image, source: image, stock: stock, decisions: []))
+      // seed a couple of favorites so the Library shows the heart affordance
+      library.append(DevelopedAsset(
+        image: image, source: image, stock: stock, decisions: [], favorite: offset < 2
+      ))
     }
+  }
+
+  /// flip a developed frame's favorite flag and persist it (index-only write)
+  func toggleFavorite(id: UUID) {
+    guard let index = library.firstIndex(where: { $0.id == id }) else { return }
+    library[index].favorite.toggle()
+    LibraryStore.setFavorite(id: id, favorite: library[index].favorite)
+    UISelectionFeedbackGenerator().selectionChanged()
   }
 
   func add(_ asset: DevelopedAsset) {
