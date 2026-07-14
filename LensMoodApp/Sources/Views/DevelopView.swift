@@ -52,6 +52,8 @@ struct DevelopView: View {
           if !decisions.isEmpty { decisionPanel }
         }
 
+        characterCard
+
       }
       .padding(Theme.pagePadding)
     }
@@ -150,6 +152,47 @@ struct DevelopView: View {
         .multilineTextAlignment(.center)
     }
     .frame(maxWidth: .infinity)
+  }
+
+  /// The look's structured identity (StyleDefinition) — tells the user *why*
+  /// this stock exists and what it's for, so 18 looks don't read as one filter
+  /// pack. Keyed by stock id; updates live as the StyleRail switches cameras.
+  private var characterCard: some View {
+    let def = StyleDefinition.forStock(id: currentStock.id)
+    return InstrumentPanel {
+      VStack(alignment: .leading, spacing: 9) {
+        HStack(spacing: 8) {
+          Image(systemName: def.isMonochrome ? "circle.righthalf.filled" : "camera.aperture")
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(Theme.accent)
+          Text(def.emotionalTone)
+            .font(.system(size: 15, weight: .bold))
+            .foregroundStyle(Theme.ink)
+        }
+        Text(def.cameraInspiration)
+          .font(.system(size: 13, weight: .medium))
+          .foregroundStyle(Theme.inkSoft)
+          .fixedSize(horizontal: false, vertical: true)
+        Text(def.palette)
+          .font(.system(size: 12))
+          .foregroundStyle(Theme.fog)
+          .fixedSize(horizontal: false, vertical: true)
+        if !def.suitableSubjects.isEmpty {
+          VStack(alignment: .leading, spacing: 3) {
+            TechnicalLabel(text: "Best for")
+            Text(def.suitableSubjects.joined(separator: "  ·  "))
+              .font(.system(size: 12, weight: .medium))
+              .foregroundStyle(Theme.inkSoft)
+              .fixedSize(horizontal: false, vertical: true)
+          }
+          .padding(.top, 1)
+        }
+      }
+      .padding(14)
+      .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel("\(currentStock.name). \(def.emotionalTone). Inspired by \(def.cameraInspiration). Best for \(def.suitableSubjects.joined(separator: ", ")).")
   }
 
   private var stage: some View {
