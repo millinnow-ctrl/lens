@@ -34,6 +34,9 @@ struct DevelopView: View {
   @State private var sharePresented = false
   @State private var saveConfirmation = false
   @State private var renderID = UUID()
+  /// Per-import session id so the preview cache never reuses one photo's render
+  /// for another. Reset whenever a new photograph is loaded.
+  @State private var photoKey = UUID()
   /// the library entry for the current photograph — switching cameras replaces
   /// it instead of flooding the Gallery with one near-duplicate per camera
   @State private var sessionAssetID: UUID?
@@ -394,6 +397,7 @@ struct DevelopView: View {
         }
         sourceImage = image
         sessionAssetID = nil   // a new photograph starts a new library entry
+        photoKey = UUID()      // new photo ⇒ fresh preview-cache scope
         develop(image)
       } catch {
         isDeveloping = false
@@ -411,43 +415,65 @@ struct DevelopView: View {
     let recipe = currentStock.recipe
     let seed = Double(currentStock.id.unicodeScalars.reduce(17) { ($0 * 31 + Int($1.value)) % 100_000 })
     let startedAt = CFAbsoluteTimeGetCurrent()
+    // Device-tier proxy size (replaces the hardcoded 2048 cap): smaller on
+    // constrained or thermally-throttled phones, larger on high-end ones.
+    let edge = DeviceCapability.current.previewMaxEdge
+    let cacheKey = PreviewCache.key(photo: photoKey, lens: currentStock.id, edge: edge, intensityPercent: 100)
+
+    // Instant path: this lens was already developed for this photo — restore it
+    // without re-running the whole pipeline.
+    if let cached = PreviewCache.shared.render(forKey: cacheKey) {
+      applyDeveloped(image: cached.image, decisions: cached.decisions, source: image)
+      return
+    }
 
     DispatchQueue.global(qos: .userInitiated).async {
       let result = Result {
         try FilmEngine.shared.develop(
           image,
           with: recipe,
-          maxPixelSize: 2048,
+          maxPixelSize: CGFloat(edge),
           seed: seed
         )
       }
       DispatchQueue.main.async {
         guard renderID == request else { return }
-        isDeveloping = false
         switch result {
         case .success(let render):
-          developedImage = render.image
+          PreviewCache.shared.insert(
+            CachedRender(image: render.image, decisions: render.decisions),
+            forKey: cacheKey
+          )
           Analytics.log(.developFinished(
             lookID: currentStock.id,
             ms: Int((CFAbsoluteTimeGetCurrent() - startedAt) * 1000)
           ))
-          decisions = render.decisions
-          previewMode = .developed
-          let asset = DevelopedAsset(
-            image: render.image,
-            source: image,
-            stock: currentStock,
-            decisions: render.decisions
-          )
-          if let previous = sessionAssetID { model.remove(id: previous) }
-          model.add(asset)
-          sessionAssetID = asset.id
-          UIImpactFeedbackGenerator(style: .light).impactOccurred()
+          applyDeveloped(image: render.image, decisions: render.decisions, source: image)
         case .failure(let error):
+          isDeveloping = false
           errorMessage = error.localizedDescription
         }
       }
     }
+  }
+
+  /// Commit a finished develop (from a fresh render or a cache hit) into editor
+  /// state and the library. Runs on the main thread.
+  private func applyDeveloped(image developed: UIImage, decisions newDecisions: [String], source: UIImage) {
+    isDeveloping = false
+    developedImage = developed
+    decisions = newDecisions
+    previewMode = .developed
+    let asset = DevelopedAsset(
+      image: developed,
+      source: source,
+      stock: currentStock,
+      decisions: newDecisions
+    )
+    if let previous = sessionAssetID { model.remove(id: previous) }
+    model.add(asset)
+    sessionAssetID = asset.id
+    UIImpactFeedbackGenerator(style: .light).impactOccurred()
   }
 
   private func save() {
@@ -458,8 +484,10 @@ struct DevelopView: View {
     let strength = intensity
     DispatchQueue.global(qos: .userInitiated).async {
       let result = Result { () -> UIImage in
-        // 4096 keeps peak memory safe on 2–3 GB devices (8192 risked jetsam)
-        let full = try FilmEngine.shared.develop(sourceImage, with: recipe, maxPixelSize: 4096, seed: seed).image
+        // Device-tier export cap (was a flat 4096): keeps peak memory under
+        // jetsam on 2–3 GB devices while allowing full 4096 on roomier ones.
+        let exportEdge = CGFloat(DeviceCapability.current.exportMaxEdge)
+        let full = try FilmEngine.shared.develop(sourceImage, with: recipe, maxPixelSize: exportEdge, seed: seed).image
         return blended(developed: full, over: sourceImage, intensity: strength)
       }
       DispatchQueue.main.async {
