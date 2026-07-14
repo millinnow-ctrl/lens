@@ -10,12 +10,28 @@ enum AppTab: Hashable {
 }
 
 struct DevelopedAsset: Identifiable {
-  let id = UUID()
+  let id: UUID
   let image: UIImage
   let source: UIImage
   let stock: Stock
   let decisions: [String]
-  let createdAt = Date()
+  let createdAt: Date
+
+  init(
+    id: UUID = UUID(),
+    image: UIImage,
+    source: UIImage,
+    stock: Stock,
+    decisions: [String],
+    createdAt: Date = Date()
+  ) {
+    self.id = id
+    self.image = image
+    self.source = source
+    self.stock = stock
+    self.decisions = decisions
+    self.createdAt = createdAt
+  }
 }
 
 @MainActor
@@ -38,7 +54,13 @@ final class AppModel: ObservableObject {
     // CI/screenshot only: seed a contact sheet so Library and Print Room show
     // their populated state. Never runs in a real user session (the env var is
     // set solely by the capture harness), so first-run stays genuinely empty.
-    if environment["LENSMOOD_DEMO"] == "1" { seedDemoLibrary() }
+    if environment["LENSMOOD_DEMO"] == "1" {
+      seedDemoLibrary()
+    } else {
+      // real sessions: restore the developed Library from disk so it survives
+      // relaunch (frames are stored downsized, so this is memory-bounded)
+      library = LibraryStore.load()
+    }
   }
 
   /// fill the session library with bundled sample frames (screenshot fixtures)
@@ -64,13 +86,18 @@ final class AppModel: ObservableObject {
     if library.count > 48 {
       library.removeLast(library.count - 48)
     }
+    // durability: persist the new frame, then drop any on-disk frames that fell
+    // off the capped roll
+    LibraryStore.persist(asset)
+    LibraryStore.prune(keeping: library.map(\.id))
   }
 
   func remove(_ asset: DevelopedAsset) {
-    library.removeAll { $0.id == asset.id }
+    remove(id: asset.id)
   }
 
   func remove(id: UUID) {
     library.removeAll { $0.id == id }
+    LibraryStore.delete(id: id)
   }
 }
