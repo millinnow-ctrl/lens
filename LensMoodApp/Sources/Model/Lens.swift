@@ -10,7 +10,7 @@ import Foundation
 ///   • `CameraRecipe`     — numeric engine behaviour (LUT, matrices, grain, optics)
 ///   • `StyleDefinition`  — the prose contract (palette, tone, guard-rails)
 /// `Lens` *composes* those by shared `id` and layers on the delivery / device /
-/// model / monetization metadata that the on-device-AI architecture needs.
+/// model / monetization metadata that the on-device intelligence layer needs.
 ///
 /// A Lens name must map to concrete photographic behaviour — never a marketing
 /// label alone — which is why `recipe` and `definition` are always reachable
