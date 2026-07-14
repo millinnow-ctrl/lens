@@ -108,11 +108,13 @@ final class FilmEngineTests: XCTestCase {
     "leica-street": 25.2,
     "tokyo-neon": 28.2,
     "super-8": 34.3,
-    "film-noir": 43.1,
+    // film-noir: now carries a restrained cool silver tone (moves it toward the
+    // reference's cool noir); tightened to the CI-measured value.
+    "film-noir": 20.0,
     // tintype: intentionally re-graded to a COOL orthochromatic wet-plate per
-    // owner direction, which diverges from the warm reference golden. Ceiling
-    // raised to accept the new look; will be tightened to the CI-measured MAE.
-    "tintype": 150.0,
+    // owner direction — diverges from the warm reference golden but the measured
+    // MAE (~17.8) is small; tightened to lock the new cool look as the baseline.
+    "tintype": 20.0,
   ]
 
   func testAllClassACamerasAgainstGoldenFixtures() throws {
