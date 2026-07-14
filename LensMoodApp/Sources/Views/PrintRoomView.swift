@@ -192,13 +192,14 @@ struct PrintRoomView: View {
   /// Reduce Motion: skip the long develop and present the finished print with a
   /// brief crossfade instead of the 2.2s emulsion clear.
   private func developIn() {
-    if reduceMotion {
-      printReveal = 0
-      withAnimation(.easeOut(duration: 0.35)) { printReveal = 1 }
-      return
-    }
+    let duration: Double = reduceMotion ? 0.35 : 2.2
     printReveal = 0
-    withAnimation(.easeOut(duration: 2.2)) { printReveal = 1 }
+    // a soft tap as the print starts developing, a gentle success as it settles
+    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+    withAnimation(.easeOut(duration: duration)) { printReveal = 1 }
+    DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
+      UINotificationFeedbackGenerator().notificationOccurred(.success)
+    }
   }
 
   private func savePrint() {
@@ -286,12 +287,26 @@ private struct InstantPrintComposition: View {
   }
 
   private func printBody(size: CGSize) -> some View {
-    VStack(spacing: 0) {
+    // phased chemistry: the emulsion clears first, THEN colour + contrast build
+    // in, so the photo emerges the way a real instant print develops. All phases
+    // resolve to the finished print at reveal == 1 (so the saved render is exact).
+    let clear = min(1, max(0, reveal / 0.45))              // milky clears over 0..0.45
+    let chem = min(1, max(0, (reveal - 0.2) / 0.8))        // colour builds over 0.2..1
+    let develSaturation = 0.28 + 0.72 * chem
+    let develContrast = 0.9 + 0.1 * chem
+    let develBrightness = -0.05 * (1 - chem)               // starts slightly dark, warms up
+    let settle = 0.985 + 0.015 * reveal                    // gentle settle to full size
+    let emergence = (1 - clear) * size.height * 0.035      // slides up into place
+
+    return VStack(spacing: 0) {
       Image(uiImage: asset.image)
         .resizable()
         .scaledToFill()
         .frame(width: size.width * 0.62, height: size.width * 0.62)
         .clipped()
+        .saturation(Double(develSaturation))
+        .contrast(Double(develContrast))
+        .brightness(Double(develBrightness))
         .padding(.top, size.width * 0.055)
       Spacer(minLength: size.width * 0.11)
     }
@@ -310,10 +325,11 @@ private struct InstantPrintComposition: View {
     // no printed branding — the print reads as a photograph you took,
     // not a labeled product (owner ruling)
     .overlay(
-      // develop-in ceremony: the image emerges from the milky emulsion
+      // develop-in ceremony: the image emerges from the milky emulsion, which
+      // clears in the first phase (before colour + contrast finish building)
       Rectangle()
         .fill(Color(hex: "#EDE7D8"))
-        .opacity(Double(1 - reveal))
+        .opacity(Double(1 - clear))
         .allowsHitTesting(false)
     )
     .overlay(Rectangle().stroke(Color.black.opacity(0.08), lineWidth: 1))
@@ -331,5 +347,8 @@ private struct InstantPrintComposition: View {
       x: size.width * 0.008,
       y: size.width * 0.018
     )
+    // subtle physical settle: slides up into place and settles to full size
+    .scaleEffect(settle)
+    .offset(y: emergence)
   }
 }
