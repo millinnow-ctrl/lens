@@ -347,6 +347,7 @@ struct DevelopView: View {
           .disabled(developedImage == nil || isSaving)
       }
       Button("Share developed photograph") {
+        Analytics.log(.photoShared)
         sharePresented = true
       }
       .buttonStyle(InstrumentButtonStyle(kind: .secondary))
@@ -409,6 +410,7 @@ struct DevelopView: View {
     decisions = []
     let recipe = currentStock.recipe
     let seed = Double(currentStock.id.unicodeScalars.reduce(17) { ($0 * 31 + Int($1.value)) % 100_000 })
+    let startedAt = CFAbsoluteTimeGetCurrent()
 
     DispatchQueue.global(qos: .userInitiated).async {
       let result = Result {
@@ -425,6 +427,10 @@ struct DevelopView: View {
         switch result {
         case .success(let render):
           developedImage = render.image
+          Analytics.log(.developFinished(
+            lookID: currentStock.id,
+            ms: Int((CFAbsoluteTimeGetCurrent() - startedAt) * 1000)
+          ))
           decisions = render.decisions
           previewMode = .developed
           let asset = DevelopedAsset(
@@ -464,6 +470,7 @@ struct DevelopView: View {
               try await PhotoLibraryWriter.save(image: fullResolution)
               isSaving = false
               saveConfirmation = true
+              Analytics.log(.photoSaved(lookID: currentStock.id))
               UINotificationFeedbackGenerator().notificationOccurred(.success)
             } catch {
               isSaving = false

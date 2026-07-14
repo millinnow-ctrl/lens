@@ -63,6 +63,7 @@ final class AppModel: ObservableObject {
       // real sessions: restore the developed Library from disk so it survives
       // relaunch (frames are stored downsized, so this is memory-bounded)
       library = LibraryStore.load()
+      Analytics.log(.appOpened)
     }
   }
 
@@ -90,6 +91,7 @@ final class AppModel: ObservableObject {
     guard let index = library.firstIndex(where: { $0.id == id }) else { return }
     library[index].favorite.toggle()
     LibraryStore.setFavorite(id: id, favorite: library[index].favorite)
+    Analytics.log(.favoriteToggled(on: library[index].favorite))
     UISelectionFeedbackGenerator().selectionChanged()
   }
 
