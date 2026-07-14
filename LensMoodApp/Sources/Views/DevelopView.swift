@@ -25,6 +25,9 @@ struct DevelopView: View {
   @State private var decisions: [String] = []
   @State private var previewMode: PreviewMode = .developed
   @State private var compareFraction: CGFloat = 0.5
+  /// look strength (0 = original, 1 = fully developed). Applied live in the
+  /// developed preview and at save/share; 1.0 keeps the full develop unchanged.
+  @State private var intensity: CGFloat = 1.0
   @State private var isDeveloping = false
   @State private var isSaving = false
   @State private var errorMessage: String?
@@ -42,6 +45,7 @@ struct DevelopView: View {
         stage
         styleRail
         previewControl
+        if developedImage != nil { strengthControl }
 
         if isDeveloping {
           developingState
@@ -73,7 +77,10 @@ struct DevelopView: View {
     }
     .sheet(isPresented: $sharePresented) {
       if let developedImage {
-        ActivitySheet(items: [developedImage])
+        let shareImage = sourceImage.map {
+          blended(developed: developedImage, over: $0, intensity: intensity)
+        } ?? developedImage
+        ActivitySheet(items: [shareImage])
       }
     }
     .alert("Saved to Photos", isPresented: $saveConfirmation) {
@@ -238,7 +245,11 @@ struct DevelopView: View {
         case .original:
           fittedImage(source)
         case .developed:
-          fittedImage(developed ?? source)
+          // strength blend: the developed frame over the original at `intensity`
+          fittedImage(source)
+          if let developed {
+            fittedImage(developed).opacity(Double(intensity))
+          }
         case .compare:
           fittedImage(source)
           if let developed {
@@ -286,6 +297,31 @@ struct DevelopView: View {
     .disabled(developedImage == nil)
     .accessibilityHint("Choose the original, developed, or split comparison")
   }
+
+  /// look strength — how far to carry the developed look over the original
+  private var strengthControl: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      HStack {
+        TechnicalLabel(text: "Strength")
+        Spacer()
+        Text("\(Int((intensity * 100).rounded()))%")
+          .font(.system(size: 12, weight: .semibold, design: .monospaced))
+          .foregroundStyle(Theme.inkSoft)
+      }
+      Slider(value: $intensity, in: 0...1) { editing in
+        if !editing { UISelectionFeedbackGenerator().selectionChanged() }
+      }
+      .tint(Theme.accent)
+      .onChange(of: intensity) { _ in
+        // adjusting strength always reads against the developed view
+        if previewMode != .developed { previewMode = .developed }
+      }
+    }
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel("Look strength")
+    .accessibilityValue("\(Int((intensity * 100).rounded())) percent")
+  }
+
 
   private var developingState: some View {
     VStack(alignment: .leading, spacing: 8) {
@@ -413,10 +449,12 @@ struct DevelopView: View {
     isSaving = true
     let recipe = currentStock.recipe
     let seed = Double(currentStock.id.unicodeScalars.reduce(17) { ($0 * 31 + Int($1.value)) % 100_000 })
+    let strength = intensity
     DispatchQueue.global(qos: .userInitiated).async {
-      let result = Result {
+      let result = Result { () -> UIImage in
         // 4096 keeps peak memory safe on 2–3 GB devices (8192 risked jetsam)
-        try FilmEngine.shared.develop(sourceImage, with: recipe, maxPixelSize: 4096, seed: seed).image
+        let full = try FilmEngine.shared.develop(sourceImage, with: recipe, maxPixelSize: 4096, seed: seed).image
+        return blended(developed: full, over: sourceImage, intensity: strength)
       }
       DispatchQueue.main.async {
         switch result {
@@ -438,6 +476,21 @@ struct DevelopView: View {
         }
       }
     }
+  }
+}
+
+/// Composite the developed frame over the original at `intensity`. Returns the
+/// developed frame untouched at full strength (preserves the exact full develop,
+/// so save/share at 100% and the parity path are byte-for-byte unchanged).
+private func blended(developed: UIImage, over base: UIImage, intensity: CGFloat) -> UIImage {
+  guard intensity < 0.999 else { return developed }
+  let size = developed.size
+  let format = UIGraphicsImageRendererFormat.default()
+  format.scale = developed.scale
+  format.opaque = true
+  return UIGraphicsImageRenderer(size: size, format: format).image { _ in
+    base.draw(in: CGRect(origin: .zero, size: size))
+    developed.draw(in: CGRect(origin: .zero, size: size), blendMode: .normal, alpha: intensity)
   }
 }
 
