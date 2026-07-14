@@ -232,8 +232,11 @@ struct CaptureView: View {
           Text(z == 1 ? "1×" : "\(Int(z))")
             .font(.system(size: 13, weight: .semibold, design: .monospaced))
             .foregroundStyle(on ? CameraTheme.gold : CameraTheme.dim)
-            .frame(width: 40, height: 32)
+            .frame(width: 44, height: 40)
+            .contentShape(Rectangle())
         }.buttonStyle(.plain)
+        .accessibilityLabel(z == 1 ? "1× zoom" : "\(Int(z))× zoom")
+        .accessibilityAddTraits(on ? .isSelected : [])
       }
     }
     .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
@@ -248,8 +251,11 @@ struct CaptureView: View {
           Text(manual ? "MF" : "AF")
             .font(.system(size: 13, weight: .semibold, design: .monospaced))
             .foregroundStyle(on ? CameraTheme.gold : CameraTheme.dim)
-            .frame(width: 40, height: 32)
+            .frame(width: 44, height: 40)
+            .contentShape(Rectangle())
         }.buttonStyle(.plain)
+        .accessibilityLabel(manual ? "Manual focus" : "Autofocus")
+        .accessibilityAddTraits(on ? .isSelected : [])
       }
     }
     .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
@@ -269,9 +275,13 @@ struct CaptureView: View {
           Image(systemName: "grid")
             .font(.system(size: 15))
             .foregroundStyle(showGrid ? CameraTheme.gold : CameraTheme.dim)
-            .frame(width: 34, height: 34)
-            .overlay(RoundedRectangle(cornerRadius: 9).stroke(showGrid ? CameraTheme.gold : CameraTheme.line, lineWidth: 1))
+            .frame(width: 40, height: 40)
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(showGrid ? CameraTheme.gold : CameraTheme.line, lineWidth: 1))
+            .frame(width: 44, height: 44)
+            .contentShape(Rectangle())
         }.buttonStyle(.plain)
+        .accessibilityLabel("Composition grid")
+        .accessibilityAddTraits(showGrid ? .isSelected : [])
       }
       .padding(.horizontal, 12).padding(.vertical, 10)
       .background(CameraTheme.panel)
@@ -396,7 +406,7 @@ struct CaptureView: View {
             Text("LensMood").font(.spaceMono(13, bold: true))
           }
           .foregroundStyle(CameraTheme.text)
-          .padding(.horizontal, 14).frame(height: 38)
+          .padding(.horizontal, 14).frame(height: 44)
           .background(.regularMaterial, in: Capsule())
           .overlay(Capsule().stroke(Color.white.opacity(0.5), lineWidth: 1))
           .shadow(color: .black.opacity(0.12), radius: 6, y: 2)

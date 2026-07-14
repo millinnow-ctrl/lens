@@ -72,7 +72,7 @@ private struct OceanDock: View {
       ZStack {
         Capsule()
           .fill(Theme.brandFill)
-          .frame(width: 62, height: 42)
+          .frame(width: 62, height: 44)
           .shadow(color: Theme.clayDeep.opacity(on ? 0.45 : 0.3), radius: 8, y: 4)
         Image(systemName: "camera.fill")
           .font(.system(size: 19, weight: .semibold))
@@ -102,9 +102,10 @@ private struct OceanDock: View {
       .foregroundStyle(on ? Theme.accent : Theme.fog)
       .padding(.horizontal, 6)
       .padding(.vertical, 6)
-      .frame(maxWidth: .infinity)
+      .frame(maxWidth: .infinity, minHeight: 44)
       .background(on ? AnyShapeStyle(Theme.paper) : AnyShapeStyle(Color.clear))
       .clipShape(Capsule())
+      .contentShape(Capsule())
     }
     .buttonStyle(.plain)
     .accessibilityLabel(label)

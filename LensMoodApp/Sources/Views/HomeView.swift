@@ -341,16 +341,20 @@ private struct CarouselOffsetKey: PreferenceKey {
 /// interactive scroll transition; on iOS 16 the deep shadow + edge fade + the
 /// peeking next card still signal scrollability.
 private struct CarouselDepth: ViewModifier {
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
   func body(content: Content) -> some View {
+    // Reduce Motion: drop the 3D coverflow tilt; keep a gentle scale/opacity
+    // falloff so depth still reads without vestibular-triggering rotation.
     if #available(iOS 17.0, *) {
       content.scrollTransition(.interactive, axis: .horizontal) { view, phase in
         view
           .rotation3DEffect(
-            .degrees(phase.value * -34),
+            .degrees(reduceMotion ? 0 : phase.value * -34),
             axis: (x: 0, y: 1, z: 0),
             perspective: 0.7
           )
-          .scaleEffect(phase.isIdentity ? 1 : 0.86)
+          .scaleEffect(phase.isIdentity ? 1 : (reduceMotion ? 0.94 : 0.86))
           .opacity(phase.isIdentity ? 1 : 0.72)
       }
     } else {
@@ -501,6 +505,7 @@ struct HeroCard: View {
 
   private static let words = ["mood.", "look.", "texture.", "glow."]
   @State private var word = 0
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   var body: some View {
     VStack(spacing: 0) {
@@ -552,19 +557,29 @@ struct HeroCard: View {
         .padding(12)
 
         VStack(alignment: .leading, spacing: 6) {
-          HStack(alignment: .firstTextBaseline, spacing: 0) {
-            Text("Every photo has a ")
+          // two deliberate lines: "Every photo" / "has a {word}" — keeps the
+          // animated word anchored to line two instead of wrapping up to line one
+          VStack(alignment: .leading, spacing: -2) {
+            Text("Every photo")
               .font(.system(size: 30, weight: .heavy))
-            Text(Self.words[word])
-              .font(.system(size: 30, weight: .heavy, design: .serif))
-              .italic()
-              .foregroundStyle(Color(hex: "#FFD9A0"))
-              .id(word)
-              .transition(.asymmetric(
-                insertion: .move(edge: .bottom).combined(with: .opacity),
-                removal: .move(edge: .top).combined(with: .opacity)
-              ))
+            HStack(alignment: .firstTextBaseline, spacing: 0) {
+              Text("has a ")
+                .font(.system(size: 30, weight: .heavy))
+              Text(Self.words[word])
+                .font(.system(size: 30, weight: .heavy, design: .serif))
+                .italic()
+                .foregroundStyle(Color(hex: "#FFD9A0"))
+                .id(word)
+                .transition(reduceMotion
+                  ? .opacity
+                  : .asymmetric(
+                      insertion: .move(edge: .bottom).combined(with: .opacity),
+                      removal: .move(edge: .top).combined(with: .opacity)
+                    ))
+            }
           }
+          .lineLimit(1)
+          .minimumScaleFactor(0.7)
           .foregroundStyle(.white)
           .shadow(color: .black.opacity(0.5), radius: 7, y: 1)
 

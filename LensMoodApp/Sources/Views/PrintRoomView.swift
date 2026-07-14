@@ -60,6 +60,7 @@ struct PrintRoomView: View {
   @State private var isSaving = false
   @State private var errorMessage: String?
   @State private var printReveal: CGFloat = 1
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   /// a photo added here wins; otherwise the latest developed frame prints
   private var selected: DevelopedAsset? {
@@ -187,8 +188,15 @@ struct PrintRoomView: View {
     }
   }
 
-  /// the print-develop ceremony: each new print starts milky and clears
+  /// the print-develop ceremony: each new print starts milky and clears.
+  /// Reduce Motion: skip the long develop and present the finished print with a
+  /// brief crossfade instead of the 2.2s emulsion clear.
   private func developIn() {
+    if reduceMotion {
+      printReveal = 0
+      withAnimation(.easeOut(duration: 0.35)) { printReveal = 1 }
+      return
+    }
     printReveal = 0
     withAnimation(.easeOut(duration: 2.2)) { printReveal = 1 }
   }

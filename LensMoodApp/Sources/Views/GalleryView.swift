@@ -43,7 +43,7 @@ struct GalleryView: View {
           .background(Theme.paper)
         }
       }
-      .navigationTitle("Gallery")
+      .navigationTitle("Library")
       .navigationBarTitleDisplayMode(.inline)
       .sheet(item: $selected) { asset in
         GalleryDetailView(asset: asset)
