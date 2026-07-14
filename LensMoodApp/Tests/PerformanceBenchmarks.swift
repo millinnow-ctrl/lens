@@ -46,7 +46,7 @@ final class PerformanceBenchmarks: XCTestCase {
     _ = try? engine.develop(image, with: recipe, maxPixelSize: 1024).image
 
     let before = MemoryProbe.footprintMB()
-    measure(options: lowIterationOptions()) {
+    measure(metrics: [XCTClockMetric()], options: lowIterationOptions()) {
       _ = try? engine.develop(image, with: recipe, maxPixelSize: 1024).image
     }
     let after = MemoryProbe.footprintMB()
