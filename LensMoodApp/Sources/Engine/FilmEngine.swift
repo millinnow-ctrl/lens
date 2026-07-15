@@ -380,11 +380,23 @@ final class FilmEngine {
     ])
   }
 
-  private func adaptiveExposure(for scene: SceneProfile, recipe: CameraRecipe) -> Double {
+  // internal for direct unit testing of the R63 night-lift rule
+  func adaptiveExposure(for scene: SceneProfile, recipe: CameraRecipe) -> Double {
     guard recipe.engineClass == .adaptive else { return 0 }
     let target = scene.isLowKey ? 0.42 : 0.50
-    let correction = log2(max(0.08, target) / max(0.08, scene.medianLuminance))
-    return correction.clamped(to: -0.85...0.85) * recipe.adaptiveExposure
+    var correction = log2(max(0.08, target) / max(0.08, scene.medianLuminance))
+      .clamped(to: -0.85...0.85)
+    // R63: a flash camera exposes for the SUBJECT — it cannot lift a night sky
+    // it never reached. The night-evidence review showed flash stocks fogging
+    // dark skies toward the midtone target; cap the upward pull (AFTER the
+    // clamp, or deep-night corrections saturate the clamp and the cap
+    // vanishes) so the far field stays dark and the flash-falloff physics
+    // reads true. Face protection + the falloff's subject lift still expose
+    // the people.
+    if recipe.flashPhysics > 0.001, scene.key < 0.30, correction > 0 {
+      correction *= 0.35
+    }
+    return correction * recipe.adaptiveExposure
   }
 
   private func applyExposure(_ image: CIImage, ev: Double) -> CIImage {

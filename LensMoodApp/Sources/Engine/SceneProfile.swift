@@ -47,6 +47,11 @@ struct SceneProfile: Equatable {
   let sat: Double
   /// up to 5 detected light sources, largest energy first
   let lights: [LightSource]
+  /// R63 (Swift-only, additive): saturated colored emitters — blue/red neon —
+  /// whose luma never crosses the specular knee, detected by peak channel
+  /// energy. NOT part of the reference meter; the light-intelligence passes
+  /// consume `lights + auxLights`.
+  let auxLights: [LightSource]
   /// mean luminance under the face ellipse, when a face was found
   let faceLum: Double?
 
@@ -79,6 +84,7 @@ struct SceneProfile: Equatable {
     illum: [1, 1, 1],
     sat: 0.35,
     lights: [],
+    auxLights: [],
     faceLum: nil,
     meanLuminance: 0.5,
     medianLuminance: 0.5,

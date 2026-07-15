@@ -356,6 +356,88 @@ final class SceneAnalyzer {
       }
     }
 
+    /* ---- pass 2b (R63, Swift-only addition): chroma lights ----
+       Saturated colored emitters (blue/red neon) whose LUMA never crosses the
+       specular knee — pass 2 is blind to them (a blazing pure-blue sign has
+       luma ≈ 0.11·B). Same flood-fill structure, thresholded on peak channel
+       energy + saturation. Additive `auxLights` field: the reference meter's
+       `lights` stays verbatim for the scene-meter parity suite. */
+    var auxLights: [LightSource] = []
+    do {
+      var peak = [Double](repeating: 0, count: n)
+      var sat = [Double](repeating: 0, count: n)
+      for i in 0..<n {
+        let r = Double(px[i * 4]) / 255
+        let g = Double(px[i * 4 + 1]) / 255
+        let b = Double(px[i * 4 + 2]) / 255
+        let mx = max(r, max(g, b))
+        let mn = min(r, min(g, b))
+        peak[i] = mx
+        sat[i] = mx > 1e-4 ? (mx - mn) / mx : 0
+      }
+      let luT = max(0.9, 0.98 * p99) // pass-2 knee: exclude what it already caught
+      var hot = [Bool](repeating: false, count: n)
+      var hotCount = 0
+      for i in 0..<n where peak[i] >= 0.72 && sat[i] > 0.35 && Double(lum[i]) < luT {
+        hot[i] = true
+        hotCount += 1
+      }
+      // ambient guard: a saturated dusk sky is color, not a light source
+      if hotCount > 0, Double(hotCount) < Double(n) * 0.12 {
+        struct CBlob { var mass = 0.0; var sx = 0.0; var sy = 0.0; var count = 0
+                       var pk = 0.0; var tr = 0.0; var tg = 0.0; var tb = 0.0 }
+        var label = [Int32](repeating: -1, count: n)
+        var blobs: [CBlob] = []
+        var stack: [Int] = []
+        for i in 0..<n {
+          if !hot[i] || label[i] != -1 { continue }
+          let id = Int32(blobs.count)
+          var blob = CBlob()
+          stack.removeAll(keepingCapacity: true)
+          stack.append(i)
+          label[i] = id
+          while let j = stack.popLast() {
+            let jx = j % w
+            let jy = j / w
+            blob.mass += peak[j] - 0.72
+            if peak[j] > blob.pk { blob.pk = peak[j] }
+            blob.sx += Double(jx); blob.sy += Double(jy); blob.count += 1
+            blob.tr += Double(px[j * 4]); blob.tg += Double(px[j * 4 + 1]); blob.tb += Double(px[j * 4 + 2])
+            if jx > 0, label[j - 1] == -1, hot[j - 1] { label[j - 1] = id; stack.append(j - 1) }
+            if jx < w - 1, label[j + 1] == -1, hot[j + 1] { label[j + 1] = id; stack.append(j + 1) }
+            if jy > 0, label[j - w] == -1, hot[j - w] { label[j - w] = id; stack.append(j - w) }
+            if jy < h - 1, label[j + w] == -1, hot[j + w] { label[j + w] = id; stack.append(j + w) }
+          }
+          blobs.append(blob)
+        }
+        auxLights = blobs
+          .filter { $0.count >= 2 }
+          .sorted { $0.mass > $1.mass }
+          .prefix(5)
+          .compactMap { blob in
+            let bx = blob.sx / Double(blob.count)
+            let by = blob.sy / Double(blob.count)
+            // skip anything pass 2 already owns (within 3 thumb px)
+            for known in lights {
+              let dx = bx - known.x * Double(w)
+              let dy = by - known.y * Double(h)
+              if dx * dx + dy * dy < 9 { return nil }
+            }
+            let cnt = Double(blob.count)
+            var tint = [blob.tr / cnt / 255, blob.tg / cnt / 255, blob.tb / cnt / 255]
+            let m = tint.max() ?? 1
+            if m > 1e-4 { tint = tint.map { $0 / m } } // the emitter IS the color
+            return LightSource(
+              x: bx / Double(w),
+              y: by / Double(h),
+              r: (cnt / .pi).squareRoot() / Double(max(w, h)),
+              intensity: min(1, (blob.pk - 0.72) / 0.28),
+              tint: tint
+            )
+          }
+      }
+    }
+
     /* ---- pass 3: face luminance under the focal ellipse ---- */
     var faceLum: Double? = nil
     if let focal {
@@ -393,6 +475,7 @@ final class SceneAnalyzer {
       illum: illum,
       sat: Double(satCnt) > Double(n) * 0.05 ? satSum / Double(satCnt) : 0.35,
       lights: lights,
+      auxLights: auxLights,
       faceLum: faceLum,
       meanLuminance: legacy.meanLuminance,
       medianLuminance: legacy.medianLuminance,

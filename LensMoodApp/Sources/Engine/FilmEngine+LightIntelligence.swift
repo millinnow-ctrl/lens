@@ -204,7 +204,9 @@ extension FilmEngine {
   /// colored ones. Internal so decision notes use the same gate.
   func emissiveLights(in scene: SceneProfile) -> [LightSource] {
     guard scene.key < 0.35 else { return [] }
-    return scene.lights.filter { light in
+    // lights = the meter's specular-knee sources; auxLights = R63 chroma pass
+    // (saturated colored emitters like blue neon that luma detection misses)
+    return (scene.lights + scene.auxLights).filter { light in
       guard light.tint.count == 3 else { return false }
       let mx = light.tint.max() ?? 0
       let mn = light.tint.min() ?? 0
@@ -234,7 +236,8 @@ extension FilmEngine {
     subject: SubjectAnalysis,
     amount: Double
   ) -> CIImage {
-    guard amount > 0.001, scene.analyzed, let key = scene.lights.first,
+    guard amount > 0.001, scene.analyzed,
+          let key = scene.lights.first ?? scene.auxLights.first,
           let kernel = keyShadowKernel else { return image }
     let extent = image.extent
     let keyX = extent.minX + key.x * extent.width

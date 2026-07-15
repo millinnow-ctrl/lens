@@ -26,7 +26,10 @@ final class VisionService {
     let maskRequest: VNGeneratePersonSegmentationRequest?
     if includePersonMask {
       let request = VNGeneratePersonSegmentationRequest()
-      request.qualityLevel = .balanced
+      // R63 (owner-directed): the develop path is not real-time — spend the
+      // Neural Engine time on the accurate model so mask edges (hair, hands)
+      // hold up under the flash-falloff and subject-aware passes.
+      request.qualityLevel = .accurate
       request.outputPixelFormat = kCVPixelFormatType_OneComponent8
       requests.append(request)
       maskRequest = request

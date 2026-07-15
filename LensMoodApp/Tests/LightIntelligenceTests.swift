@@ -54,11 +54,12 @@ final class LightIntelligenceTests: XCTestCase {
     key: Double,
     p50: Double = 0.4,
     p99: Double = 0.9,
-    lights: [LightSource] = []
+    lights: [LightSource] = [],
+    auxLights: [LightSource] = []
   ) -> SceneProfile {
     SceneProfile(
       analyzed: true, key: key, p01: 0.02, p50: p50, p99: p99,
-      illum: [1, 1, 1], sat: 0.35, lights: lights, faceLum: nil,
+      illum: [1, 1, 1], sat: 0.35, lights: lights, auxLights: auxLights, faceLum: nil,
       meanLuminance: key, medianLuminance: p50, shadowFraction: 0.2,
       highlightFraction: 0.05, dynamicRange: 0.6, averageRed: 0.5,
       averageGreen: 0.5, averageBlue: 0.5, saturation: 0.3, warmth: 0,
@@ -234,6 +235,71 @@ final class LightIntelligenceTests: XCTestCase {
       XCTAssertEqual(recipe.keyShadow, 0, id)
       XCTAssertFalse(recipe.gainDrivenGrain, id)
     }
+  }
+
+  // MARK: R63 — chroma lights, night-lift cap, aux key fallback
+
+  func testChromaPassDetectsBlueNeonThatLumaMisses() throws {
+    // pure blue emitter: peak channel 1.0 but luma ≈ 0.11 — invisible to the
+    // reference meter's specular knee, found by the R63 chroma pass.
+    // (Found on a real photo: a blazing blue neon sign registered ZERO lights.)
+    let img = canvas({ g, size in
+      g.setFillColor(UIColor(white: 0.06, alpha: 1).cgColor)
+      g.fill(CGRect(origin: .zero, size: size))
+      g.setFillColor(UIColor(red: 0.1, green: 0.15, blue: 1.0, alpha: 1).cgColor)
+      g.fill(CGRect(x: 30, y: 40, width: 36, height: 100))
+    }, side: 256)
+    let profile = try SceneAnalyzer(context: CIContext()).analyze(img)
+    XCTAssertTrue(profile.lights.isEmpty, "luma pass must NOT see the blue emitter (documents the gap)")
+    XCTAssertFalse(profile.auxLights.isEmpty, "chroma pass must find it")
+    let light = try XCTUnwrap(profile.auxLights.first)
+    XCTAssertGreaterThan(light.tint[2], light.tint[0], "tint must be blue-dominant")
+    XCTAssertGreaterThan(light.tint[2], light.tint[1])
+    XCTAssertEqual(light.x, 48.0 / 256.0, accuracy: 0.1, "position near the sign")
+  }
+
+  func testChromaPassIgnoresAmbientColor() throws {
+    // a saturated blue frame (dusk sky) is color, not a light source
+    let img = canvas({ g, size in
+      g.setFillColor(UIColor(red: 0.15, green: 0.3, blue: 0.9, alpha: 1).cgColor)
+      g.fill(CGRect(origin: .zero, size: size))
+    }, side: 128)
+    let profile = try SceneAnalyzer(context: CIContext()).analyze(img)
+    XCTAssertTrue(profile.auxLights.isEmpty, "ambient guard must refuse full-frame color")
+  }
+
+  func testNightLiftCappedForFlashStocks() {
+    let engine = FilmEngine()
+    let darkScene = SceneProfile(
+      analyzed: true, key: 0.08, p01: 0.0, p50: 0.06, p99: 0.5,
+      illum: [1, 1, 1], sat: 0.3, lights: [], auxLights: [], faceLum: nil,
+      meanLuminance: 0.08, medianLuminance: 0.08, shadowFraction: 0.7,
+      highlightFraction: 0.02, dynamicRange: 0.5, averageRed: 0.1,
+      averageGreen: 0.1, averageBlue: 0.12, saturation: 0.3, warmth: 0,
+      isLowKey: true, isHighKey: false, isBacklit: false
+    )
+    let flash = engine.adaptiveExposure(for: darkScene, recipe: .recipe(for: "iphone-flash"))
+    let video = engine.adaptiveExposure(for: darkScene, recipe: .recipe(for: "camcorder-90s"))
+    // camcorder (no flashPhysics) lifts freely; the flash stock must not fog
+    // the night sky toward the midtone target
+    XCTAssertLessThan(flash, video * 0.75,
+                      "flash stocks must not lift a night sky the flash never reached")
+    XCTAssertGreaterThan(flash, 0, "the subject exposure still gets some help")
+  }
+
+  func testKeyShadowFallsBackToChromaLights() {
+    let img = canvas { g, size in
+      g.setFillColor(UIColor(white: 0.5, alpha: 1).cgColor)
+      g.fill(CGRect(origin: .zero, size: size))
+    }
+    let neon = LightSource(x: 0.08, y: 0.5, r: 0.04, intensity: 1, tint: [0.3, 0.4, 1])
+    let out = FilmEngine.shared.applyKeyShadow(
+      img, scene: scene(key: 0.1, lights: [], auxLights: [neon]),
+      subject: SubjectAnalysis(faces: [], personMask: nil), amount: 0.7
+    )
+    let left = meanLuma(out, region: CGRect(x: 0.04, y: 0.33, width: 0.20, height: 0.34))
+    let right = meanLuma(out, region: CGRect(x: 0.76, y: 0.33, width: 0.20, height: 0.34))
+    XCTAssertGreaterThan(left, right + 6, "a chroma light must key the noir direction too")
   }
 
   // MARK: R62 night physics
