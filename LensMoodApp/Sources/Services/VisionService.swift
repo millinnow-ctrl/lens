@@ -26,10 +26,12 @@ final class VisionService {
     let maskRequest: VNGeneratePersonSegmentationRequest?
     if includePersonMask {
       let request = VNGeneratePersonSegmentationRequest()
-      // R63 (owner-directed): the develop path is not real-time — spend the
-      // Neural Engine time on the accurate model so mask edges (hair, hands)
-      // hold up under the flash-falloff and subject-aware passes.
-      request.qualityLevel = .accurate
+      // R63 tried .accurate (owner accepts the Neural Engine time), but CI
+      // measured it NONDETERMINISTIC: the three render-twice-compare-bytes
+      // suites failed only on Vision-mask paths. Determinism (same photo →
+      // same develop, byte-for-byte) is a core engine guarantee, so .balanced
+      // stays until .accurate proves reproducible on real hardware.
+      request.qualityLevel = .balanced
       request.outputPixelFormat = kCVPixelFormatType_OneComponent8
       requests.append(request)
       maskRequest = request

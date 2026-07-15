@@ -410,9 +410,16 @@ final class SceneAnalyzer {
           }
           blobs.append(blob)
         }
-        auxLights = blobs
-          .filter { $0.count >= 2 }
-          .sorted { $0.mass > $1.mass }
+        auxLights = blobs.enumerated()
+          .filter { $0.element.count >= 2 }
+          // Swift's sort is not stable — tie-break on scan order like pass 2,
+          // or equal-mass blobs reorder run-to-run and break determinism
+          .sorted {
+            $0.element.mass == $1.element.mass
+              ? $0.offset < $1.offset
+              : $0.element.mass > $1.element.mass
+          }
+          .map(\.element)
           .prefix(5)
           .compactMap { blob in
             let bx = blob.sx / Double(blob.count)
