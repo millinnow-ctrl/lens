@@ -236,6 +236,76 @@ final class LightIntelligenceTests: XCTestCase {
     }
   }
 
+  // MARK: R62 night physics
+
+  func testNightReciprocityStarvesDarkScenesOnly() {
+    let img = canvas { g, size in
+      g.setFillColor(UIColor(white: 0.4, alpha: 1).cgColor)
+      g.fill(CGRect(origin: .zero, size: size))
+    }
+    let night = FilmEngine.shared.applyNightReciprocity(img, scene: scene(key: 0.06), amount: 1.0)
+    XCTAssertLessThan(meanLuma(night, region: CGRect(x: 0.2, y: 0.2, width: 0.6, height: 0.6)),
+                      meanLuma(img, region: CGRect(x: 0.2, y: 0.2, width: 0.6, height: 0.6)) - 20,
+                      "slow film must collapse in the dark")
+    let day = FilmEngine.shared.applyNightReciprocity(img, scene: scene(key: 0.5), amount: 1.0)
+    XCTAssertEqual(render(day), render(img), "daylight must be byte-identical (parity safety)")
+  }
+
+  func testCCDClipRacesHighlightsToWhite() {
+    let img = canvas { g, size in
+      g.setFillColor(UIColor(white: 0.9, alpha: 1).cgColor)
+      g.fill(CGRect(origin: .zero, size: size))
+    }
+    let out = FilmEngine.shared.applyCCDClip(img, amount: 1.0)
+    XCTAssertGreaterThan(meanLuma(out, region: CGRect(x: 0.2, y: 0.2, width: 0.6, height: 0.6)),
+                         meanLuma(img, region: CGRect(x: 0.2, y: 0.2, width: 0.6, height: 0.6)) + 6,
+                         "a 0.9 highlight must race toward clip on a CCD")
+  }
+
+  func testHighlightSmearIsVerticalAndDarkGateWorks() {
+    // hot white dot on dark gray: smear must bleed vertically, not horizontally.
+    // 256px canvas: the smear radius is 3.5% of the edge (~7.8px here), so the
+    // probe strips must sit immediately adjacent to the dot's edges.
+    let img = canvas({ g, size in
+      g.setFillColor(UIColor(white: 0.1, alpha: 1).cgColor)
+      g.fill(CGRect(origin: .zero, size: size))
+      g.setFillColor(UIColor.white.cgColor)
+      g.fill(CGRect(x: 116, y: 116, width: 24, height: 24))
+    }, side: 256)
+    let out = FilmEngine.shared.applyHighlightSmear(
+      img, scene: scene(key: 0.08), amount: 1.0, onlyInDark: false
+    )
+    // 12px strip just below the dot (CI y-up) vs 12px strip just to its right
+    let belowRegion = CGRect(x: 0.453, y: 0.398, width: 0.094, height: 0.047)
+    let sideRegion = CGRect(x: 0.555, y: 0.453, width: 0.047, height: 0.094)
+    let belowGain = meanLuma(out, region: belowRegion) - meanLuma(img, region: belowRegion)
+    let sideGain = meanLuma(out, region: sideRegion) - meanLuma(img, region: sideRegion)
+    XCTAssertGreaterThan(belowGain, sideGain + 2,
+                         "smear must run down the column, not sideways")
+
+    // dark-only variant is a byte-identical no-op in daylight
+    let day = FilmEngine.shared.applyHighlightSmear(
+      img, scene: scene(key: 0.5), amount: 1.0, onlyInDark: true
+    )
+    XCTAssertEqual(render(day), render(img))
+  }
+
+  func testR62RecipeGates() {
+    XCTAssertEqual(CameraRecipe.recipe(for: "super-8").nightReciprocity, 1.0)
+    XCTAssertEqual(CameraRecipe.recipe(for: "y2k-digicam").ccdClip, 1.0)
+    XCTAssertEqual(CameraRecipe.recipe(for: "y2k-digicam").highlightSmear, 0.6)
+    XCTAssertFalse(CameraRecipe.recipe(for: "y2k-digicam").highlightSmearDarkOnly)
+    XCTAssertEqual(CameraRecipe.recipe(for: "camcorder-90s").highlightSmear, 0.85)
+    XCTAssertTrue(CameraRecipe.recipe(for: "camcorder-90s").highlightSmearDarkOnly)
+    XCTAssertEqual(CameraRecipe.recipe(for: "photobooth").flashPhysics, 1.0, "booth curtain")
+    for id in ["leica-street", "kodachrome", "polaroid", "film-noir", "tokyo-neon", "tintype"] {
+      let recipe = CameraRecipe.recipe(for: id)
+      XCTAssertEqual(recipe.nightReciprocity, 0, id)
+      XCTAssertEqual(recipe.ccdClip, 0, id)
+      XCTAssertEqual(recipe.highlightSmear, 0, id)
+    }
+  }
+
   func testDeterminismOfNewPasses() throws {
     let source = UIGraphicsImageRenderer(size: CGSize(width: 80, height: 80)).image { ctx in
       UIColor(red: 0.2, green: 0.3, blue: 0.5, alpha: 1).setFill()

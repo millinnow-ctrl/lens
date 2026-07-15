@@ -40,6 +40,7 @@ final class FilmEngine {
   let flashSpecularKernel: CIColorKernel?
   let flashFalloffKernel: CIColorKernel?
   let keyShadowKernel: CIColorKernel?
+  let clipMaskKernel: CIColorKernel?
 
   init() {
     let sRGB = CGColorSpace(name: CGColorSpace.sRGB)!
@@ -185,6 +186,16 @@ final class FilmEngine {
         return vec4(clamp(pixel.rgb * gain, 0.0, 1.0), pixel.a);
       }
       """)
+    // R62 — clipped-highlight extract (colored): feeds the vertical CCD/tube
+    // smear so blown highlights bleed down the sensor column in their own hue.
+    clipMaskKernel = CIColorKernel(source: """
+      kernel vec4 lensMoodClipMask(__sample pixel, float t0, float t1) {
+        float lum = dot(pixel.rgb, vec3(0.299, 0.587, 0.114));
+        float t = clamp((lum - t0) / max(t1 - t0, 1e-4), 0.0, 1.0);
+        t = t * t * (3.0 - 2.0 * t);
+        return vec4(pixel.rgb * t, 1.0);
+      }
+      """)
   }
 
   func develop(
@@ -233,6 +244,13 @@ final class FilmEngine {
       }
     }
 
+    // R62: slow film starves in the dark — reciprocity failure hits the light
+    // BEFORE it reaches the emulsion (color core). Gated on scene darkness, so
+    // daylight scenes render byte-identically.
+    if recipe.nightReciprocity > 0.001 {
+      image = applyNightReciprocity(image, scene: scene, amount: recipe.nightReciprocity)
+    }
+
     let adaptiveEV = adaptiveExposure(for: scene, recipe: recipe)
     if recipe.engineClass == .staticLUT, let lutName = recipe.lutName {
       // The baked cube is the complete per-pixel color core. Applying the
@@ -262,6 +280,10 @@ final class FilmEngine {
       image = applyTone(image, recipe: recipe)
       image = applyAdaptiveColor(image, scene: scene, recipe: recipe)
     }
+    // R62: early-CCD sensors have no film shoulder — highlights race to clip.
+    if recipe.ccdClip > 0.001 {
+      image = applyCCDClip(image, amount: recipe.ccdClip)
+    }
 
     if let profile = recipe.referenceSpatial {
       image = applyReferenceAcutance(image, profile: profile)
@@ -290,6 +312,15 @@ final class FilmEngine {
       image = applySourceBloom(image, scene: scene, baseBloom: recipe.bloom, amount: recipe.sourceBloom)
     } else {
       image = applyBloom(image, amount: recipe.bloom)
+    }
+    // R62: clipped highlights bleed down the sensor column (CCD blooming /
+    // tube comet-tails), riding on top of the bloomed highlights.
+    if recipe.highlightSmear > 0.001 {
+      image = applyHighlightSmear(
+        image, scene: scene,
+        amount: recipe.highlightSmear,
+        onlyInDark: recipe.highlightSmearDarkOnly
+      )
     }
     if let profile = recipe.referenceSpatial {
       image = applyReferenceVignette(image, profile: profile)
@@ -715,6 +746,12 @@ final class FilmEngine {
     }
     if recipe.gainDrivenGrain {
       notes.append(scene.key < 0.25 ? "Gain noise rose with the dark" : "Gain kept low in the light")
+    }
+    if recipe.nightReciprocity > 0.001, scene.key < 0.30 {
+      notes.append("Slow film starved in the dark")
+    }
+    if recipe.highlightSmear > 0.001, scene.key < 0.30 {
+      notes.append("Hot highlights smeared down the frame")
     }
     // Directive §8: decision notes come from real analysis only. The static
     // per-camera vocabulary is intentionally NOT used as filler — an empty or

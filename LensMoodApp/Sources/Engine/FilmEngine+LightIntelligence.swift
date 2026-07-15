@@ -256,4 +256,82 @@ extension FilmEngine {
     let darkness = max(0, min(1, (0.45 - key) / 0.45))
     return 0.4 + 1.3 * pow(darkness, 1.1)
   }
+
+  // MARK: - Night reciprocity (super-8)
+
+  /// Slow emulsion cannot see in the dark. ISO-40 movie film at night is
+  /// starved: exposure collapses, shadows crush to color-starved black
+  /// (reciprocity failure) — instead of shipping the phone's full shadow
+  /// detail with a warm cast. Applied BEFORE the color core; strictly gated on
+  /// scene darkness so daylight renders (and the golden) are byte-identical.
+  func applyNightReciprocity(_ image: CIImage, scene: SceneProfile, amount: Double) -> CIImage {
+    guard amount > 0.001, scene.analyzed else { return image }
+    let darkness = max(0, min(1, (0.30 - scene.key) / 0.30))
+    guard darkness > 0.05 else { return image }
+    let extent = image.extent
+    return image
+      .applyingFilter("CIExposureAdjust", parameters: [
+        kCIInputEVKey: -2.0 * darkness * amount,
+      ])
+      .applyingFilter("CIGammaAdjust", parameters: [
+        "inputPower": 1.0 + 0.85 * darkness * amount,
+      ])
+      .applyingFilter("CIColorControls", parameters: [
+        kCIInputSaturationKey: 1.0 - 0.35 * darkness * amount,
+      ])
+      .cropped(to: extent)
+  }
+
+  // MARK: - CCD sensor behavior (y2k-digicam, camcorder-90s)
+
+  /// Early-CCD highlight response: no film shoulder — highlights race to full
+  /// clip. The opposite of a milky lift.
+  func applyCCDClip(_ image: CIImage, amount: Double) -> CIImage {
+    guard amount > 0.001 else { return image }
+    return image.applyingFilter("CIToneCurve", parameters: [
+      "inputPoint0": CIVector(x: 0, y: 0),
+      "inputPoint1": CIVector(x: 0.25, y: 0.23),
+      "inputPoint2": CIVector(x: 0.5, y: 0.52),
+      "inputPoint3": CIVector(x: 0.75, y: 0.85),
+      "inputPoint4": CIVector(x: 0.92, y: 1.0),
+    ]).cropped(to: image.extent)
+  }
+
+  /// CCD charge-overflow blooming / tube comet-tails: clipped highlights smear
+  /// VERTICALLY down the sensor column, carrying the highlight's own color.
+  /// `onlyInDark` models tube cameras whose smear shows at night gain; CCD
+  /// stills smear on hot speculars in any light (scaled up in darkness).
+  func applyHighlightSmear(
+    _ image: CIImage,
+    scene: SceneProfile,
+    amount: Double,
+    onlyInDark: Bool
+  ) -> CIImage {
+    guard amount > 0.001, let kernel = clipMaskKernel else { return image }
+    let darkness = max(0, min(1, (0.35 - scene.key) / 0.35))
+    if onlyInDark, darkness <= 0.05 { return image }
+    let strength = amount * (onlyInDark ? darkness : (0.45 + 0.55 * darkness))
+    guard strength > 0.02 else { return image }
+    let extent = image.extent
+    guard let clipped = kernel.apply(extent: extent, arguments: [image, 0.90, 0.985]) else {
+      return image
+    }
+    let radius = max(extent.width, extent.height) * 0.035 * strength
+    let smear = clipped
+      .clampedToExtent()
+      .applyingFilter("CIMotionBlur", parameters: [
+        kCIInputRadiusKey: radius,
+        kCIInputAngleKey: Double.pi / 2, // vertical: down the sensor column
+      ])
+      .cropped(to: extent)
+      .applyingFilter("CIColorMatrix", parameters: [
+        "inputRVector": CIVector(x: 0.55 * strength, y: 0, z: 0, w: 0),
+        "inputGVector": CIVector(x: 0, y: 0.55 * strength, z: 0, w: 0),
+        "inputBVector": CIVector(x: 0, y: 0, z: 0.55 * strength, w: 0),
+        "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 1),
+      ])
+    return smear.applyingFilter("CIScreenBlendMode", parameters: [
+      kCIInputBackgroundImageKey: image,
+    ]).cropped(to: extent)
+  }
 }
