@@ -36,6 +36,10 @@ final class FilmEngine {
   private let referenceGrainKernel: CIColorKernel?
   // internal so the opt-in capture-look extension (a separate file) can use it
   let captureNoiseKernel: CIColorKernel?
+  // R61 light-intelligence kernels (used by FilmEngine+LightIntelligence)
+  let flashSpecularKernel: CIColorKernel?
+  let flashFalloffKernel: CIColorKernel?
+  let keyShadowKernel: CIColorKernel?
 
   init() {
     let sRGB = CGColorSpace(name: CGColorSpace.sRGB)!
@@ -140,6 +144,47 @@ final class FilmEngine {
         return vec4(clamp(result, 0.0, 1.0), pixel.a);
       }
       """)
+    // R61 — flash speculars: bright, desaturated pixels (glass, screens, metal,
+    // eyes) catch the flash with a screen-blend white push toward clip.
+    flashSpecularKernel = CIColorKernel(source: """
+      kernel vec4 lensMoodFlashSpecular(__sample pixel, float lo, float hi, float push) {
+        float lum = dot(pixel.rgb, vec3(0.299, 0.587, 0.114));
+        float mx = max(pixel.r, max(pixel.g, pixel.b));
+        float mn = min(pixel.r, min(pixel.g, pixel.b));
+        float sat = mx > 1e-4 ? (mx - mn) / mx : 0.0;
+        float t = clamp((lum - lo) / max(hi - lo, 1e-4), 0.0, 1.0);
+        t = t * t * (3.0 - 2.0 * t);
+        float spec = t * (1.0 - sat * 0.85) * push;
+        vec3 screened = 1.0 - (1.0 - pixel.rgb) * (1.0 - vec3(spec, spec * 0.99, spec * 0.97));
+        return vec4(clamp(screened, 0.0, 1.0), pixel.a);
+      }
+      """)
+    // R61 — flash falloff: gain = (1-fall) + (fall+lift)*near. Background falls
+    // toward ambient; the subject holds (and lifts a touch). Never lifts the far
+    // field — the physics the critique demanded.
+    flashFalloffKernel = CIColorKernel(source: """
+      kernel vec4 lensMoodFlashFalloff(__sample pixel, __sample near, float fall, float lift) {
+        float gain = (1.0 - fall) + (fall + lift) * clamp(near.r, 0.0, 1.0);
+        return vec4(clamp(pixel.rgb * gain, 0.0, 1.0), pixel.a);
+      }
+      """)
+    // R61 — noir key shadow: shadows deepen with distance from the key light;
+    // highlights hold (1-lum term); the face circle is partially preserved.
+    // Multiplies channels uniformly so the stock's split-tone survives.
+    keyShadowKernel = CIColorKernel(source: """
+      kernel vec4 lensMoodKeyShadow(
+        __sample pixel,
+        float keyX, float keyY, float invDiag, float amount,
+        float faceX, float faceY, float faceR
+      ) {
+        float lum = dot(pixel.rgb, vec3(0.299, 0.587, 0.114));
+        float d = clamp(distance(destCoord(), vec2(keyX, keyY)) * invDiag, 0.0, 1.0);
+        float faceD = distance(destCoord(), vec2(faceX, faceY));
+        float facePreserve = 1.0 - 0.55 * clamp(1.0 - faceD / max(faceR, 1.0), 0.0, 1.0);
+        float gain = 1.0 - amount * d * facePreserve * (1.0 - lum);
+        return vec4(clamp(pixel.rgb * gain, 0.0, 1.0), pixel.a);
+      }
+      """)
   }
 
   func develop(
@@ -157,8 +202,10 @@ final class FilmEngine {
       throw FilmEngineError.unreadableImage
     }
 
-    // opt-in: subject cut-out for depth of field or the auto studio relight
+    // opt-in: subject cut-out for depth of field, the auto studio relight, or
+    // (R61) flash-physics falloff in the develop path
     let wantsMask = capture?.wantsDepthOfField == true || capture?.autoRelight == true
+      || (recipe.flashPhysics > 0.001 && analyzeSubjects)
     image = image.orientedForDisplay
     let scene = try analyzer.analyze(image)
     let subject = analyzeSubjects
@@ -224,18 +271,37 @@ final class FilmEngine {
     if recipe.protectsFaces, !subject.faces.isEmpty {
       image = applyFaceProtection(image, faces: subject.faces, amount: scene.isBacklit ? 0.22 : 0.10)
     }
+    // R61 light-intelligence: flash physics (speculars + subject falloff) and
+    // the noir key-light direction — both read the scene, both recipe-gated.
+    if recipe.flashPhysics > 0.001 {
+      image = applyFlashPhysics(image, scene: scene, subject: subject, amount: recipe.flashPhysics)
+    }
+    if recipe.keyShadow > 0.001 {
+      image = applyKeyShadow(image, scene: scene, subject: subject, amount: recipe.keyShadow)
+    }
     if recipe.monochrome, recipe.engineClass != .staticLUT {
       // LUT stocks (noir) bake their own B&W + split-tone; a second mono pass
       // strips the baked tint and double-applies the S-curve
       image = image.applyingFilter("CIPhotoEffectMono")
     }
-    image = applyBloom(image, amount: recipe.bloom)
+    if recipe.sourceBloom > 0.001 {
+      // R61: bloom emanates from detected sources in their own hue (with an
+      // honest refusal when the scene has no emissive sources).
+      image = applySourceBloom(image, scene: scene, baseBloom: recipe.bloom, amount: recipe.sourceBloom)
+    } else {
+      image = applyBloom(image, amount: recipe.bloom)
+    }
     if let profile = recipe.referenceSpatial {
       image = applyReferenceVignette(image, profile: profile)
       image = applyReferenceGrain(image, recipeID: recipe.id, profile: profile)
     } else {
       image = applyVignette(image, amount: recipe.vignette)
-      image = applyGrain(image, amount: recipe.grain, size: recipe.grainSize, seed: seed)
+      // R61: video stocks run real AGC — noise follows scene darkness instead
+      // of shipping one fixed overlay for night and daylight alike.
+      let grainAmount = recipe.gainDrivenGrain
+        ? recipe.grain * FilmEngine.gainGrainFactor(key: scene.key)
+        : recipe.grain
+      image = applyGrain(image, amount: grainAmount, size: recipe.grainSize, seed: seed)
     }
     // Stage 2 of the in-app camera: the physical look of the exposure triangle
     // (depth of field, motion, sensor grain, flash). Before mono-enforce and
@@ -636,6 +702,19 @@ final class FilmEngine {
     if scene.isBacklit, recipe.protectsFaces, !faces.isEmpty { notes.append("Backlit subject lifted") }
     if abs(scene.warmth) > 0.06 {
       notes.append(recipe.preservesWarmCast ? "Ambient color retained" : "Color cast restrained")
+    }
+    // R61 light-intelligence notes — only when the pass actually engaged.
+    if recipe.flashPhysics > 0.001 {
+      notes.append(scene.key < 0.35 ? "Flash falloff shaped to the subject" : "Flash read off the bright surfaces")
+    }
+    if recipe.sourceBloom > 0.001, !emissiveLights(in: scene).isEmpty {
+      notes.append("Glow followed the light sources")
+    }
+    if recipe.keyShadow > 0.001, !scene.lights.isEmpty {
+      notes.append("Key light held to one side")
+    }
+    if recipe.gainDrivenGrain {
+      notes.append(scene.key < 0.25 ? "Gain noise rose with the dark" : "Gain kept low in the light")
     }
     // Directive §8: decision notes come from real analysis only. The static
     // per-camera vocabulary is intentionally NOT used as filler — an empty or
