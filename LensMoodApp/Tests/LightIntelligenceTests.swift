@@ -10,7 +10,17 @@ import XCTest
 /// follows darkness. No golden fixtures — every assertion is self-contained.
 final class LightIntelligenceTests: XCTestCase {
 
-  private let context = CIContext(options: [.useSoftwareRenderer: false])
+  /// Same working/output space as FilmEngine's production context — the kernels'
+  /// luma thresholds are defined in sRGB-encoded values, so the test context
+  /// must match (a default linear-space context would mute every pass).
+  private let context: CIContext = {
+    let sRGB = CGColorSpace(name: CGColorSpace.sRGB)!
+    return CIContext(options: [
+      .workingColorSpace: sRGB,
+      .outputColorSpace: sRGB,
+      .useSoftwareRenderer: false,
+    ])
+  }()
 
   // MARK: helpers
 
@@ -21,7 +31,16 @@ final class LightIntelligenceTests: XCTestCase {
     return ImageMetrics.raster(cg)?.px
   }
 
-  private func meanLuma(_ image: CIImage, in rect: CGRect) -> Double {
+  /// Mean luma (0–255) inside a FRACTIONAL region of the image (x/y/w/h in
+  /// 0…1 of the extent, CI y-up) — robust to any renderer pixel scale.
+  private func meanLuma(_ image: CIImage, region: CGRect) -> Double {
+    let e = image.extent
+    let rect = CGRect(
+      x: e.minX + region.minX * e.width,
+      y: e.minY + region.minY * e.height,
+      width: region.width * e.width,
+      height: region.height * e.height
+    ).integral
     guard let cg = context.createCGImage(image, from: rect),
           let raster = ImageMetrics.raster(cg) else { return -1 }
     var sum = 0.0
@@ -49,7 +68,11 @@ final class LightIntelligenceTests: XCTestCase {
 
   private func canvas(_ draw: (CGContext, CGSize) -> Void, side: CGFloat = 96) -> CIImage {
     let size = CGSize(width: side, height: side)
-    let ui = UIGraphicsImageRenderer(size: size).image { ctx in
+    // scale 1: the simulator's 3× screen scale would silently triple the pixel
+    // extent and break every geometric expectation in these tests
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = 1
+    let ui = UIGraphicsImageRenderer(size: size, format: format).image { ctx in
       draw(ctx.cgContext, size)
     }
     return CIImage(image: ui)!
@@ -87,11 +110,11 @@ final class LightIntelligenceTests: XCTestCase {
       subject: SubjectAnalysis(faces: [], personMask: nil), // no mask → falloff skipped, speculars isolated
       amount: 1.0
     )
-    // UIKit y-down → CI y-up: patch at y:40..64 of 96 maps to CI y 32..56
-    let white = CGRect(x: 8, y: 32, width: 24, height: 24)
-    let red = CGRect(x: 64, y: 32, width: 24, height: 24)
-    let whiteGain = meanLuma(out, in: white) - meanLuma(img, in: white)
-    let redGain = meanLuma(out, in: red) - meanLuma(img, in: red)
+    // fractional regions (CI y-up): UIKit patch y 40..64 of 96 → y 0.35..0.56
+    let white = CGRect(x: 0.10, y: 0.36, width: 0.22, height: 0.20)
+    let red = CGRect(x: 0.68, y: 0.36, width: 0.22, height: 0.20)
+    let whiteGain = meanLuma(out, region: white) - meanLuma(img, region: white)
+    let redGain = meanLuma(out, region: red) - meanLuma(img, region: red)
     XCTAssertGreaterThan(whiteGain, redGain + 2,
                          "desaturated highlight must catch the flash harder than a saturated one")
   }
@@ -108,21 +131,26 @@ final class LightIntelligenceTests: XCTestCase {
       img, scene: scene(key: 0.08, lights: [magenta]), baseBloom: 0.18, amount: 1.0
     )
     let control = FilmEngine.shared.applyBloom(img, amount: 0.18)
-    // near the source (light y is top-down → CI y-up): (0.25, 0.75) of 96
-    let near = CGRect(x: 18, y: 66, width: 12, height: 12)
-    let far = CGRect(x: 74, y: 8, width: 12, height: 12)
-    let nearDelta = meanLuma(out, in: near) - meanLuma(control, in: near)
-    let farDelta = abs(meanLuma(out, in: far) - meanLuma(control, in: far))
+    // near the source (light y is top-down → CI y-up): center (0.25, 0.75)
+    let near = CGRect(x: 0.17, y: 0.67, width: 0.16, height: 0.16)
+    let far = CGRect(x: 0.76, y: 0.06, width: 0.14, height: 0.14)
+    let nearDelta = meanLuma(out, region: near) - meanLuma(control, region: near)
+    let farDelta = abs(meanLuma(out, region: far) - meanLuma(control, region: far))
     XCTAssertGreaterThan(nearDelta, 4, "glow must appear around the source")
     XCTAssertGreaterThan(nearDelta, farDelta * 2, "glow must be local to the source, not a wash")
 
     // the glow carries the source's hue (red+blue over green)
-    guard let cg = context.createCGImage(out, from: near),
+    let e = out.extent
+    let nearRect = CGRect(
+      x: e.minX + near.minX * e.width, y: e.minY + near.minY * e.height,
+      width: near.width * e.width, height: near.height * e.height
+    ).integral
+    guard let cg = context.createCGImage(out, from: nearRect),
           let raster = ImageMetrics.raster(cg),
           let mean = ImageMetrics.meanColor(raster, in: CGRect(x: 0, y: 0, width: 1, height: 1))
     else { return XCTFail("raster failed") }
-    XCTAssertGreaterThan(mean.r, mean.g, "magenta source must glow magenta, not white")
-    XCTAssertGreaterThan(mean.b, mean.g)
+    XCTAssertGreaterThan(mean.r, mean.g + 2, "magenta source must glow magenta, not white")
+    XCTAssertGreaterThan(mean.b, mean.g + 2)
   }
 
   func testSourceBloomRefusesNonEmissiveScenes() {
@@ -159,8 +187,8 @@ final class LightIntelligenceTests: XCTestCase {
       img, scene: scene(key: 0.2, lights: [keyLeft]),
       subject: SubjectAnalysis(faces: [], personMask: nil), amount: 0.7
     )
-    let left = meanLuma(out, in: CGRect(x: 4, y: 32, width: 20, height: 32))
-    let right = meanLuma(out, in: CGRect(x: 72, y: 32, width: 20, height: 32))
+    let left = meanLuma(out, region: CGRect(x: 0.04, y: 0.33, width: 0.20, height: 0.34))
+    let right = meanLuma(out, region: CGRect(x: 0.76, y: 0.33, width: 0.20, height: 0.34))
     XCTAssertGreaterThan(left, right + 6, "the side away from the key light must fall darker")
   }
 
