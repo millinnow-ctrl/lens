@@ -124,20 +124,30 @@ extension FilmEngine {
     let maxEdge = max(extent.width, extent.height)
 
     // 1 — accumulate one tinted radial glow per source.
+    // First night-evidence review: linear-ramp sprites at full radius read as
+    // giant white discs. Fixes: square the ramp (gaussian-ish falloff like the
+    // approved prototype), cap the radius, and treat near-white sources
+    // (streetlamps) as tight warm glows at reduced strength — only strongly
+    // colored sources (actual neon) throw wide halos.
     var accum = CIImage(color: .black).cropped(to: extent)
     for light in emissive {
       let center = CIVector(
         x: extent.minX + light.x * extent.width,
         y: extent.minY + (1 - light.y) * extent.height
       )
-      let core = max(light.r * maxEdge, 3)
-      let outer = core * (3.5 + 3.0 * amount)
-      let strength = 0.35 + 0.65 * min(1, light.intensity)
       let tint = saturatedTint(light.tint, boost: 1.8)
+      let tintMax = tint.max() ?? 1
+      let tintMin = tint.min() ?? 1
+      let colorfulness = tintMax > 1e-4 ? (tintMax - tintMin) / tintMax : 0
+      let whiteness = 1 - min(1, colorfulness / 0.5)  // 1 = white lamp, 0 = neon
+      let core = max(light.r * maxEdge, 3)
+      var outer = core * (2.2 + 1.8 * amount) * (1 - 0.45 * whiteness)
+      outer = min(outer, maxEdge * 0.15)
+      let strength = (0.35 + 0.65 * min(1, light.intensity)) * (1 - 0.5 * whiteness)
       guard let sprite = CIFilter(name: "CIRadialGradient", parameters: [
         "inputCenter": center,
-        "inputRadius0": core * 0.4,
-        "inputRadius1": outer,
+        "inputRadius0": core * 0.3,
+        "inputRadius1": max(outer, core * 0.3 + 1),
         "inputColor0": CIColor(
           red: tint[0] * strength,
           green: tint[1] * strength,
@@ -145,7 +155,11 @@ extension FilmEngine {
         ),
         "inputColor1": CIColor.black,
       ])?.outputImage?.cropped(to: extent) else { continue }
-      accum = sprite.applyingFilter("CIScreenBlendMode", parameters: [
+      // square the linear ramp → soft gaussian-like falloff, no hard disc edge
+      let soft = sprite.applyingFilter("CIMultiplyBlendMode", parameters: [
+        kCIInputBackgroundImageKey: sprite,
+      ]).cropped(to: extent)
+      accum = soft.applyingFilter("CIScreenBlendMode", parameters: [
         kCIInputBackgroundImageKey: accum,
       ]).cropped(to: extent)
     }
@@ -285,15 +299,17 @@ extension FilmEngine {
   // MARK: - CCD sensor behavior (y2k-digicam, camcorder-90s)
 
   /// Early-CCD highlight response: no film shoulder — highlights race to full
-  /// clip. The opposite of a milky lift.
+  /// clip. The opposite of a milky lift. Curve tempered after the first
+  /// night-evidence review: the harder shoulder posterized already-saturated
+  /// night skies (per-channel clip exaggerating hue splits).
   func applyCCDClip(_ image: CIImage, amount: Double) -> CIImage {
     guard amount > 0.001 else { return image }
     return image.applyingFilter("CIToneCurve", parameters: [
       "inputPoint0": CIVector(x: 0, y: 0),
-      "inputPoint1": CIVector(x: 0.25, y: 0.23),
-      "inputPoint2": CIVector(x: 0.5, y: 0.52),
-      "inputPoint3": CIVector(x: 0.75, y: 0.85),
-      "inputPoint4": CIVector(x: 0.92, y: 1.0),
+      "inputPoint1": CIVector(x: 0.25, y: 0.24),
+      "inputPoint2": CIVector(x: 0.5, y: 0.51),
+      "inputPoint3": CIVector(x: 0.78, y: 0.82),
+      "inputPoint4": CIVector(x: 0.95, y: 1.0),
     ]).cropped(to: image.extent)
   }
 
