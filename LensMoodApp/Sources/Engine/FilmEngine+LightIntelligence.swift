@@ -183,16 +183,22 @@ extension FilmEngine {
     return applyBloom(out, amount: baseBloom * 0.4)
   }
 
-  /// Sources that are genuinely emissive: visibly colored (tint saturation)
-  /// or any hot source in a dark scene. A white sky patch on an overcast day
-  /// is NOT an emissive source. Internal so decision notes use the same gate.
+  /// Sources that are genuinely emissive. Neon does not exist under the sun:
+  /// bright scenes refuse outright (the daylight golden regressed when the
+  /// sun's warm glow annulus slipped a tint-only gate). In the dark, any hot
+  /// source glows (tungsten, LED, neon); in the dusk band, only clearly
+  /// colored ones. Internal so decision notes use the same gate.
   func emissiveLights(in scene: SceneProfile) -> [LightSource] {
-    scene.lights.filter { light in
+    guard scene.key < 0.35 else { return [] }
+    return scene.lights.filter { light in
       guard light.tint.count == 3 else { return false }
       let mx = light.tint.max() ?? 0
       let mn = light.tint.min() ?? 0
       let tintSaturation = mx > 1e-4 ? (mx - mn) / mx : 0
-      return tintSaturation > 0.18 || scene.key < 0.30
+      if scene.key < 0.30 {
+        return tintSaturation > 0.10 || light.intensity > 0.5
+      }
+      return tintSaturation > 0.30
     }
   }
 

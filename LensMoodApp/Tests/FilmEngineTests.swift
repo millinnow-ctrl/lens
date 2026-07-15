@@ -106,16 +106,15 @@ final class FilmEngineTests: XCTestCase {
     "gq-editorial": 19.7,
     "a24-still": 23.1,
     "leica-street": 25.2,
-    // tokyo-neon: R61 source-aware bloom (owner-directed light physics: glow
-    // emanates from detected sources in their own hue). On the daylight golden
-    // the emissive gate usually refuses, but the sun can register — provisional
-    // ceiling until the CI-measured MAE is known, then tighten to measured+2.
-    "tokyo-neon": 34.0,
+    // tokyo-neon: R61 source bloom REFUSES daylight (neon does not exist under
+    // the sun — the sun's warm annulus slipped the first gate and measured
+    // 39.3; the key<0.35 refusal restores the pre-R61 daylight render).
+    "tokyo-neon": 28.2,
     "super-8": 34.3,
     // film-noir: cool silver tone + R61 directional key shadow (owner-directed
-    // physics — shadows deepen away from the detected key light). Provisional
-    // ceiling until the CI-measured MAE is known, then tighten to measured+2.
-    "film-noir": 32.0,
+    // physics). CI-measured 21.97 on the golden, visually approved — the sky
+    // falls away from the sun with real depth. Tightened to measured+2.
+    "film-noir": 24.0,
     // tintype: intentionally re-graded to a COOL orthochromatic wet-plate per
     // owner direction — diverges from the warm reference golden but the measured
     // MAE (~17.8) is small; tightened to lock the new cool look as the baseline.

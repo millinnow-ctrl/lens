@@ -174,6 +174,18 @@ final class LightIntelligenceTests: XCTestCase {
                    "a hot source in a dark scene is emissive even when white")
   }
 
+  func testNeonDoesNotExistUnderTheSun() {
+    // even a strongly colored source is refused in a bright scene — the glow
+    // pass is a night/dusk behavior, never a daylight paint (golden regression:
+    // the sun's warm annulus slipped a tint-only gate at MAE 39.3)
+    let magenta = LightSource(x: 0.5, y: 0.3, r: 0.06, intensity: 1.0, tint: [1.0, 0.2, 0.9])
+    XCTAssertTrue(FilmEngine.shared.emissiveLights(in: scene(key: 0.42, lights: [magenta])).isEmpty)
+    // dusk band: strong color passes, weak color does not
+    let pale = LightSource(x: 0.5, y: 0.3, r: 0.06, intensity: 1.0, tint: [1.0, 0.9, 0.82])
+    XCTAssertTrue(FilmEngine.shared.emissiveLights(in: scene(key: 0.32, lights: [pale])).isEmpty)
+    XCTAssertFalse(FilmEngine.shared.emissiveLights(in: scene(key: 0.32, lights: [magenta])).isEmpty)
+  }
+
   // MARK: noir key shadow
 
   func testKeyShadowIsDirectional() {
