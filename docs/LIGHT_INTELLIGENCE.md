@@ -48,23 +48,32 @@ light sources", "Key light held to one side", "Gain noise rose with the dark").
 - Prototype sheets (owner-reviewed): source-hued night bloom, flash plunge on
   the party scene, directional noir on the daylight portrait.
 
-## Backlog (R62+ candidates, from the critique panel)
+## Shipped R62 (night physics) — verdicts from the night-evidence loop
 
-1. **Edge-band artifact (engine-wide)** — smeared top/left frame edges seen in
-   several reference renders (grain/warp edge clamp). Verify whether the Swift
-   geometry warp shares it; fix once, engine-wide.
-2. **Super-8 night reciprocity** — ISO-40 film can't see at night: pull
-   exposure with a shadow-crushing toe when key is low (grain stays fixed —
-   emulsion, not gain).
-3. **Eye catchlights** — SegmentationService already extracts eye landmark
+- ✅ **Super-8 reciprocity** — only the neon survives; the night collapses like
+  real ISO-40 film. Approved (run 201).
+- ✅ **Camcorder AGC + security-cam** — gain noise explodes at night, near-clean
+  by day. Approved.
+- ✅ **Tokyo-neon source glow (after R62.1 iteration)** — first render produced
+  giant white discs (linear ramp, uncapped radius, white tints at full size);
+  fixed with squared falloff, radius cap, and white-lamp scaling. Approved.
+- ✅ **Y2K CCD clip + vertical smear** (tempered after posterizing the sky) and
+  **camcorder comet-tails** and **photobooth curtain** — shipped.
+- ✅ **Edge-band artifact** — closed by investigation: reference-only; Swift
+  warp edges are clean.
+
+## Backlog (R63+ candidates)
+
+1. **Adaptive night-lift on flash stocks** (NEW, from the night evidence) —
+   iphone-flash / photobooth / y2k lift skies no flash could reach (the
+   pre-R61 "milky night" tell). Retune adaptive exposure for the flash family:
+   in dark scenes, expose for the subject and let the far field stay dark —
+   the falloff pass then reads as physics, not as a fight with the lift.
+2. **Eye catchlights** — SegmentationService already extracts eye landmark
    centroids; composite small catchlights scaled by scene darkness for the
-   flash family.
-4. **Y2K CCD clip** — harsh highlight clipping + vertical smear on hot
-   sources (CCD blooming), replacing the current milky lift.
-5. **Camcorder comet-tails** — vertical smear on clipped highlights at night.
-6. **Photobooth curtain** — beyond-arm's-length falls to near-black after the
-   B&W conversion (the booth is the most constrained lighting rig there is).
-7. **Timestamp honesty** — camcorder/security overlays should not claim
-   "AM 4:40" on a daylight frame; drive plausible hour from scene key.
-8. **Shared-sticker dedup** — camcorder and security-cam use one overlay
-   asset/font; differentiate so back-to-back use doesn't expose the template.
+   flash family (needs landmark plumbing into FilmEngine).
+3. **Timestamp honesty** — no timestamps exist in the Swift photo develop path
+   (Tape surface/VhsExporter only); drive plausible hour from capture time
+   there. Low priority.
+4. **Shared-sticker dedup** — differentiate camcorder vs security-cam overlay
+   styling on the Tape surface. Low priority.
