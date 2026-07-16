@@ -441,15 +441,24 @@ final class FilmEngine {
   ) -> CIImage {
     switch recipe.id {
     case "security-cam":
-      return image
-        .applyingFilter("CIColorControls", parameters: [kCIInputSaturationKey: 0.22])
-        .applyingFilter("CIColorMatrix", parameters: [
-          "inputRVector": CIVector(x: 0.45, y: 0.18, z: 0.08, w: 0),
-          "inputGVector": CIVector(x: 0.12, y: 0.88, z: 0.22, w: 0),
-          "inputBVector": CIVector(x: 0.08, y: 0.22, z: 0.46, w: 0),
-          "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 1),
-          "inputBiasVector": CIVector(x: 0, y: 0.04, z: 0, w: 0),
-        ])
+      // R64: green IR is a NIGHT mode. A daylight CCTV frame is washed,
+      // slightly lifeless color — not a green wash (daylight-evidence review).
+      // The IR matrix fades in with scene darkness for dusk continuity.
+      let darkness = max(0, min(1, (0.35 - scene.key) / 0.35))
+      let washed = image.applyingFilter("CIColorControls", parameters: [
+        kCIInputSaturationKey: 0.22 + 0.28 * (1 - darkness),
+      ])
+      guard darkness > 0.05 else { return washed }
+      func ir(_ day: Double, _ night: Double) -> CGFloat {
+        CGFloat(day + (night - day) * darkness)
+      }
+      return washed.applyingFilter("CIColorMatrix", parameters: [
+        "inputRVector": CIVector(x: ir(1, 0.45), y: ir(0, 0.18), z: ir(0, 0.08), w: 0),
+        "inputGVector": CIVector(x: ir(0, 0.12), y: ir(1, 0.88), z: ir(0, 0.22), w: 0),
+        "inputBVector": CIVector(x: ir(0, 0.08), y: ir(0, 0.22), z: ir(1, 0.46), w: 0),
+        "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 1),
+        "inputBiasVector": CIVector(x: 0, y: ir(0, 0.04), z: 0, w: 0),
+      ])
     case "camcorder-90s":
       return image.applyingFilter("CIColorMatrix", parameters: [
         "inputRVector": CIVector(x: 0.92, y: 0.05, z: 0.03, w: 0),

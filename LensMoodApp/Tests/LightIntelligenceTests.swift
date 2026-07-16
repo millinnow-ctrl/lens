@@ -302,6 +302,31 @@ final class LightIntelligenceTests: XCTestCase {
     XCTAssertGreaterThan(left, right + 6, "a chroma light must key the noir direction too")
   }
 
+  // MARK: R64 — security-cam day/night mode
+
+  func testSecurityCamGreenIROnlyAtNight() throws {
+    // mid-gray scenes at two brightnesses: the IR green cast must appear at
+    // night and vanish in daylight (real CCTV runs IR only in the dark)
+    let recipe = CameraRecipe.recipe(for: "security-cam")
+    func meanChannels(_ brightness: CGFloat) throws -> (r: Double, g: Double, b: Double) {
+      let source = UIGraphicsImageRenderer(size: CGSize(width: 96, height: 96)).image { ctx in
+        UIColor(white: brightness, alpha: 1).setFill()
+        ctx.fill(CGRect(x: 0, y: 0, width: 96, height: 96))
+      }
+      let out = try FilmEngine().develop(source, with: recipe, seed: 3, analyzeSubjects: false).image
+      let ci = CIImage(image: out)!
+      guard let cg = context.createCGImage(ci, from: ci.extent),
+            let raster = ImageMetrics.raster(cg),
+            let mean = ImageMetrics.meanColor(raster, in: CGRect(x: 0.3, y: 0.3, width: 0.4, height: 0.4))
+      else { throw XCTSkip("raster failed") }
+      return mean
+    }
+    let day = try meanChannels(0.62)
+    let night = try meanChannels(0.07)
+    XCTAssertGreaterThan(night.g, max(night.r, night.b) + 4, "night must cast IR green")
+    XCTAssertLessThan(abs(day.g - day.r), 6, "daylight must stay near-neutral, not green")
+  }
+
   // MARK: R62 night physics
 
   func testNightReciprocityStarvesDarkScenesOnly() {

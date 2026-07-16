@@ -23,6 +23,9 @@ final class NightEvidenceTests: XCTestCase {
     let scenes = [
       ("night", "reference/photos/sample-night.jpg"),
       ("friends", "reference/photos/sample-friends.jpg"),
+      // R64: bright-day stress scene — verifies the photobooth highlight
+      // protection and the security-cam day mode (no green wash in sun)
+      ("day", "reference/photos/sample-brunch.jpg"),
     ]
     let stocks = [
       "super-8", "y2k-digicam", "camcorder-90s", "security-cam",
