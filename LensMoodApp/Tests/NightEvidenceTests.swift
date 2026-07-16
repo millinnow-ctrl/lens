@@ -58,4 +58,41 @@ final class NightEvidenceTests: XCTestCase {
       }
     }
   }
+
+  /// Owner-photo evidence: when an owner-supplied test photo is present, render
+  /// it through ALL 18 lenses with the full Vision path (faces + person mask)
+  /// and publish to ui-artifacts. The photo is only ever committed temporarily
+  /// on owner request; this test skips silently when it is absent, so the
+  /// harness survives the photo's removal.
+  func testRenderOwnerEvidenceIfPresent() throws {
+    let testsDirectory = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+    let repoRoot = testsDirectory
+      .deletingLastPathComponent()
+      .deletingLastPathComponent()
+    let sourceURL = repoRoot.appendingPathComponent("reference/photos/owner-busstop.jpg")
+    guard let source = UIImage(contentsOfFile: sourceURL.path) else { return } // absent = skip
+    let outDir = testsDirectory
+      .deletingLastPathComponent()
+      .appendingPathComponent("ui-artifacts/owner-evidence")
+    try FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
+
+    let engine = FilmEngine()
+    for recipe in CameraRecipe.all {
+      let rendered = try engine.develop(
+        source,
+        with: recipe,
+        maxPixelSize: 900,
+        seed: 1,
+        analyzeSubjects: true // the real hardware path: faces + person mask
+      ).image
+      let url = outDir.appendingPathComponent("busstop-\(recipe.id).png")
+      try XCTUnwrap(rendered.pngData()).write(to: url)
+    }
+    if let png = source.preparingThumbnail(of: CGSize(
+      width: source.size.width * 900 / max(source.size.width, source.size.height),
+      height: source.size.height * 900 / max(source.size.width, source.size.height)
+    ))?.pngData() {
+      try png.write(to: outDir.appendingPathComponent("busstop-original.png"))
+    }
+  }
 }
