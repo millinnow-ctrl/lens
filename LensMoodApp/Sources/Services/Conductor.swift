@@ -68,7 +68,7 @@ final class Conductor: ObservableObject {
   /// always ranks the rail identically, and every adjustment mirrors a real
   /// engine behavior (a look is promoted only when its physics passes will
   /// actually engage, and demoted when they would refuse).
-  static func rank(scene: SceneProfile, faces: [FaceProfile]) -> [LookMatch] {
+  nonisolated static func rank(scene: SceneProfile, faces: [FaceProfile]) -> [LookMatch] {
     func unit(_ value: Double) -> Double { min(1, max(0, value)) }
     let darkness = unit((0.35 - scene.key) / 0.35)
     let daylight = unit((scene.key - 0.42) / 0.30)
@@ -157,7 +157,7 @@ final class Conductor: ObservableObject {
 
   /// The develop ceremony's narration — only steps the pipeline truly runs
   /// on this photograph (Master Prompt §IV.3: never invented steps).
-  static func narration(for reading: SceneReading) -> [String] {
+  nonisolated static func narration(for reading: SceneReading) -> [String] {
     var lines = ["Reading the light"]
     if !reading.subject.faces.isEmpty {
       lines.append(reading.subject.faces.count == 1 ? "Finding your subject" : "Finding your subjects")
