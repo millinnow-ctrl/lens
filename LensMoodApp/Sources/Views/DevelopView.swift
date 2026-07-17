@@ -80,7 +80,6 @@ struct DevelopView: View {
         model.pendingDevelopImage = nil
         sourceImage = pending
         develop(pending)
-        startReading(pending)
       }
     }
     .onDisappear {
@@ -432,7 +431,6 @@ struct DevelopView: View {
         photoKey = UUID()      // new photo ⇒ fresh preview-cache + reading scope
         matches = nil          // rail returns to catalog order until the read lands
         develop(image)
-        startReading(image)
       } catch {
         isDeveloping = false
         errorMessage = error.localizedDescription
@@ -461,51 +459,44 @@ struct DevelopView: View {
       return
     }
 
-    // The Conductor's cached read for this photo, when it has landed — the
-    // engine then skips re-metering. Byte-identical either way (locked by
-    // ConductorTests), so early develops that race the read stay correct.
-    let reading = Conductor.shared.cachedReading(for: photoKey)
-    DispatchQueue.global(qos: .userInitiated).async {
-      let result = Result {
-        try FilmEngine.shared.develop(
-          image,
-          with: recipe,
-          maxPixelSize: CGFloat(edge),
-          seed: seed,
-          reading: reading
-        )
-      }
-      DispatchQueue.main.async {
-        guard renderID == request else { return }
-        switch result {
-        case .success(let render):
-          PreviewCache.shared.insert(
-            CachedRender(image: render.image, decisions: render.decisions),
-            forKey: cacheKey
-          )
-          Analytics.log(.developFinished(
-            lookID: currentStock.id,
-            ms: Int((CFAbsoluteTimeGetCurrent() - startedAt) * 1000)
-          ))
-          applyDeveloped(image: render.image, decisions: render.decisions, source: image)
-        case .failure(let error):
-          isDeveloping = false
-          errorMessage = error.localizedDescription
-        }
-      }
-    }
-  }
-
-  /// Ask the Conductor to read the photograph (once, off-main). When the read
-  /// lands — and this photo is still the loaded one — the rail reorders to
-  /// the ranked looks.
-  private func startReading(_ image: UIImage) {
+    // Every render asks the Conductor: the photograph is read exactly once
+    // and that one reading feeds the first develop, every lens switch, and
+    // the full-res save. (Renders from one reading are byte-reproducible —
+    // locked by ConductorTests — whereas separate subject passes are not
+    // guaranteed bit-stable run to run.)
     let key = photoKey
+    let stockID = currentStock.id
     Task { @MainActor in
-      guard let reading = try? await Conductor.shared.reading(for: image, key: key),
-            key == photoKey else { return }
-      withAnimation(.easeInOut(duration: 0.35)) {
-        matches = Conductor.rank(scene: reading.scene, faces: reading.subject.faces)
+      do {
+        let reading = try await Conductor.shared.reading(for: image, key: key)
+        if matches == nil, key == photoKey {
+          withAnimation(.easeInOut(duration: 0.35)) {
+            matches = Conductor.rank(scene: reading.scene, faces: reading.subject.faces)
+          }
+        }
+        let render = try await Task.detached(priority: .userInitiated) {
+          try FilmEngine.shared.develop(
+            image,
+            with: recipe,
+            maxPixelSize: CGFloat(edge),
+            seed: seed,
+            reading: reading
+          )
+        }.value
+        guard renderID == request else { return }
+        PreviewCache.shared.insert(
+          CachedRender(image: render.image, decisions: render.decisions),
+          forKey: cacheKey
+        )
+        Analytics.log(.developFinished(
+          lookID: stockID,
+          ms: Int((CFAbsoluteTimeGetCurrent() - startedAt) * 1000)
+        ))
+        applyDeveloped(image: render.image, decisions: render.decisions, source: image)
+      } catch {
+        guard renderID == request else { return }
+        isDeveloping = false
+        errorMessage = error.localizedDescription
       }
     }
   }
@@ -535,34 +526,28 @@ struct DevelopView: View {
     let recipe = currentStock.recipe
     let seed = Double(currentStock.id.unicodeScalars.reduce(17) { ($0 * 31 + Int($1.value)) % 100_000 })
     let strength = intensity
-    let reading = Conductor.shared.cachedReading(for: photoKey)
-    DispatchQueue.global(qos: .userInitiated).async {
-      let result = Result { () -> UIImage in
-        // Device-tier export cap (was a flat 4096): keeps peak memory under
-        // jetsam on 2–3 GB devices while allowing full 4096 on roomier ones.
-        let exportEdge = CGFloat(DeviceCapability.current.exportMaxEdge)
-        let full = try FilmEngine.shared.develop(sourceImage, with: recipe, maxPixelSize: exportEdge, seed: seed, reading: reading).image
-        return blended(developed: full, over: sourceImage, intensity: strength)
-      }
-      DispatchQueue.main.async {
-        switch result {
-        case .success(let fullResolution):
-          Task { @MainActor in
-            do {
-              try await PhotoLibraryWriter.save(image: fullResolution)
-              isSaving = false
-              saveConfirmation = true
-              Analytics.log(.photoSaved(lookID: currentStock.id))
-              UINotificationFeedbackGenerator().notificationOccurred(.success)
-            } catch {
-              isSaving = false
-              errorMessage = error.localizedDescription
-            }
-          }
-        case .failure(let error):
-          isSaving = false
-          errorMessage = error.localizedDescription
-        }
+    let key = photoKey
+    let stockID = currentStock.id
+    Task { @MainActor in
+      do {
+        // the save shares the develop's one reading — preview and export are
+        // developed from the same read of the photograph
+        let reading = try await Conductor.shared.reading(for: sourceImage, key: key)
+        let fullResolution = try await Task.detached(priority: .userInitiated) { () -> UIImage in
+          // Device-tier export cap (was a flat 4096): keeps peak memory under
+          // jetsam on 2–3 GB devices while allowing full 4096 on roomier ones.
+          let exportEdge = CGFloat(DeviceCapability.current.exportMaxEdge)
+          let full = try FilmEngine.shared.develop(sourceImage, with: recipe, maxPixelSize: exportEdge, seed: seed, reading: reading).image
+          return blended(developed: full, over: sourceImage, intensity: strength)
+        }.value
+        try await PhotoLibraryWriter.save(image: fullResolution)
+        isSaving = false
+        saveConfirmation = true
+        Analytics.log(.photoSaved(lookID: stockID))
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+      } catch {
+        isSaving = false
+        errorMessage = error.localizedDescription
       }
     }
   }

@@ -211,8 +211,10 @@ final class FilmEngine {
   /// Run the intelligence passes alone — the meter and (optionally) the
   /// subject pass — without developing. The Conductor calls this once per
   /// photograph and hands the result to every subsequent `develop(reading:)`.
-  /// Uses the same analyzer and the same oriented input as `develop`, so a
-  /// develop fed this reading is byte-identical to one that reads for itself.
+  /// Same analyzer, same oriented input as `develop`: the meter side is
+  /// byte-identical to a self-reading develop, and because ALL of a photo's
+  /// renders share this one reading, the subject pass (whose separate runs
+  /// are not guaranteed bit-stable) can never split preview from export.
   func read(_ source: UIImage, analyzeSubjects: Bool = true) throws -> SceneReading {
     guard let image = CIImage(
       image: source,

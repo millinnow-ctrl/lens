@@ -140,18 +140,45 @@ final class ConductorTests: XCTestCase {
     }
   }
 
+  /// Scene-meter plumbing is exact: with the subject pass off, a develop fed
+  /// the cached reading is byte-identical to one that meters for itself.
+  /// (The subject pass is excluded here deliberately — Vision segmentation is
+  /// not guaranteed bit-stable across separate runs, which is exactly why the
+  /// app routes every render through the Conductor's ONE reading; that path
+  /// is locked by the reproducibility test below.)
   func testDevelopWithReadingIsByteIdenticalToSelfAnalysis() throws {
     let engine = FilmEngine()
     let photo = canvas()
-    let reading = try engine.read(photo)
-    // one flash stock (mask path), one emulsion stock, one source-bloom stock
+    let reading = try engine.read(photo, analyzeSubjects: false)
+    // one flash stock, one emulsion stock, one source-bloom stock
     for stockID in ["iphone-flash", "kodachrome", "tokyo-neon"] {
       let recipe = CameraRecipe.recipe(for: stockID)
-      let direct = try engine.develop(photo, with: recipe, seed: 7).image
-      let conducted = try engine.develop(photo, with: recipe, seed: 7, reading: reading).image
+      let direct = try engine.develop(photo, with: recipe, seed: 7, analyzeSubjects: false).image
+      let conducted = try engine.develop(
+        photo, with: recipe, seed: 7, analyzeSubjects: false, reading: reading
+      ).image
       XCTAssertEqual(
         direct.pngData(), conducted.pngData(),
         "\(stockID): a develop fed the cached reading must be byte-identical"
+      )
+    }
+  }
+
+  /// The shipping path: every render of a photograph (first develop, lens
+  /// switches, full-res save) shares the Conductor's single reading — and
+  /// renders from that one reading are byte-reproducible, full subject pass
+  /// included.
+  func testDevelopFromOneReadingIsReproducible() throws {
+    let engine = FilmEngine()
+    let photo = canvas()
+    let reading = try engine.read(photo)
+    for stockID in ["iphone-flash", "photobooth"] {
+      let recipe = CameraRecipe.recipe(for: stockID)
+      let first = try engine.develop(photo, with: recipe, seed: 7, reading: reading).image
+      let second = try engine.develop(photo, with: recipe, seed: 7, reading: reading).image
+      XCTAssertEqual(
+        first.pngData(), second.pngData(),
+        "\(stockID): the same reading must always render the same bytes"
       )
     }
   }
