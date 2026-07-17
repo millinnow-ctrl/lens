@@ -96,11 +96,15 @@ final class Conductor: ObservableObject {
   nonisolated static func rank(scene: SceneProfile, faces: [FaceProfile]) -> [LookMatch] {
     func unit(_ value: Double) -> Double { min(1, max(0, value)) }
     let darkness = unit((0.35 - scene.key) / 0.35)
-    let daylight = unit((scene.key - 0.42) / 0.30)
+    // brightness uses the mean too: the log-average key underrates scenes
+    // with deep shadow pockets, which left the mid-key band unranked (seen
+    // in the day-fixture evidence review)
+    let daylight = unit((max(scene.key, scene.meanLuminance) - 0.40) / 0.30)
     let keyLight = scene.lights.first ?? scene.auxLights.first
-    // mirrors the source-bloom pass's honest refusal gate: emissive sources
-    // only count in scenes dark enough to read as emitting
-    let emissive = scene.key < 0.35 && keyLight != nil
+    // THE engine's own refusal gate — a look is promoted for bloom only when
+    // the bloom pass would truly find emitters (white daylight speculars are
+    // refused, exactly as in the render)
+    let emissive = !FilmEngine.emissiveLights(in: scene).isEmpty
     let hasFaces = !faces.isEmpty
     let colorRichness = unit((scene.sat - 0.18) / 0.35)
     let range = unit(scene.dynamicRange)
@@ -133,7 +137,10 @@ final class Conductor: ObservableObject {
       }
       if recipe.keyShadow > 0.001 {
         if let keyLight {
-          score += 0.30 + 0.10 * keyLight.intensity
+          // noir loves HARD directional light, not merely any detected
+          // source — scale by the scene's contrast so flat scenes don't
+          // put noir at the top of every rail
+          score += (0.12 + 0.22 * range) * (0.6 + 0.4 * keyLight.intensity)
           reasons.append("A key light to carve shadows from")
         } else {
           score += 0.10 * range

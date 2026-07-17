@@ -208,7 +208,9 @@ final class ConductorTests: XCTestCase {
       let reading = try engine.read(source)
       let ranked = Conductor.rank(scene: reading.scene, faces: reading.subject.faces)
       report += "\n[\(sceneName)]  key=\(String(format: "%.2f", reading.scene.key))"
+      report += "  mean=\(String(format: "%.2f", reading.scene.meanLuminance))"
       report += "  lights=\(reading.scene.lights.count)+\(reading.scene.auxLights.count)"
+      report += "  emissive=\(FilmEngine.emissiveLights(in: reading.scene).count)"
       report += "  faces=\(reading.subject.faces.count)\n"
       for (index, match) in ranked.enumerated() {
         report += String(format: "  %2d. %-14@ %.2f", index + 1, match.stockID as NSString, match.score)

@@ -801,7 +801,7 @@ final class FilmEngine {
     if recipe.flashPhysics > 0.001 {
       notes.append(scene.key < 0.35 ? "Flash falloff shaped to the subject" : "Flash read off the bright surfaces")
     }
-    if recipe.sourceBloom > 0.001, !emissiveLights(in: scene).isEmpty {
+    if recipe.sourceBloom > 0.001, !FilmEngine.emissiveLights(in: scene).isEmpty {
       notes.append("Glow followed the light sources")
     }
     if recipe.keyShadow > 0.001, !scene.lights.isEmpty {

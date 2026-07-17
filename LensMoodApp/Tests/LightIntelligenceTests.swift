@@ -163,7 +163,7 @@ final class LightIntelligenceTests: XCTestCase {
     }
     let skyPatch = LightSource(x: 0.5, y: 0.2, r: 0.1, intensity: 0.6, tint: [1, 1, 1])
     let daylight = scene(key: 0.5, lights: [skyPatch])
-    XCTAssertTrue(FilmEngine.shared.emissiveLights(in: daylight).isEmpty)
+    XCTAssertTrue(FilmEngine.emissiveLights(in: daylight).isEmpty)
     let out = FilmEngine.shared.applySourceBloom(img, scene: daylight, baseBloom: 0.18, amount: 1.0)
     let control = FilmEngine.shared.applyBloom(img, amount: 0.18)
     XCTAssertEqual(render(out), render(control), "refusal must be byte-identical to plain bloom")
@@ -171,7 +171,7 @@ final class LightIntelligenceTests: XCTestCase {
 
   func testWhiteLightCountsAsEmissiveInTheDark() {
     let white = LightSource(x: 0.5, y: 0.5, r: 0.05, intensity: 0.8, tint: [1, 1, 1])
-    XCTAssertFalse(FilmEngine.shared.emissiveLights(in: scene(key: 0.1, lights: [white])).isEmpty,
+    XCTAssertFalse(FilmEngine.emissiveLights(in: scene(key: 0.1, lights: [white])).isEmpty,
                    "a hot source in a dark scene is emissive even when white")
   }
 
@@ -180,11 +180,11 @@ final class LightIntelligenceTests: XCTestCase {
     // pass is a night/dusk behavior, never a daylight paint (golden regression:
     // the sun's warm annulus slipped a tint-only gate at MAE 39.3)
     let magenta = LightSource(x: 0.5, y: 0.3, r: 0.06, intensity: 1.0, tint: [1.0, 0.2, 0.9])
-    XCTAssertTrue(FilmEngine.shared.emissiveLights(in: scene(key: 0.42, lights: [magenta])).isEmpty)
+    XCTAssertTrue(FilmEngine.emissiveLights(in: scene(key: 0.42, lights: [magenta])).isEmpty)
     // dusk band: strong color passes, weak color does not
     let pale = LightSource(x: 0.5, y: 0.3, r: 0.06, intensity: 1.0, tint: [1.0, 0.9, 0.82])
-    XCTAssertTrue(FilmEngine.shared.emissiveLights(in: scene(key: 0.32, lights: [pale])).isEmpty)
-    XCTAssertFalse(FilmEngine.shared.emissiveLights(in: scene(key: 0.32, lights: [magenta])).isEmpty)
+    XCTAssertTrue(FilmEngine.emissiveLights(in: scene(key: 0.32, lights: [pale])).isEmpty)
+    XCTAssertFalse(FilmEngine.emissiveLights(in: scene(key: 0.32, lights: [magenta])).isEmpty)
   }
 
   // MARK: noir key shadow

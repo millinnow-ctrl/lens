@@ -116,7 +116,7 @@ extension FilmEngine {
     baseBloom: Double,
     amount: Double
   ) -> CIImage {
-    let emissive = emissiveLights(in: scene)
+    let emissive = FilmEngine.emissiveLights(in: scene)
     guard amount > 0.001, scene.analyzed, !emissive.isEmpty else {
       return applyBloom(image, amount: baseBloom)
     }
@@ -201,8 +201,9 @@ extension FilmEngine {
   /// bright scenes refuse outright (the daylight golden regressed when the
   /// sun's warm glow annulus slipped a tint-only gate). In the dark, any hot
   /// source glows (tungsten, LED, neon); in the dusk band, only clearly
-  /// colored ones. Internal so decision notes use the same gate.
-  func emissiveLights(in scene: SceneProfile) -> [LightSource] {
+  /// colored ones. Internal (and static — pure function of the scene) so
+  /// decision notes AND the Conductor's rail ranking use the same gate.
+  static func emissiveLights(in scene: SceneProfile) -> [LightSource] {
     guard scene.key < 0.35 else { return [] }
     // lights = the meter's specular-knee sources; auxLights = R63 chroma pass
     // (saturated colored emitters like blue neon that luma detection misses)
