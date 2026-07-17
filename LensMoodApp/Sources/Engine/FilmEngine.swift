@@ -21,6 +21,16 @@ struct FilmRenderResult {
   let faces: [FaceProfile]
 }
 
+/// One photograph's complete read — the scene meter plus the subject pass —
+/// computed once and reusable across every develop of that photograph.
+/// Produced by `FilmEngine.read`; cached and handed back to
+/// `develop(reading:)` by the Conductor, so switching cameras never re-runs
+/// the meter or the subject pass on the same photo.
+struct SceneReading {
+  let scene: SceneProfile
+  let subject: SubjectAnalysis
+}
+
 final class FilmEngine {
   static let shared = FilmEngine()
 
@@ -198,13 +208,33 @@ final class FilmEngine {
       """)
   }
 
+  /// Run the intelligence passes alone — the meter and (optionally) the
+  /// subject pass — without developing. The Conductor calls this once per
+  /// photograph and hands the result to every subsequent `develop(reading:)`.
+  /// Uses the same analyzer and the same oriented input as `develop`, so a
+  /// develop fed this reading is byte-identical to one that reads for itself.
+  func read(_ source: UIImage, analyzeSubjects: Bool = true) throws -> SceneReading {
+    guard let image = CIImage(
+      image: source,
+      options: [.applyOrientationProperty: true]
+    ) else {
+      throw FilmEngineError.unreadableImage
+    }
+    let scene = try analyzer.analyze(image.orientedForDisplay)
+    let subject = analyzeSubjects
+      ? ((try? VisionService.analyze(source, includePersonMask: true)) ?? SubjectAnalysis(faces: [], personMask: nil))
+      : SubjectAnalysis(faces: [], personMask: nil)
+    return SceneReading(scene: scene, subject: subject)
+  }
+
   func develop(
     _ source: UIImage,
     with recipe: CameraRecipe,
     maxPixelSize: CGFloat? = nil,
     seed: Double = 1,
     analyzeSubjects: Bool = true,
-    capture: CaptureSettings? = nil
+    capture: CaptureSettings? = nil,
+    reading: SceneReading? = nil
   ) throws -> FilmRenderResult {
     guard var image = CIImage(
       image: source,
@@ -218,10 +248,20 @@ final class FilmEngine {
     let wantsMask = capture?.wantsDepthOfField == true || capture?.autoRelight == true
       || (recipe.flashPhysics > 0.001 && analyzeSubjects)
     image = image.orientedForDisplay
-    let scene = try analyzer.analyze(image)
-    let subject = analyzeSubjects
-      ? ((try? VisionService.analyze(source, includePersonMask: wantsMask)) ?? SubjectAnalysis(faces: [], personMask: nil))
-      : SubjectAnalysis(faces: [], personMask: nil)
+    let scene: SceneProfile
+    let subject: SubjectAnalysis
+    if let reading {
+      // A cached read for THIS photo, produced by `read` above. The mask is
+      // always present in a cached read; passes that don't want it are gated
+      // off by the recipe, so unused extras never change the render.
+      scene = reading.scene
+      subject = analyzeSubjects ? reading.subject : SubjectAnalysis(faces: [], personMask: nil)
+    } else {
+      scene = try analyzer.analyze(image)
+      subject = analyzeSubjects
+        ? ((try? VisionService.analyze(source, includePersonMask: wantsMask)) ?? SubjectAnalysis(faces: [], personMask: nil))
+        : SubjectAnalysis(faces: [], personMask: nil)
+    }
 
     if let maxPixelSize {
       image = scaled(image, maxPixelSize: maxPixelSize)

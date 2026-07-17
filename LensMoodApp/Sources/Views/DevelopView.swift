@@ -40,6 +40,10 @@ struct DevelopView: View {
   /// the library entry for the current photograph — switching cameras replaces
   /// it instead of flooding the Gallery with one near-duplicate per camera
   @State private var sessionAssetID: UUID?
+  /// "For this photo" — the Conductor's ranking of which cameras will love
+  /// the loaded photograph. nil until the read finishes; the rail then
+  /// reorders to the ranked looks.
+  @State private var matches: [LookMatch]?
 
   var body: some View {
     ScrollView {
@@ -76,7 +80,11 @@ struct DevelopView: View {
         model.pendingDevelopImage = nil
         sourceImage = pending
         develop(pending)
+        startReading(pending)
       }
+    }
+    .onDisappear {
+      Conductor.shared.forget(key: photoKey)
     }
     .sheet(isPresented: $sharePresented) {
       if let developedImage {
@@ -99,22 +107,45 @@ struct DevelopView: View {
     }
   }
 
+  /// the rail's order: the Conductor's ranking once the photo is read,
+  /// catalog order before then (and before any photo is loaded)
+  private var railStocks: [Stock] {
+    guard let matches else { return Stock.all }
+    return matches.map { Stock.find($0.stockID) }
+  }
+
   /// StyleRail — the horizontal camera switcher from the reference app:
   /// gradient swatch chips, ocean ring on the active camera. Selecting
-  /// re-develops the loaded photograph in place.
+  /// re-develops the loaded photograph in place. Once the Conductor has read
+  /// the photograph, the rail reorders to the looks that will love it.
   private var styleRail: some View {
-    ScrollViewReader { proxy in
-      ScrollView(.horizontal, showsIndicators: false) {
+    VStack(alignment: .leading, spacing: 7) {
+      if let top = matches?.first {
         HStack(spacing: 8) {
-          ForEach(Stock.all) { item in
-            railChip(item)
+          TechnicalLabel(text: "For this photo")
+          if let reason = top.reason {
+            Text(reason)
+              .font(.system(size: 11, weight: .medium))
+              .foregroundStyle(Theme.fog)
+              .lineLimit(1)
           }
         }
-        .padding(.vertical, 2)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Cameras reordered for this photo." + (top.reason.map { " \($0)." } ?? ""))
       }
-      .onAppear { proxy.scrollTo(currentStock.id, anchor: .center) }
+      ScrollViewReader { proxy in
+        ScrollView(.horizontal, showsIndicators: false) {
+          HStack(spacing: 8) {
+            ForEach(railStocks) { item in
+              railChip(item)
+            }
+          }
+          .padding(.vertical, 2)
+        }
+        .onAppear { proxy.scrollTo(currentStock.id, anchor: .center) }
+      }
+      .accessibilityLabel("Camera switcher")
     }
-    .accessibilityLabel("Camera switcher")
   }
 
   private func railChip(_ item: Stock) -> some View {
@@ -397,8 +428,11 @@ struct DevelopView: View {
         }
         sourceImage = image
         sessionAssetID = nil   // a new photograph starts a new library entry
-        photoKey = UUID()      // new photo ⇒ fresh preview-cache scope
+        Conductor.shared.forget(key: photoKey)
+        photoKey = UUID()      // new photo ⇒ fresh preview-cache + reading scope
+        matches = nil          // rail returns to catalog order until the read lands
         develop(image)
+        startReading(image)
       } catch {
         isDeveloping = false
         errorMessage = error.localizedDescription
@@ -427,13 +461,18 @@ struct DevelopView: View {
       return
     }
 
+    // The Conductor's cached read for this photo, when it has landed — the
+    // engine then skips re-metering. Byte-identical either way (locked by
+    // ConductorTests), so early develops that race the read stay correct.
+    let reading = Conductor.shared.cachedReading(for: photoKey)
     DispatchQueue.global(qos: .userInitiated).async {
       let result = Result {
         try FilmEngine.shared.develop(
           image,
           with: recipe,
           maxPixelSize: CGFloat(edge),
-          seed: seed
+          seed: seed,
+          reading: reading
         )
       }
       DispatchQueue.main.async {
@@ -453,6 +492,20 @@ struct DevelopView: View {
           isDeveloping = false
           errorMessage = error.localizedDescription
         }
+      }
+    }
+  }
+
+  /// Ask the Conductor to read the photograph (once, off-main). When the read
+  /// lands — and this photo is still the loaded one — the rail reorders to
+  /// the ranked looks.
+  private func startReading(_ image: UIImage) {
+    let key = photoKey
+    Task { @MainActor in
+      guard let reading = try? await Conductor.shared.reading(for: image, key: key),
+            key == photoKey else { return }
+      withAnimation(.easeInOut(duration: 0.35)) {
+        matches = Conductor.rank(scene: reading.scene, faces: reading.subject.faces)
       }
     }
   }
@@ -482,12 +535,13 @@ struct DevelopView: View {
     let recipe = currentStock.recipe
     let seed = Double(currentStock.id.unicodeScalars.reduce(17) { ($0 * 31 + Int($1.value)) % 100_000 })
     let strength = intensity
+    let reading = Conductor.shared.cachedReading(for: photoKey)
     DispatchQueue.global(qos: .userInitiated).async {
       let result = Result { () -> UIImage in
         // Device-tier export cap (was a flat 4096): keeps peak memory under
         // jetsam on 2–3 GB devices while allowing full 4096 on roomier ones.
         let exportEdge = CGFloat(DeviceCapability.current.exportMaxEdge)
-        let full = try FilmEngine.shared.develop(sourceImage, with: recipe, maxPixelSize: exportEdge, seed: seed).image
+        let full = try FilmEngine.shared.develop(sourceImage, with: recipe, maxPixelSize: exportEdge, seed: seed, reading: reading).image
         return blended(developed: full, over: sourceImage, intensity: strength)
       }
       DispatchQueue.main.async {
