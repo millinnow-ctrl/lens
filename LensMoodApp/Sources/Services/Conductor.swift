@@ -27,6 +27,10 @@ final class Conductor: ObservableObject {
 
   private var readings: [UUID: SceneReading] = [:]
   private var inFlight: [UUID: Task<SceneReading, Error>] = [:]
+  /// insertion order for the small LRU cap — a reading retains a full-res
+  /// person mask, so the cache must stay tiny
+  private var order: [UUID] = []
+  private let capacity = 4
 
   // stored properties all have defaults; nonisolated so the static shared
   // instance can be created outside the main actor
@@ -49,16 +53,37 @@ final class Conductor: ObservableObject {
       try FilmEngine.shared.read(photo)
     }
     inFlight[key] = task
-    defer { inFlight[key] = nil }
-    let reading = try await task.value
-    readings[key] = reading
-    return reading
+    do {
+      let reading = try await task.value
+      // Store only while this call's task is still the registered one — a
+      // forget() that raced this read must win, or the forgotten reading
+      // (with its full-res mask) would be re-inserted and retained forever.
+      if inFlight[key] == task {
+        inFlight[key] = nil
+        store(reading, key: key)
+      }
+      return reading
+    } catch {
+      if inFlight[key] == task { inFlight[key] = nil }
+      throw error
+    }
   }
 
-  /// Drop a photograph's read (photo replaced or editor closed) and cancel
-  /// any in-flight work for it.
+  private func store(_ reading: SceneReading, key: UUID) {
+    readings[key] = reading
+    order.removeAll { $0 == key }
+    order.append(key)
+    while order.count > capacity, let oldest = order.first {
+      order.removeFirst()
+      readings[oldest] = nil
+    }
+  }
+
+  /// Drop a photograph's read (photo replaced) and cancel any in-flight
+  /// work for it.
   func forget(key: UUID) {
     readings[key] = nil
+    order.removeAll { $0 == key }
     inFlight[key]?.cancel()
     inFlight[key] = nil
   }

@@ -239,4 +239,20 @@ final class ConductorTests: XCTestCase {
     conductor.forget(key: key)
     XCTAssertNil(conductor.cachedReading(for: key))
   }
+
+  /// A reading retains a full-resolution person mask, so the cache is a
+  /// small LRU: the oldest photo's reading falls out at the cap.
+  @MainActor
+  func testConductorCapsItsMemory() async throws {
+    let conductor = Conductor()
+    let photo = canvas()
+    var keys: [UUID] = []
+    for _ in 0..<5 {
+      let key = UUID()
+      keys.append(key)
+      _ = try await conductor.reading(for: photo, key: key)
+    }
+    XCTAssertNil(conductor.cachedReading(for: keys[0]), "oldest reading evicted at the cap")
+    XCTAssertNotNil(conductor.cachedReading(for: keys[4]))
+  }
 }

@@ -87,9 +87,11 @@ struct DevelopView: View {
         develop(pending)
       }
     }
-    .onDisappear {
-      Conductor.shared.forget(key: photoKey)
-    }
+    // No forget on disappear: a tab switch fires onDisappear while this
+    // view's state (and its photo) live on, and dropping the reading would
+    // force a fresh subject pass — splitting export from preview. The
+    // Conductor's small LRU cap bounds memory instead; load() still forgets
+    // the replaced photo's key explicitly.
     .sheet(isPresented: $sharePresented) {
       if let developedImage {
         let shareImage = sourceImage.map {
@@ -439,6 +441,11 @@ struct DevelopView: View {
     guard let item else { return }
     isDeveloping = true
     errorMessage = nil
+    // seed the ceremony NOW: the transferable load (slow for iCloud
+    // originals) runs before develop() seeds it, and the panel must never
+    // show the previous photo's finished steps — or nothing at all
+    ceremonySteps = ["Reading the light"]
+    ceremonyActiveIndex = 0
     Task { @MainActor in
       do {
         guard let data = try await item.loadTransferable(type: Data.self),
