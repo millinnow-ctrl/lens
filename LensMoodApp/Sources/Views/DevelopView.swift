@@ -44,6 +44,11 @@ struct DevelopView: View {
   /// the loaded photograph. nil until the read finishes; the rail then
   /// reorders to the ranked looks.
   @State private var matches: [LookMatch]?
+  /// the develop ceremony — real pipeline steps only (truth law): while the
+  /// Conductor reads, one line; once read, the steps it truly ran appear as
+  /// done and Developing becomes the active one
+  @State private var ceremonySteps: [String] = []
+  @State private var ceremonyActiveIndex = 0
 
   var body: some View {
     ScrollView {
@@ -357,18 +362,33 @@ struct DevelopView: View {
 
 
   private var developingState: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      HStack {
-        ProgressView().tint(Theme.accent)
-        Text("Reading the photograph")
-          .font(.system(size: 14, weight: .semibold))
-          .foregroundStyle(Theme.ink)
+    VStack(alignment: .leading, spacing: 10) {
+      ForEach(Array(ceremonySteps.enumerated()), id: \.offset) { index, step in
+        HStack(spacing: 10) {
+          if index < ceremonyActiveIndex {
+            Image(systemName: "checkmark")
+              .font(.system(size: 11, weight: .bold))
+              .foregroundStyle(Theme.accent)
+              .frame(width: 16)
+          } else {
+            ProgressView()
+              .tint(Theme.accent)
+              .scaleEffect(0.75)
+              .frame(width: 16)
+          }
+          Text(step)
+            .font(.system(size: 14, weight: index == ceremonyActiveIndex ? .semibold : .medium))
+            .foregroundStyle(index == ceremonyActiveIndex ? Theme.ink : Theme.inkSoft)
+        }
       }
     }
     .frame(maxWidth: .infinity, alignment: .leading)
     .padding(16)
     .background(Theme.surface)
     .overlay(Rectangle().stroke(Theme.hairline, lineWidth: 1))
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel(ceremonySteps.indices.contains(ceremonyActiveIndex)
+      ? ceremonySteps[ceremonyActiveIndex] : "Developing")
   }
 
   private var actions: some View {
@@ -466,12 +486,22 @@ struct DevelopView: View {
     // guaranteed bit-stable run to run.)
     let key = photoKey
     let stockID = currentStock.id
+    ceremonySteps = ["Reading the light"]
+    ceremonyActiveIndex = 0
     Task { @MainActor in
       do {
         let reading = try await Conductor.shared.reading(for: image, key: key)
         if matches == nil, key == photoKey {
           withAnimation(.easeInOut(duration: 0.35)) {
             matches = Conductor.rank(scene: reading.scene, faces: reading.subject.faces)
+          }
+        }
+        // the read is done — its real steps show as completed, Developing runs
+        if renderID == request {
+          let narration = Conductor.narration(for: reading)
+          withAnimation(.easeInOut(duration: 0.25)) {
+            ceremonySteps = narration
+            ceremonyActiveIndex = narration.count - 1
           }
         }
         let render = try await Task.detached(priority: .userInitiated) {
