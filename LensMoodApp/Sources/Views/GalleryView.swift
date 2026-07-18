@@ -71,11 +71,14 @@ struct GalleryView: View {
       Spacer()
       Text("\(roll.exposureCount) \(roll.exposureCount == 1 ? "EXPOSURE" : "EXPOSURES")")
     }
-    .font(.system(size: 10.5, weight: .semibold, design: .monospaced))
+    .scaledFont(size: 10.5, weight: .semibold, design: .monospaced, relativeTo: .caption2)
+    // one tight sleeve strip: shrink, never wrap
+    .lineLimit(1)
+    .minimumScaleFactor(0.8)
     .tracking(1)
     .foregroundStyle(Theme.viewfinderChrome)
     .padding(.horizontal, 12)
-    .frame(height: 32)
+    .frame(minHeight: 32)
     .frame(maxWidth: .infinity)
     .background(Theme.viewfinder)
     .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
@@ -99,6 +102,7 @@ struct GalleryView: View {
           }
           .overlay(alignment: .topTrailing) {
             if asset.favorite {
+              // fixed on purpose: a badge glyph pinned over the photograph
               Image(systemName: "heart.fill")
                 .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(.white)
@@ -119,7 +123,8 @@ struct GalleryView: View {
           Text(String(format: "%02d", exposure))
             .foregroundStyle(Theme.fog.opacity(0.65))
         }
-        .font(.system(size: 8, weight: .semibold, design: .monospaced))
+        .scaledFont(size: 8, weight: .semibold, design: .monospaced, relativeTo: .caption2)
+        .lineLimit(1)
         .padding(.horizontal, 2)
       }
       .padding(4)
@@ -140,9 +145,9 @@ struct GalleryView: View {
   private var emptyState: some View {
     VStack(spacing: 14) {
       Image(systemName: "rectangle.stack")
-        .font(.system(size: 36, weight: .ultraLight))
+        .scaledFont(size: 36, weight: .ultraLight, relativeTo: .largeTitle)
       Text("No developed frames")
-        .font(.system(size: 25, weight: .heavy))
+        .scaledFont(size: 25, weight: .heavy, relativeTo: .title)
       Button("Choose a camera") {
         model.selectedTab = .cameras
       }
@@ -280,13 +285,15 @@ private struct GalleryDetailView: View {
             )
           VStack(alignment: .leading, spacing: 2) {
             Text(asset.stock.name)
-              .font(.system(size: 17, weight: .bold))
+              .font(.body.weight(.bold))   // 17pt at the default size
               .foregroundStyle(Theme.ink)
             Text(asset.stock.tagline)
-              .font(.system(size: 13))
+              .font(.footnote)   // 13pt at the default size
               .foregroundStyle(Theme.inkSoft)
             Text(asset.stock.exif)
-              .font(.system(size: 10, weight: .medium, design: .monospaced))
+              .scaledFont(size: 10, weight: .medium, design: .monospaced, relativeTo: .caption2)
+              .lineLimit(1)
+              .minimumScaleFactor(0.8)
               .tracking(0.4)
               .foregroundStyle(Theme.fog)
               .padding(.top, 1)
@@ -302,10 +309,10 @@ private struct GalleryDetailView: View {
           ForEach(Array(asset.decisions.enumerated()), id: \.offset) { index, decision in
             HStack(alignment: .firstTextBaseline, spacing: 12) {
               Text(String(format: "%02d", index + 1))
-                .font(.system(size: 10, design: .monospaced))
+                .scaledFont(size: 10, design: .monospaced, relativeTo: .caption2)
                 .foregroundStyle(Theme.accent)
               Text(decision)
-                .font(.system(size: 14))
+                .scaledFont(size: 14, relativeTo: .footnote)
                 .foregroundStyle(Theme.ink)
             }
           }

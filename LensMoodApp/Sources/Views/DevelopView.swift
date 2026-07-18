@@ -140,9 +140,10 @@ struct DevelopView: View {
           TechnicalLabel(text: "For this photo")
           if let reason = top.reason {
             Text(reason)
-              .font(.system(size: 11, weight: .medium))
+              .font(.caption2.weight(.medium))   // 11pt at the default size
               .foregroundStyle(Theme.fog)
               .lineLimit(1)
+              .minimumScaleFactor(0.8)
           }
         }
         .accessibilityElement(children: .combine)
@@ -195,6 +196,8 @@ struct DevelopView: View {
           .overlay(alignment: .bottomTrailing) {
             // membership gate marker — invisible while every gate is open
             if !Store.shared.isUnlocked(item) {
+              // fixed on purpose: a badge glyph pinned to the fixed 40pt
+              // swatch — scaling it would swallow the artwork
               Image(systemName: "lock.fill")
                 .font(.system(size: 9, weight: .bold))
                 .foregroundStyle(.white)
@@ -204,9 +207,10 @@ struct DevelopView: View {
             }
           }
         Text(item.name)
-          .font(.system(size: 10, weight: active ? .bold : .medium))
+          .scaledFont(size: 10, weight: active ? .bold : .medium, relativeTo: .caption2)
           .foregroundStyle(active ? Theme.ink : Theme.fog)
           .lineLimit(1)
+          .minimumScaleFactor(0.8)
       }
       .frame(width: 62)
     }
@@ -220,7 +224,7 @@ struct DevelopView: View {
     VStack(alignment: .center, spacing: 5) {
       TechnicalLabel(text: currentStock.exif)
       Text(currentStock.tagline)
-        .font(.system(size: 23, weight: .heavy))
+        .scaledFont(size: 23, weight: .heavy, relativeTo: .title2)
         .foregroundStyle(Theme.ink)
         .multilineTextAlignment(.center)
     }
@@ -236,25 +240,25 @@ struct DevelopView: View {
       VStack(alignment: .leading, spacing: 9) {
         HStack(spacing: 8) {
           Image(systemName: def.isMonochrome ? "circle.righthalf.filled" : "camera.aperture")
-            .font(.system(size: 13, weight: .semibold))
+            .scaledFont(size: 13, weight: .semibold, relativeTo: .footnote)
             .foregroundStyle(Theme.accent)
           Text(def.emotionalTone)
-            .font(.system(size: 15, weight: .bold))
+            .font(.subheadline.weight(.bold))   // 15pt at the default size
             .foregroundStyle(Theme.ink)
         }
         Text(def.cameraInspiration)
-          .font(.system(size: 13, weight: .medium))
+          .font(.footnote.weight(.medium))   // 13pt at the default size
           .foregroundStyle(Theme.inkSoft)
           .fixedSize(horizontal: false, vertical: true)
         Text(def.palette)
-          .font(.system(size: 12))
+          .font(.caption)   // 12pt at the default size
           .foregroundStyle(Theme.fog)
           .fixedSize(horizontal: false, vertical: true)
         if !def.suitableSubjects.isEmpty {
           VStack(alignment: .leading, spacing: 3) {
             TechnicalLabel(text: "Best for")
             Text(def.suitableSubjects.joined(separator: "  ·  "))
-              .font(.system(size: 12, weight: .medium))
+              .font(.caption.weight(.medium))   // 12pt at the default size
               .foregroundStyle(Theme.inkSoft)
               .fixedSize(horizontal: false, vertical: true)
           }
@@ -279,9 +283,9 @@ struct DevelopView: View {
       } else {
         VStack(spacing: 12) {
           Image(systemName: currentStock.symbol)
-            .font(.system(size: 34, weight: .light))
+            .scaledFont(size: 34, weight: .light, relativeTo: .largeTitle)
           Text("Load one photograph")
-            .font(.system(size: 17, weight: .semibold))
+            .font(.body.weight(.semibold))   // 17pt at the default size
         }
         .foregroundStyle(Theme.viewfinderChrome)
       }
@@ -292,7 +296,10 @@ struct DevelopView: View {
         Spacer()
         Text(isDeveloping ? "DEVELOPING" : currentStock.exif)
       }
-      .font(.system(size: 9, weight: .semibold, design: .monospaced))
+      .scaledFont(size: 9, weight: .semibold, design: .monospaced, relativeTo: .caption2)
+      // one tight chrome strip over the stage: shrink, never wrap
+      .lineLimit(1)
+      .minimumScaleFactor(0.8)
       .tracking(0.8)
       .foregroundStyle(Theme.viewfinderChrome)
       .padding(11)
@@ -334,6 +341,7 @@ struct DevelopView: View {
             Circle()
               .fill(Theme.paper)
               .overlay(Circle().stroke(Theme.ink, lineWidth: 1))
+              // fixed on purpose: the glyph inside the fixed 30pt drag handle
               .overlay(Image(systemName: "arrow.left.and.right").font(.system(size: 10, weight: .bold)))
               .frame(width: 30, height: 30)
               .offset(x: size.width * compareFraction - 15)
@@ -376,7 +384,7 @@ struct DevelopView: View {
         TechnicalLabel(text: "Strength")
         Spacer()
         Text("\(Int((intensity * 100).rounded()))%")
-          .font(.system(size: 12, weight: .semibold, design: .monospaced))
+          .scaledFont(size: 12, weight: .semibold, design: .monospaced, relativeTo: .caption)
           .foregroundStyle(Theme.inkSoft)
       }
       Slider(value: $intensity, in: 0...1) { editing in
@@ -400,7 +408,7 @@ struct DevelopView: View {
         HStack(spacing: 10) {
           if index < ceremonyActiveIndex {
             Image(systemName: "checkmark")
-              .font(.system(size: 11, weight: .bold))
+              .scaledFont(size: 11, weight: .bold, relativeTo: .caption2)
               .foregroundStyle(Theme.accent)
               .frame(width: 16)
           } else {
@@ -410,7 +418,7 @@ struct DevelopView: View {
               .frame(width: 16)
           }
           Text(step)
-            .font(.system(size: 14, weight: index == ceremonyActiveIndex ? .semibold : .medium))
+            .scaledFont(size: 14, weight: index == ceremonyActiveIndex ? .semibold : .medium, relativeTo: .footnote)
             .foregroundStyle(index == ceremonyActiveIndex ? Theme.ink : Theme.inkSoft)
         }
       }
@@ -466,10 +474,10 @@ struct DevelopView: View {
         ForEach(Array(decisions.enumerated()), id: \.offset) { index, decision in
           HStack(alignment: .firstTextBaseline, spacing: 12) {
             Text(String(format: "%02d", index + 1))
-              .font(.system(size: 10, design: .monospaced))
+              .scaledFont(size: 10, design: .monospaced, relativeTo: .caption2)
               .foregroundStyle(Theme.accent)
             Text(decision)
-              .font(.system(size: 14))
+              .scaledFont(size: 14, relativeTo: .footnote)
               .foregroundStyle(Theme.ink)
           }
         }

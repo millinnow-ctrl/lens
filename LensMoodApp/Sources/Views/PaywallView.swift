@@ -39,7 +39,7 @@ struct PaywallView: View {
         offerRow
         if let notice {
           Text(notice)
-            .font(.system(size: 13, weight: .medium))
+            .font(.footnote.weight(.medium))   // 13pt at the default size
             .foregroundStyle(Theme.inkSoft)
             .frame(maxWidth: .infinity, alignment: .center)
         }
@@ -64,9 +64,9 @@ struct PaywallView: View {
   private var previewBanner: some View {
     HStack(spacing: 8) {
       Image(systemName: "hammer")
-        .font(.system(size: 13, weight: .semibold))
+        .scaledFont(size: 13, weight: .semibold, relativeTo: .footnote)
       Text("Everything is free right now. This is a preview of the supporter offer — nothing is locked.")
-        .font(.system(size: 13, weight: .medium))
+        .font(.footnote.weight(.medium))   // 13pt at the default size
     }
     .foregroundStyle(Theme.inkSoft)
     .padding(12)
@@ -77,10 +77,10 @@ struct PaywallView: View {
   private var header: some View {
     VStack(alignment: .leading, spacing: 6) {
       Text("Twelve more cameras")
-        .font(.system(size: 28, weight: .heavy))
+        .font(.title.weight(.heavy))   // 28pt at the default size
         .foregroundStyle(Theme.ink)
       Text("Six cameras are yours free, forever, at full resolution. Plus opens the other twelve — and every camera we add later.")
-        .font(.system(size: 15))
+        .font(.subheadline)   // 15pt at the default size
         .foregroundStyle(Theme.inkSoft)
     }
     .padding(.top, 4)
@@ -129,7 +129,7 @@ struct PaywallView: View {
       }
     } label: {
       Text("Restore purchases")
-        .font(.system(size: 15, weight: .semibold))
+        .font(.subheadline.weight(.semibold))   // 15pt at the default size
         .foregroundStyle(Theme.accent)
         .frame(maxWidth: .infinity)
     }
@@ -139,14 +139,14 @@ struct PaywallView: View {
   private var freeForeverCard: some View {
     VStack(alignment: .leading, spacing: 10) {
       Text("Free forever — with or without Plus")
-        .font(.system(size: 15, weight: .bold))
+        .font(.subheadline.weight(.bold))   // 15pt at the default size
         .foregroundStyle(Theme.ink)
       bullet("Six full cameras: \(freeStocks.map(\.name).joined(separator: ", "))")
       bullet("Full-resolution export of every photo and tape")
       bullet("Importing, saving, and sharing — never gated")
       Divider()
       Text("Plus adds \(plusStocks.count) signature cameras: \(plusStocks.map(\.name).joined(separator: ", "))")
-        .font(.system(size: 13))
+        .font(.footnote)   // 13pt at the default size
         .foregroundStyle(Theme.inkSoft)
     }
     .padding(14)
@@ -159,18 +159,18 @@ struct PaywallView: View {
       Text("Both offers unlock exactly the same cameras. No weekly plans, no trials that flip into charges, no watermarks at any tier.")
       Text("Photos develop on your phone and never upload — free or Plus.")
     }
-    .font(.system(size: 12))
+    .font(.caption)   // 12pt at the default size
     .foregroundStyle(Theme.fog)
   }
 
   private func bullet(_ text: String) -> some View {
     HStack(alignment: .top, spacing: 8) {
       Image(systemName: "checkmark")
-        .font(.system(size: 11, weight: .bold))
+        .scaledFont(size: 11, weight: .bold, relativeTo: .caption2)
         .foregroundStyle(Theme.accent)
         .padding(.top, 3)
       Text(text)
-        .font(.system(size: 14))
+        .scaledFont(size: 14, relativeTo: .footnote)
         .foregroundStyle(Theme.inkSoft)
     }
   }
@@ -219,7 +219,9 @@ private struct OfferCard: View {
       VStack(alignment: .leading, spacing: 8) {
         if let tag {
           Text(tag)
-            .font(.system(size: 10, weight: .bold, design: .monospaced))
+            .scaledFont(size: 10, weight: .bold, design: .monospaced, relativeTo: .caption2)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
             .kerning(0.8)
             .foregroundStyle(.white)
             .padding(.horizontal, 8)
@@ -228,22 +230,24 @@ private struct OfferCard: View {
         } else {
           // Keeps the two cards vertically aligned without a fake badge.
           Text(" ")
-            .font(.system(size: 10, weight: .bold, design: .monospaced))
+            .scaledFont(size: 10, weight: .bold, design: .monospaced, relativeTo: .caption2)
             .padding(.vertical, 4)
         }
         Text(title)
-          .font(.system(size: 16, weight: .bold))
+          .font(.callout.weight(.bold))   // 16pt at the default size
           .foregroundStyle(Theme.ink)
         HStack(alignment: .firstTextBaseline, spacing: 4) {
           Text(price)
-            .font(.system(size: 24, weight: .heavy))
+            .scaledFont(size: 24, weight: .heavy, relativeTo: .title2)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
             .foregroundStyle(Theme.ink)
           Text(cadence)
-            .font(.system(size: 12, weight: .medium))
+            .font(.caption.weight(.medium))   // 12pt at the default size
             .foregroundStyle(Theme.fog)
         }
         Text(detail)
-          .font(.system(size: 12))
+          .font(.caption)   // 12pt at the default size
           .foregroundStyle(Theme.inkSoft)
           .frame(maxWidth: .infinity, alignment: .leading)
           .fixedSize(horizontal: false, vertical: true)

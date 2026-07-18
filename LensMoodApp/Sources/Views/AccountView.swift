@@ -31,7 +31,7 @@ struct AccountView: View {
         // .navigationBarTrailing (not .topBarTrailing) — iOS 16 floor.
         ToolbarItem(placement: .navigationBarTrailing) {
           Button("Done") { dismiss() }
-            .font(.system(size: 16, weight: .semibold))
+            .font(.callout.weight(.semibold))   // 16pt at the default size
             .foregroundStyle(Theme.accent)
         }
       }
@@ -45,7 +45,7 @@ struct AccountView: View {
           .foregroundStyle(Theme.ink)
         Spacer()
         Text(membershipLabel)
-          .font(.system(size: 14, weight: .semibold))
+          .scaledFont(size: 14, weight: .semibold, relativeTo: .footnote)
           .foregroundStyle(Theme.inkSoft)
       }
       if Store.everythingFreeForNow {
@@ -59,7 +59,7 @@ struct AccountView: View {
         }
       } else if store.isPlus {
         Text("You keep the darkroom open. Thank you.")
-          .font(.system(size: 14))
+          .scaledFont(size: 14, relativeTo: .footnote)
           .foregroundStyle(Theme.inkSoft)
       } else {
         NavigationLink {
@@ -81,7 +81,7 @@ struct AccountView: View {
     Section {
       Label {
         Text("Photos develop on your phone. Nothing uploads. Ever.")
-          .font(.system(size: 14))
+          .scaledFont(size: 14, relativeTo: .footnote)
           .foregroundStyle(Theme.inkSoft)
       } icon: {
         Image(systemName: "lock")
@@ -98,7 +98,7 @@ struct AccountView: View {
           .foregroundStyle(Theme.ink)
         Spacer()
         Text(appVersion)
-          .font(.system(size: 14, design: .monospaced))
+          .scaledFont(size: 14, design: .monospaced, relativeTo: .footnote)
           .foregroundStyle(Theme.fog)
       }
     }

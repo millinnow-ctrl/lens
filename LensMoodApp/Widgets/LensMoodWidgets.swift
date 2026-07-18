@@ -7,6 +7,14 @@ import WidgetKit
 // metadata + gradients only, no photographs and no shared container, so the
 // widgets need no App Groups and no entitlements at all. Tapping any family
 // deep-links into the app: lensmood://develop/<stockID>.
+//
+// Dynamic Type: the fixed point sizes in this file are deliberate. WidgetKit
+// renders each family into a fixed-size canvas at a fixed content size — the
+// system does not reflow Home/Lock Screen widgets for the user's type
+// setting the way it does app UI — so scaling fonts here would only risk
+// truncation inside the fixed canvas. (`TechnicalLabel` from Theme.swift is
+// compiled in and uses `@ScaledMetric`; inside the widget environment that
+// resolves to its base size, so it renders identically.)
 
 // MARK: - Timeline
 

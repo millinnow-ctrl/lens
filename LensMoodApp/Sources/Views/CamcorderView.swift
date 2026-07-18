@@ -81,7 +81,7 @@ struct CamcorderView: View {
 
   private var introduction: some View {
     Text("One camera. One tape.")
-      .font(.system(size: 33, weight: .heavy))
+      .scaledFont(size: 33, weight: .heavy, relativeTo: .largeTitle)
       .foregroundStyle(Theme.ink)
       .multilineTextAlignment(.center)
       .frame(maxWidth: .infinity)
@@ -110,7 +110,7 @@ struct CamcorderView: View {
           .allowsHitTesting(false)
       } else {
         Image(systemName: "video.fill")
-          .font(.system(size: 34, weight: .light))
+          .scaledFont(size: 34, weight: .light, relativeTo: .largeTitle)
           .foregroundStyle(Theme.viewfinderChrome)
       }
     }
@@ -123,7 +123,10 @@ struct CamcorderView: View {
         Spacer()
         Text("SP · AUTO")
       }
-      .font(.system(size: 9, weight: .semibold, design: .monospaced))
+      .scaledFont(size: 9, weight: .semibold, design: .monospaced, relativeTo: .caption2)
+      // one tight chrome strip over the tape window: shrink, never wrap
+      .lineLimit(1)
+      .minimumScaleFactor(0.8)
       .foregroundStyle(Theme.viewfinderChrome)
       .padding(12)
     }
@@ -136,7 +139,7 @@ struct CamcorderView: View {
       HStack(spacing: 10) {
         ProgressView().tint(Theme.accent)
         Text("Developing tape")
-          .font(.system(size: 15, weight: .semibold))
+          .font(.subheadline.weight(.semibold))   // 15pt at the default size
       }
     }
     .padding(16)

@@ -65,13 +65,16 @@ struct ShareDevelopView: View {
   private var header: some View {
     HStack {
       Text("LENSMOOD")
-        .font(.system(size: 14, weight: .bold, design: .monospaced))
+        .scaledFont(size: 14, weight: .bold, design: .monospaced, relativeTo: .footnote)
+        .lineLimit(1)
+        .minimumScaleFactor(0.8)
         .tracking(2)
         .foregroundStyle(Theme.brandText)
       Spacer()
       Button {
         finish()
       } label: {
+        // glyph fixed on purpose: it sits inside the fixed 30pt circle control
         Image(systemName: "xmark")
           .font(.system(size: 13, weight: .semibold))
           .foregroundStyle(Theme.inkSoft)
@@ -106,10 +109,10 @@ struct ShareDevelopView: View {
       } else {
         VStack(spacing: 8) {
           Image(systemName: "photo")
-            .font(.system(size: 26))
+            .scaledFont(size: 26, relativeTo: .title)
             .foregroundStyle(.white.opacity(0.5))
           Text("No photograph arrived. Close and share an image again.")
-            .font(.system(size: 13))
+            .font(.footnote)   // 13pt at the default size
             .foregroundStyle(.white.opacity(0.7))
             .multilineTextAlignment(.center)
             .padding(.horizontal, 20)
@@ -157,6 +160,7 @@ struct ShareDevelopView: View {
         ))
         .frame(width: 52, height: 52)
         .overlay(
+          // glyph fixed on purpose: pinned to the fixed 52pt swatch artwork
           Image(systemName: stock.symbol)
             .font(.system(size: 17, weight: .semibold))
             .foregroundStyle(.white.opacity(0.92))
@@ -167,9 +171,11 @@ struct ShareDevelopView: View {
             .stroke(on ? Theme.accent : Theme.hairline, lineWidth: on ? 2 : 1)
         )
       Text(stock.name)
-        .font(.system(size: 9, weight: on ? .bold : .medium))
+        .scaledFont(size: 9, weight: on ? .bold : .medium, relativeTo: .caption2)
         .foregroundStyle(on ? Theme.accent : Theme.fog)
         .lineLimit(1)
+        // the rail chip stays 58pt wide: a grown name shrinks, never wraps
+        .minimumScaleFactor(0.8)
         .frame(width: 58)
     }
   }
@@ -180,7 +186,7 @@ struct ShareDevelopView: View {
         TechnicalLabel(text: "Intensity")
         Spacer()
         Text("\(Int((intensity * 100).rounded()))%")
-          .font(.system(size: 12, weight: .semibold, design: .monospaced))
+          .scaledFont(size: 12, weight: .semibold, design: .monospaced, relativeTo: .caption)
           .foregroundStyle(Theme.inkSoft)
       }
       Slider(value: $intensity, in: 0...1)
