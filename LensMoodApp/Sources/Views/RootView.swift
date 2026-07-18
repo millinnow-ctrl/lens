@@ -44,6 +44,11 @@ struct RootView: View {
 private struct OceanDock: View {
   @EnvironmentObject private var model: AppModel
 
+  // the capture pill grows with the type setting so the dock stays balanced
+  // when the slot icons and labels scale up
+  @ScaledMetric(relativeTo: .title3) private var capturePillWidth: CGFloat = 62
+  @ScaledMetric(relativeTo: .title3) private var capturePillHeight: CGFloat = 44
+
   var body: some View {
     HStack(spacing: 2) {
       slot(.cameras, icon: "camera.aperture", label: "Cameras")
@@ -74,10 +79,10 @@ private struct OceanDock: View {
       ZStack {
         Capsule()
           .fill(Theme.brandFill)
-          .frame(width: 62, height: 44)
+          .frame(width: capturePillWidth, height: capturePillHeight)
           .shadow(color: Theme.clayDeep.opacity(on ? 0.45 : 0.3), radius: 8, y: 4)
         Image(systemName: "camera.fill")
-          .font(.system(size: 19, weight: .semibold))
+          .scaledFont(size: 19, weight: .semibold, relativeTo: .title3)
           .foregroundStyle(.white)
       }
       .scaleEffect(on ? 1.06 : 1)
@@ -97,9 +102,13 @@ private struct OceanDock: View {
     } label: {
       VStack(spacing: 3) {
         Image(systemName: icon)
-          .font(.system(size: 18, weight: .medium))
+          .scaledFont(size: 18, weight: .medium, relativeTo: .title3)
         Text(label)
-          .font(.system(size: 10, weight: on ? .bold : .medium))
+          .scaledFont(size: 10, weight: on ? .bold : .medium, relativeTo: .caption2)
+          // the dock is one tight row of five — a grown label may shrink a
+          // touch rather than wrap or push its neighbors
+          .lineLimit(1)
+          .minimumScaleFactor(0.8)
       }
       .foregroundStyle(on ? Theme.accent : Theme.fog)
       .padding(.horizontal, 6)

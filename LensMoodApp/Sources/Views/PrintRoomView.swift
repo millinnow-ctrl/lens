@@ -84,7 +84,7 @@ struct PrintRoomView: View {
       ScrollView {
         VStack(alignment: .leading, spacing: 20) {
           Text("A photograph becomes an object.")
-            .font(.system(size: 31, weight: .heavy))
+            .scaledFont(size: 31, weight: .heavy, relativeTo: .largeTitle)
             .foregroundStyle(Theme.ink)
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
@@ -136,9 +136,9 @@ struct PrintRoomView: View {
     InstrumentPanel {
       VStack(spacing: 14) {
         Image(systemName: "photo.artframe")
-          .font(.system(size: 34, weight: .ultraLight))
+          .scaledFont(size: 34, weight: .ultraLight, relativeTo: .largeTitle)
         Text("Develop a photograph first")
-          .font(.system(size: 20, weight: .heavy))
+          .font(.title3.weight(.heavy))   // 20pt at the default size
         Button("Choose a camera") {
           model.selectedTab = .cameras
         }
@@ -154,13 +154,14 @@ struct PrintRoomView: View {
     PhotosPicker(selection: $pickedPrintItem, matching: .images) {
       HStack(spacing: 8) {
         Image(systemName: "photo.badge.plus")
-          .font(.system(size: 15, weight: .semibold))
+          .scaledFont(size: 15, weight: .semibold, relativeTo: .subheadline)
         Text("Add a photo")
-          .font(.system(size: 15, weight: .bold))
+          .font(.subheadline.weight(.bold))   // 15pt at the default size
+          .lineLimit(1)
       }
       .foregroundStyle(.white)
       .padding(.horizontal, 24)
-      .frame(height: 46)
+      .frame(minHeight: 46)
       .background(Theme.brandFill)
       .clipShape(Capsule())
       .oceanCardShadow()

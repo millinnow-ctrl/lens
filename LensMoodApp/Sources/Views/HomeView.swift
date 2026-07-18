@@ -75,7 +75,7 @@ struct HomeView: View {
               Text("Mood")
                 .foregroundStyle(Theme.accent)
             }
-            .font(.system(size: 20, weight: .bold))
+            .font(.title3.weight(.bold))   // 20pt at the default size
             .tracking(-0.3)
           }
           .accessibilityElement(children: .combine)
@@ -86,7 +86,7 @@ struct HomeView: View {
             model.accountPresented = true
           } label: {
             Image(systemName: "person.crop.circle")
-              .font(.system(size: 20))
+              .font(.title3)   // 20pt at the default size
               .foregroundStyle(Theme.ink)
           }
           .accessibilityLabel("Account and privacy")
@@ -186,7 +186,7 @@ struct HomeView: View {
           )
           .frame(width: 46)
           Image(systemName: "chevron.compact.right")
-            .font(.system(size: 27, weight: .semibold))
+            .scaledFont(size: 27, weight: .semibold, relativeTo: .title)
             .foregroundStyle(Theme.fog.opacity(0.55))
             .padding(.trailing, 2)
         }
@@ -211,7 +211,7 @@ struct HomeView: View {
   // headings stand alone and centered — the owner's copy principle
   private func sectionHead(title: String, subtitle: String?) -> some View {
     Text(title)
-      .font(.system(size: 26, weight: .heavy))
+      .scaledFont(size: 26, weight: .heavy, relativeTo: .title)
       .tracking(-0.4)
       .foregroundStyle(Theme.ink)
       .frame(maxWidth: .infinity)
@@ -241,14 +241,14 @@ struct HomeView: View {
           HStack(spacing: 7) {
             Circle().fill(Theme.recRed).frame(width: 9, height: 9)
             Text("REC")
-              .font(.system(size: 12, weight: .bold))
+              .font(.caption.weight(.bold))   // 12pt at the default size
               .tracking(1)
               .foregroundStyle(Color(hex: "#FFF0DC").opacity(0.95))
               .shadow(color: .black.opacity(0.5), radius: 4, y: 1)
           }
           Spacer()
           Text("Camcorder")
-            .font(.system(size: 26, weight: .heavy))
+            .scaledFont(size: 26, weight: .heavy, relativeTo: .title)
             .tracking(-0.4)
             .foregroundStyle(.white)
             .shadow(color: .black.opacity(0.55), radius: 8, y: 2)
@@ -288,10 +288,12 @@ struct HomeView: View {
             category = cat
           } label: {
             Text(cat.label)
-              .font(.system(size: 14, weight: on ? .bold : .semibold))
+              .scaledFont(size: 14, weight: on ? .bold : .semibold, relativeTo: .footnote)
+              .lineLimit(1)
               .foregroundStyle(on ? Color.white : Theme.ink)
               .padding(.horizontal, 16)
-              .frame(height: 36)
+              // minHeight, not height: the chip may grow with the type setting
+              .frame(minHeight: 36)
               .background(on ? AnyShapeStyle(Theme.brandFill) : AnyShapeStyle(Theme.surface))
               .clipShape(Capsule())
               .overlay {
@@ -399,7 +401,9 @@ struct CarouselCard: View {
           .clipped()
         if let badgeLabel {
           Text(badgeLabel)
-            .font(.system(size: 8.5, weight: .heavy))
+            .scaledFont(size: 8.5, weight: .heavy, relativeTo: .caption2)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
             .tracking(0.8)
             .foregroundStyle(.white)
             .padding(.horizontal, 7)
@@ -413,16 +417,18 @@ struct CarouselCard: View {
       VStack(alignment: .leading, spacing: 2) {
         HStack(alignment: .firstTextBaseline) {
           Text(stock.name)
-            .font(.system(size: 13, weight: .bold))
+            .font(.footnote.weight(.bold))   // 13pt at the default size
             .foregroundStyle(Theme.ink)
             .lineLimit(1)
+            .minimumScaleFactor(0.85)
           Spacer(minLength: 4)
           Text("LM·\(String(format: "%02d", index + 1))")
-            .font(.system(size: 8.5, weight: .semibold, design: .monospaced))
+            .scaledFont(size: 8.5, weight: .semibold, design: .monospaced, relativeTo: .caption2)
+            .lineLimit(1)
             .foregroundStyle(Theme.fog)
         }
         Text(stock.tagline)
-          .font(.system(size: 11))
+          .font(.caption2)   // 11pt at the default size
           .foregroundStyle(Theme.inkSoft)
           .lineLimit(2, reservesSpace: true)
       }
@@ -471,7 +477,9 @@ struct StyleCard: View {
         )
         if let badge = stock.badge {
           Text(badge.uppercased())
-            .font(.system(size: 9, weight: .heavy))
+            .scaledFont(size: 9, weight: .heavy, relativeTo: .caption2)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
             .tracking(0.8)
             .foregroundStyle(Theme.ink)
             .padding(.horizontal, 8)
@@ -485,18 +493,20 @@ struct StyleCard: View {
 
       VStack(alignment: .leading, spacing: 4) {
         Text(stock.name)
-          .font(.system(size: 16, weight: .bold))
+          .font(.callout.weight(.bold))   // 16pt at the default size
           .foregroundStyle(Theme.ink)
           .lineLimit(1)
+          .minimumScaleFactor(0.85)
         Text(stock.tagline)
-          .font(.system(size: 12.5))
+          .scaledFont(size: 12.5, relativeTo: .caption)
           .foregroundStyle(Theme.inkSoft)
           .lineLimit(2, reservesSpace: true)
         Text(stock.exif)
-          .font(.system(size: 10, weight: .medium, design: .monospaced))
+          .scaledFont(size: 10, weight: .medium, design: .monospaced, relativeTo: .caption2)
           .tracking(0.4)
           .foregroundStyle(Theme.fog)
           .lineLimit(1)
+          .minimumScaleFactor(0.8)
           .padding(.top, 3)
       }
       .padding(12)
@@ -533,11 +543,14 @@ struct HeroCard: View {
         Spacer()
         Text("Y2K DIGICAM · SUNNY")
       }
-      .font(.system(size: 10.5, weight: .semibold, design: .monospaced))
+      .scaledFont(size: 10.5, weight: .semibold, design: .monospaced, relativeTo: .caption2)
+      // one tight chrome strip: grown readouts shrink a touch, never wrap
+      .lineLimit(1)
+      .minimumScaleFactor(0.8)
       .tracking(1)
       .foregroundStyle(Theme.viewfinderChrome)
       .padding(.horizontal, 14)
-      .frame(height: 34)
+      .frame(minHeight: 34)
       .background(Theme.viewfinder)
 
       ZStack(alignment: .bottomLeading) {
@@ -558,12 +571,14 @@ struct HeroCard: View {
           HStack(spacing: 6) {
             Circle().fill(Theme.recRed).frame(width: 4, height: 4)
             Text("SHOT ON LENSMOOD")
-              .font(.system(size: 9, weight: .semibold, design: .monospaced))
+              .scaledFont(size: 9, weight: .semibold, design: .monospaced, relativeTo: .caption2)
+              .lineLimit(1)
+              .minimumScaleFactor(0.8)
               .tracking(1.2)
           }
           .foregroundStyle(.white.opacity(0.9))
           .padding(.horizontal, 10)
-          .frame(height: 24)
+          .frame(minHeight: 24)
           .background(.black.opacity(0.45))
           .clipShape(Capsule())
           .frame(maxWidth: .infinity, alignment: .leading)
@@ -576,12 +591,12 @@ struct HeroCard: View {
           // animated word anchored to line two instead of wrapping up to line one
           VStack(alignment: .leading, spacing: -2) {
             Text("Every photo")
-              .font(.system(size: 30, weight: .heavy))
+              .scaledFont(size: 30, weight: .heavy, relativeTo: .largeTitle)
             HStack(alignment: .firstTextBaseline, spacing: 0) {
               Text("has a ")
-                .font(.system(size: 30, weight: .heavy))
+                .scaledFont(size: 30, weight: .heavy, relativeTo: .largeTitle)
               Text(Self.words[word])
-                .font(.system(size: 30, weight: .heavy, design: .serif))
+                .scaledFont(size: 30, weight: .heavy, design: .serif, relativeTo: .largeTitle)
                 .italic()
                 .foregroundStyle(Color(hex: "#FFD9A0"))
                 .id(word)
@@ -601,16 +616,18 @@ struct HeroCard: View {
           Button(action: onStart) {
             HStack(spacing: 8) {
               Image(systemName: "photo.badge.plus")
-                .font(.system(size: 15, weight: .semibold))
+                .scaledFont(size: 15, weight: .semibold, relativeTo: .subheadline)
               Text("Start with a photo")
-                .font(.system(size: 15, weight: .bold))
+                .font(.subheadline.weight(.bold))   // 15pt at the default size
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
               Image(systemName: "chevron.down")
-                .font(.system(size: 10, weight: .bold))
+                .scaledFont(size: 10, weight: .bold, relativeTo: .caption2)
                 .opacity(0.45)
             }
             .foregroundStyle(Theme.ink)
             .padding(.horizontal, 20)
-            .frame(height: 44)
+            .frame(minHeight: 44)
             .background(.white)
             .clipShape(Capsule())
           }

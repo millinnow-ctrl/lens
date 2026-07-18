@@ -117,7 +117,7 @@ struct CaptureView: View {
       tick()
     } label: {
       HStack(spacing: 5) {
-        Image(systemName: on ? "wand.and.stars" : "wand.and.stars.inverse").font(.system(size: 10))
+        Image(systemName: on ? "wand.and.stars" : "wand.and.stars.inverse").scaledFont(size: 10, relativeTo: .caption2)
         Text("AUTO LIGHT").font(.spaceMono(9, bold: true)).tracking(0.5)
       }
       .foregroundStyle(on ? CameraTheme.gold : CameraTheme.dim)
@@ -135,8 +135,10 @@ struct CaptureView: View {
     let on = activeDial == dial
     return Button { activeDial = dial; tick() } label: {
       VStack(spacing: 3) {
-        Text(label).font(.system(size: 9, weight: .semibold)).tracking(0.12 * 9).foregroundStyle(CameraTheme.faint)
-        Text(value).font(.system(size: 16, weight: .semibold, design: .monospaced))
+        Text(label).scaledFont(size: 9, weight: .semibold, relativeTo: .caption2)
+          .lineLimit(1).minimumScaleFactor(0.8).tracking(0.12 * 9).foregroundStyle(CameraTheme.faint)
+        Text(value).scaledFont(size: 16, weight: .semibold, design: .monospaced, relativeTo: .callout)
+          .lineLimit(1).minimumScaleFactor(0.8)
           .foregroundStyle(on ? CameraTheme.gold : CameraTheme.dim)
       }
       .frame(minWidth: 46)
@@ -151,9 +153,10 @@ struct CaptureView: View {
     } label: {
       VStack(spacing: 3) {
         Image(systemName: camera.settings.flashMode == .off ? "bolt.slash.fill" : "bolt.fill")
-          .font(.system(size: 15))
+          .scaledFont(size: 15, relativeTo: .subheadline)
           .foregroundStyle(camera.settings.flashMode == .off ? CameraTheme.text : CameraTheme.gold)
-        Text(flashLabel).font(.system(size: 9, weight: .semibold)).tracking(1).foregroundStyle(CameraTheme.faint)
+        Text(flashLabel).scaledFont(size: 9, weight: .semibold, relativeTo: .caption2)
+          .lineLimit(1).minimumScaleFactor(0.8).tracking(1).foregroundStyle(CameraTheme.faint)
       }.frame(minWidth: 44)
     }.buttonStyle(.plain)
   }
@@ -199,7 +202,7 @@ struct CaptureView: View {
       // command wheel — bottom-aligned; empty area above stays tappable (focus)
       VStack(spacing: 4) {
         Text(activeDialLabel)
-          .font(.system(size: 22, weight: .bold, design: .monospaced))
+          .scaledFont(size: 22, weight: .bold, design: .monospaced, relativeTo: .title2)
           .foregroundStyle(.white).shadow(color: .black.opacity(0.55), radius: 5)
         HStack(spacing: 8) {
           Image(systemName: "chevron.compact.left").foregroundStyle(.white.opacity(0.4))
@@ -208,10 +211,11 @@ struct CaptureView: View {
             .clipped()
           Image(systemName: "chevron.compact.right").foregroundStyle(.white.opacity(0.4))
         }
-        .font(.system(size: 15, weight: .semibold))
+        .scaledFont(size: 15, weight: .semibold, relativeTo: .subheadline)
         .padding(.horizontal, 30)
         Text("DRAG TO \(activeDialName)")
-          .font(.system(size: 8, weight: .semibold, design: .monospaced)).tracking(1.5)
+          .scaledFont(size: 8, weight: .semibold, design: .monospaced, relativeTo: .caption2)
+          .lineLimit(1).tracking(1.5)
           .foregroundStyle(.white.opacity(0.45))
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
@@ -224,6 +228,7 @@ struct CaptureView: View {
   private var reticle: some View {
     ZStack {
       CornerTicks().stroke(.white, lineWidth: 2).frame(width: 108, height: 108)
+      // fixed on purpose: the crosshair glyph centered in the fixed 108pt reticle
       Image(systemName: "plus").font(.system(size: 16, weight: .regular)).foregroundStyle(.white)
     }
   }
@@ -234,7 +239,9 @@ struct CaptureView: View {
         let on = abs(camera.settings.zoom - z) < 0.01
         Button { camera.applyZoom(z); tick() } label: {
           Text(z == 1 ? "1×" : "\(Int(z))")
-            .font(.system(size: 13, weight: .semibold, design: .monospaced))
+            .scaledFont(size: 13, weight: .semibold, design: .monospaced, relativeTo: .footnote)
+            // the pill button stays 44pt wide: grown numerals shrink to fit
+            .lineLimit(1).minimumScaleFactor(0.7)
             .foregroundStyle(on ? CameraTheme.gold : CameraTheme.dim)
             .frame(width: 44, height: 40)
             .contentShape(Rectangle())
@@ -253,7 +260,9 @@ struct CaptureView: View {
         let on = camera.settings.manualFocus == manual
         Button { camera.settings.manualFocus = manual; tick() } label: {
           Text(manual ? "MF" : "AF")
-            .font(.system(size: 13, weight: .semibold, design: .monospaced))
+            .scaledFont(size: 13, weight: .semibold, design: .monospaced, relativeTo: .footnote)
+            // the pill button stays 44pt wide: grown letters shrink to fit
+            .lineLimit(1).minimumScaleFactor(0.7)
             .foregroundStyle(on ? CameraTheme.gold : CameraTheme.dim)
             .frame(width: 44, height: 40)
             .contentShape(Rectangle())
@@ -273,9 +282,10 @@ struct CaptureView: View {
       HStack(spacing: 10) {
         canisterIcon
         Text(loadedStock.name).font(.spaceMono(15, bold: true)).foregroundStyle(CameraTheme.text)
-        Image(systemName: "chevron.down").font(.system(size: 11, weight: .semibold)).foregroundStyle(CameraTheme.dim)
+        Image(systemName: "chevron.down").scaledFont(size: 11, weight: .semibold, relativeTo: .caption2).foregroundStyle(CameraTheme.dim)
         Spacer()
         Button { showGrid.toggle(); tick() } label: {
+          // glyph fixed on purpose: it sits inside the fixed 40pt bordered control
           Image(systemName: "grid")
             .font(.system(size: 15))
             .foregroundStyle(showGrid ? CameraTheme.gold : CameraTheme.dim)
@@ -301,6 +311,7 @@ struct CaptureView: View {
     if let img = BundleMedia.image("film-canister") {
       Image(uiImage: img).resizable().scaledToFit().frame(width: 30, height: 38)
     } else {
+      // fixed on purpose: a stand-in for the 30×38 canister artwork
       Image(systemName: "film").font(.system(size: 20)).foregroundStyle(CameraTheme.gold).frame(width: 30, height: 38)
     }
   }
@@ -313,7 +324,7 @@ struct CaptureView: View {
         let on = camera.settings.captureMode == mode
         Button { selectMode(mode) } label: {
           VStack(spacing: 5) {
-            Image(systemName: mode.systemImage).font(.system(size: 20))
+            Image(systemName: mode.systemImage).scaledFont(size: 20, relativeTo: .title3)
             Text(mode.rawValue.uppercased()).font(.spaceMono(11, bold: on)).tracking(0.5)
             Rectangle().fill(on ? CameraTheme.gold : .clear).frame(width: 18, height: 2).clipShape(Capsule())
           }
@@ -363,6 +374,7 @@ struct CaptureView: View {
           } else {
             ZStack {
               CameraTheme.panel
+              // fixed on purpose: a stand-in inside the fixed 56pt thumbnail
               Image(systemName: "photo").font(.system(size: 18)).foregroundStyle(CameraTheme.dim)
             }
           }
@@ -377,6 +389,7 @@ struct CaptureView: View {
       Spacer()
 
       Button { camera.flip() } label: {
+        // glyph fixed on purpose: it sits inside the fixed 52pt ring control
         Image(systemName: "arrow.triangle.2.circlepath")
           .font(.system(size: 20)).foregroundStyle(CameraTheme.dim)
           .frame(width: 52, height: 52).overlay(Circle().stroke(CameraTheme.line, lineWidth: 1))
@@ -407,7 +420,7 @@ struct CaptureView: View {
       HStack {
         Button { model.selectedTab = .cameras } label: {
           HStack(spacing: 6) {
-            Image(systemName: "chevron.left").font(.system(size: 13, weight: .bold))
+            Image(systemName: "chevron.left").scaledFont(size: 13, weight: .bold, relativeTo: .footnote)
             Text("LensMood").font(.spaceMono(13, bold: true))
           }
           .foregroundStyle(CameraTheme.text)
@@ -442,8 +455,10 @@ struct CaptureView: View {
                                        startPoint: .topLeading, endPoint: .bottomTrailing))
                   .frame(height: 66)
                   .overlay(RoundedRectangle(cornerRadius: 12).stroke(stock.id == loadedStock.id ? CameraTheme.gold : .clear, lineWidth: 2.5))
-                Text(stock.name).font(.system(size: 12, weight: .semibold)).foregroundStyle(CameraTheme.text).lineLimit(1)
-                Text(stock.exif).font(.system(size: 8, weight: .medium, design: .monospaced)).foregroundStyle(CameraTheme.dim).lineLimit(1)
+                Text(stock.name).scaledFont(size: 12, weight: .semibold, relativeTo: .caption)
+                  .foregroundStyle(CameraTheme.text).lineLimit(1).minimumScaleFactor(0.8)
+                Text(stock.exif).scaledFont(size: 8, weight: .medium, design: .monospaced, relativeTo: .caption2)
+                  .foregroundStyle(CameraTheme.dim).lineLimit(1).minimumScaleFactor(0.7)
               }
             }.buttonStyle(.plain)
           }
@@ -462,11 +477,11 @@ struct CaptureView: View {
         if model.library.isEmpty {
           VStack(spacing: 10) {
             Image(systemName: "photo.on.rectangle")
-              .font(.system(size: 30, weight: .light)).foregroundStyle(CameraTheme.dim)
+              .scaledFont(size: 30, weight: .light, relativeTo: .largeTitle).foregroundStyle(CameraTheme.dim)
             Text("Nothing on your Roll yet")
-              .font(.system(size: 15, weight: .semibold)).foregroundStyle(CameraTheme.text)
+              .font(.subheadline.weight(.semibold)).foregroundStyle(CameraTheme.text)   // 15pt at the default size
             Text("Shoot a photo and it lands here.")
-              .font(.system(size: 12)).foregroundStyle(CameraTheme.dim)
+              .font(.caption).foregroundStyle(CameraTheme.dim)   // 12pt at the default size
           }
           .frame(maxWidth: .infinity)
           .padding(.vertical, 56)
@@ -494,7 +509,7 @@ struct CaptureView: View {
       Color.black.opacity(0.6).ignoresSafeArea()
       VStack(spacing: 12) {
         ProgressView().tint(CameraTheme.gold)
-        Text("DEVELOPING").font(.system(size: 11, weight: .bold, design: .monospaced)).tracking(2).foregroundStyle(.white)
+        Text("DEVELOPING").scaledFont(size: 11, weight: .bold, design: .monospaced, relativeTo: .caption2).tracking(2).foregroundStyle(.white)
         Text("metering · relighting · developing \(loadedStock.name)")
           .font(.spaceMono(9)).foregroundStyle(.white.opacity(0.7))
       }
@@ -530,11 +545,11 @@ struct CaptureView: View {
 
   private func guideRow(_ icon: String, _ title: String, _ body: String) -> some View {
     HStack(alignment: .top, spacing: 14) {
-      Image(systemName: icon).font(.system(size: 18)).foregroundStyle(CameraTheme.gold)
+      Image(systemName: icon).scaledFont(size: 18, relativeTo: .title3).foregroundStyle(CameraTheme.gold)
         .frame(width: 26, alignment: .center)
       VStack(alignment: .leading, spacing: 3) {
-        Text(title).font(.system(size: 14, weight: .semibold)).foregroundStyle(CameraTheme.text)
-        Text(body).font(.system(size: 12)).foregroundStyle(CameraTheme.dim)
+        Text(title).scaledFont(size: 14, weight: .semibold, relativeTo: .footnote).foregroundStyle(CameraTheme.text)
+        Text(body).font(.caption).foregroundStyle(CameraTheme.dim)
           .fixedSize(horizontal: false, vertical: true)
       }
     }
@@ -550,7 +565,7 @@ struct CaptureView: View {
       Color.black.ignoresSafeArea()
       VStack(spacing: 16) {
         HStack {
-          Text("REVIEW").font(.system(size: 11, weight: .bold, design: .monospaced)).tracking(2).foregroundStyle(CameraTheme.dim)
+          Text("REVIEW").scaledFont(size: 11, weight: .bold, design: .monospaced, relativeTo: .caption2).tracking(2).foregroundStyle(CameraTheme.dim)
           Spacer()
           Button { review = nil } label: { Image(systemName: "xmark").foregroundStyle(.white) }
         }.padding(.horizontal, 20)
@@ -564,11 +579,13 @@ struct CaptureView: View {
           Spacer()
           Text("\(camera.settings.captureMode.rawValue.uppercased()) · ƒ/\(fmtF(camera.settings.aperture)) · ISO \(Int(camera.settings.iso))")
         }
-        .font(.system(size: 10, weight: .semibold, design: .monospaced)).foregroundStyle(CameraTheme.dim).padding(.horizontal, 20)
+        .scaledFont(size: 10, weight: .semibold, design: .monospaced, relativeTo: .caption2)
+        .lineLimit(1).minimumScaleFactor(0.8)
+        .foregroundStyle(CameraTheme.dim).padding(.horizontal, 20)
 
         if !asset.decisions.isEmpty {
           VStack(alignment: .leading, spacing: 6) {
-            ForEach(asset.decisions, id: \.self) { Text("· \($0)").font(.system(size: 12)).foregroundStyle(.white.opacity(0.85)) }
+            ForEach(asset.decisions, id: \.self) { Text("· \($0)").font(.caption).foregroundStyle(.white.opacity(0.85)) }
           }.frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 20)
         }
 

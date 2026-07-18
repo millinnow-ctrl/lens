@@ -109,6 +109,47 @@ extension View {
   }
 }
 
+// MARK: - Dynamic Type
+
+/// Dynamic Type for the app's fixed-size typography. A plain
+/// `Font.system(size:)` never follows the user's type setting, which left the
+/// whole app static. This modifier keeps the exact approved point size at the
+/// default content size (Large) and scales it from there with
+/// `@ScaledMetric(relativeTo:)` — the supported API for scaling an arbitrary
+/// base size along a text style's curve.
+private struct ScaledSystemFont: ViewModifier {
+  @ScaledMetric private var size: CGFloat
+  private let weight: Font.Weight
+  private let design: Font.Design
+
+  init(size: CGFloat, weight: Font.Weight, design: Font.Design, relativeTo style: Font.TextStyle) {
+    _size = ScaledMetric(wrappedValue: size, relativeTo: style)
+    self.weight = weight
+    self.design = design
+  }
+
+  func body(content: Content) -> some View {
+    content.font(.system(size: size, weight: weight, design: design))
+  }
+}
+
+extension View {
+  /// `.font(.system(size:weight:design:))`, but alive to Dynamic Type.
+  /// `relativeTo` picks the scaling curve — pass the text style whose default
+  /// point size sits closest to `size` (largeTitle 34 · title 28 · title2 22 ·
+  /// title3 20 · body 17 · callout 16 · subheadline 15 · footnote 13 ·
+  /// caption 12 · caption2 11). Where the fixed size exactly equals a style's
+  /// default, prefer the semantic style itself (e.g. `.font(.footnote)`).
+  func scaledFont(
+    size: CGFloat,
+    weight: Font.Weight = .regular,
+    design: Font.Design = .default,
+    relativeTo style: Font.TextStyle = .body
+  ) -> some View {
+    modifier(ScaledSystemFont(size: size, weight: weight, design: design, relativeTo: style))
+  }
+}
+
 struct InstrumentButtonStyle: ButtonStyle {
   enum Kind {
     case primary
@@ -120,7 +161,8 @@ struct InstrumentButtonStyle: ButtonStyle {
 
   func makeBody(configuration: Configuration) -> some View {
     configuration.label
-      .font(.system(size: 15, weight: .semibold))
+      // 15pt semibold at the default size; subheadline's curve carries it up
+      .font(.subheadline.weight(.semibold))
       .foregroundStyle(foreground)
       .frame(maxWidth: .infinity)
       .frame(minHeight: Theme.controlHeight)
@@ -173,7 +215,7 @@ struct TechnicalLabel: View {
 
   var body: some View {
     Text(text.uppercased())
-      .font(.system(size: 10, weight: .semibold, design: .monospaced))
+      .scaledFont(size: 10, weight: .semibold, design: .monospaced, relativeTo: .caption2)
       .tracking(1.4)
       .foregroundStyle(Theme.fog)
       .accessibilityLabel(text)
