@@ -93,7 +93,9 @@ struct GalleryView: View {
         Color.clear
           .aspectRatio(0.8, contentMode: .fit)
           .overlay {
-            Image(uiImage: asset.image)
+            // grid tier: the always-resident ≤480 px thumbnail — the grid
+            // never decodes a stored 2048 px frame
+            Image(uiImage: asset.thumbnail)
               .resizable()
               .scaledToFill()
           }
@@ -143,6 +145,10 @@ struct GalleryView: View {
         .font(.system(size: 36, weight: .ultraLight))
       Text("No developed frames")
         .font(.system(size: 25, weight: .heavy))
+      Text("Photographs you develop are kept here, in monthly rolls.")
+        .font(.system(size: 14))
+        .foregroundStyle(Theme.inkSoft)
+        .multilineTextAlignment(.center)
       Button("Choose a camera") {
         model.selectedTab = .cameras
       }
@@ -168,6 +174,9 @@ private struct GalleryDetailView: View {
   @State private var isSaving = false
   @State private var saveConfirmation = false
   @State private var errorMessage: String?
+  /// the stored 2048 px frame, decoded once on appearance (two-tier: a
+  /// persisted asset only carries its thumbnail in memory)
+  @State private var fullImage: UIImage?
 
   /// "12 JUL 2026 · 14:32" — the frame's timestamp as a technical readout
   private static let developedAt: DateFormatter = {
@@ -185,7 +194,9 @@ private struct GalleryDetailView: View {
     NavigationStack {
       ScrollView {
         VStack(alignment: .leading, spacing: 18) {
-          Image(uiImage: asset.image)
+          // thumbnail first, replaced by the full frame the moment its
+          // decode lands — same geometry, so nothing jumps
+          Image(uiImage: fullImage ?? asset.image ?? asset.thumbnail)
             .resizable()
             .scaledToFit()
             .frame(maxWidth: .infinity)
@@ -242,8 +253,18 @@ private struct GalleryDetailView: View {
           Button("Done") { dismiss() }
         }
       }
+      .task {
+        // decode the stored frame off-main; session assets already hold it
+        guard fullImage == nil, asset.image == nil else { return }
+        let asset = asset
+        fullImage = await Task.detached(priority: .userInitiated) {
+          asset.loadFullImage()
+        }.value
+      }
       .sheet(isPresented: $sharePresented) {
-        ActivitySheet(items: [asset.image])
+        // resolvedFrame: by presentation time the decode has landed; the
+        // synchronous fallback is one bounded (≤2048 px) JPEG decode
+        ActivitySheet(items: [resolvedFrame()])
       }
       .alert("Saved to Photos", isPresented: $saveConfirmation) {
         Button("OK", role: .cancel) {}
@@ -330,11 +351,25 @@ private struct GalleryDetailView: View {
     dismiss()
   }
 
+  /// The best frame available right now: the decoded full frame, the session
+  /// asset's in-memory frame, a fresh bounded decode, or (only if the stored
+  /// file is unreadable) the thumbnail.
+  private func resolvedFrame() -> UIImage {
+    fullImage ?? asset.image ?? asset.loadFullImage() ?? asset.thumbnail
+  }
+
   private func save() {
     isSaving = true
+    let asset = asset
+    let resident = fullImage ?? asset.image
     Task { @MainActor in
       do {
-        try await PhotoLibraryWriter.save(image: asset.image)
+        // exports always use the full stored frame, decoded off-main if the
+        // detail decode has not landed yet
+        let frame = await Task.detached(priority: .userInitiated) {
+          resident ?? asset.loadFullImage() ?? asset.thumbnail
+        }.value
+        try await PhotoLibraryWriter.save(image: frame)
         isSaving = false
         saveConfirmation = true
         UINotificationFeedbackGenerator().notificationOccurred(.success)

@@ -17,6 +17,10 @@ struct CaptureView: View {
 
   @State private var isDeveloping = false
   @State private var review: DevelopedAsset?
+  /// full frame for a Roll pick under review, keyed by asset id so a stale
+  /// decode can never show under a different frame (two-tier: persisted
+  /// assets only carry a thumbnail in memory; fresh shots hold their frame)
+  @State private var reviewFullImage: (id: UUID, image: UIImage)?
   @State private var shutterFlash = false
   @State private var errorMessage: String?
   @State private var saveConfirmation = false
@@ -354,7 +358,8 @@ struct CaptureView: View {
       Button { libraryShown = true } label: {
         Group {
           if let last = model.library.first {
-            Image(uiImage: last.image).resizable().scaledToFill()
+            // 56 pt chip — the grid-tier thumbnail is the right size here
+            Image(uiImage: last.thumbnail).resizable().scaledToFill()
           } else {
             ZStack {
               CameraTheme.panel
@@ -455,13 +460,22 @@ struct CaptureView: View {
     NavigationStack {
       ScrollView {
         if model.library.isEmpty {
-          Image(systemName: "photo.on.rectangle")
-            .font(.system(size: 30, weight: .light)).foregroundStyle(CameraTheme.dim).padding(48)
+          VStack(spacing: 10) {
+            Image(systemName: "photo.on.rectangle")
+              .font(.system(size: 30, weight: .light)).foregroundStyle(CameraTheme.dim)
+            Text("Nothing on your Roll yet")
+              .font(.system(size: 15, weight: .semibold)).foregroundStyle(CameraTheme.text)
+            Text("Shoot a photo and it lands here.")
+              .font(.system(size: 12)).foregroundStyle(CameraTheme.dim)
+          }
+          .frame(maxWidth: .infinity)
+          .padding(.vertical, 56)
         } else {
           LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 8)], spacing: 8) {
             ForEach(model.library) { asset in
               Button { libraryShown = false; review = asset } label: {
-                Image(uiImage: asset.image).resizable().scaledToFill()
+                // grid tier only — the sheet never decodes stored 2048 px frames
+                Image(uiImage: asset.thumbnail).resizable().scaledToFill()
                   .frame(height: 140).clipped().clipShape(RoundedRectangle(cornerRadius: 10))
               }.buttonStyle(.plain)
             }
@@ -541,7 +555,8 @@ struct CaptureView: View {
           Button { review = nil } label: { Image(systemName: "xmark").foregroundStyle(.white) }
         }.padding(.horizontal, 20)
 
-        Image(uiImage: asset.image).resizable().scaledToFit()
+        Image(uiImage: reviewFrame(for: asset))
+          .resizable().scaledToFit()
           .clipShape(RoundedRectangle(cornerRadius: 12)).padding(.horizontal, 16)
 
         HStack {
@@ -585,7 +600,25 @@ struct CaptureView: View {
             .disabled(isSavingShot)
         }.padding(.horizontal, 20).padding(.top, 4).padding(.bottom, 30)
       }.padding(.top, 60)
-    }.transition(.opacity)
+    }
+    .transition(.opacity)
+    .task(id: asset.id) {
+      // Roll picks arrive with only their thumbnail resident — decode the
+      // stored 2048 px frame off-main for the full-screen review
+      guard asset.image == nil, reviewFullImage?.id != asset.id else { return }
+      let full = await Task.detached(priority: .userInitiated) {
+        asset.loadFullImage()
+      }.value
+      if let full { reviewFullImage = (asset.id, full) }
+    }
+  }
+
+  /// the frame the review shows: the fresh shot's in-memory frame, the landed
+  /// full decode for a Roll pick, or the thumbnail while the decode runs
+  private func reviewFrame(for asset: DevelopedAsset) -> UIImage {
+    asset.image
+      ?? (reviewFullImage?.id == asset.id ? reviewFullImage?.image : nil)
+      ?? asset.thumbnail
   }
 
   // MARK: actions
@@ -639,13 +672,22 @@ struct CaptureView: View {
     isSavingShot = true
     let stock = asset.stock, capture = camera.settings, source = asset.source
     DispatchQueue.global(qos: .userInitiated).async {
-      // 4096 keeps peak memory safe on 2–3 GB devices (8192 risked jetsam)
-      let full = try? FilmEngine.shared.develop(source, with: stock.recipe, maxPixelSize: 4096, seed: 43, capture: capture).image
+      // Fresh shots still hold their original: re-develop it at 4096 (peak
+      // memory stays safe on 2–3 GB devices; 8192 risked jetsam). A frame
+      // reopened from the Roll no longer holds its original (two-tier memory
+      // law), so its stored 2048 px develop exports as-is.
+      let full: UIImage?
+      if let source {
+        full = try? FilmEngine.shared.develop(source, with: stock.recipe, maxPixelSize: 4096, seed: 43, capture: capture).image
+      } else {
+        full = asset.loadFullImage()
+      }
+      let export = full ?? asset.image ?? asset.thumbnail
       DispatchQueue.main.async {
         Task { @MainActor in
           defer { isSavingShot = false }
           do {
-            try await PhotoLibraryWriter.save(image: full ?? asset.image)
+            try await PhotoLibraryWriter.save(image: export)
             saveConfirmation = true; review = nil
             UINotificationFeedbackGenerator().notificationOccurred(.success)
           } catch { errorMessage = error.localizedDescription }

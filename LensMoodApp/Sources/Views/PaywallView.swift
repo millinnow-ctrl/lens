@@ -181,7 +181,8 @@ struct PaywallView: View {
     guard !busy else { return }
     guard let product else {
       // Degraded mode: no products configured in App Store Connect yet.
-      notice = "Purchases aren't set up yet — prices shown are placeholders."
+      // Copy stays status-free — never expose development state in UI copy.
+      notice = "The App Store couldn't load these offers. Nothing was charged — please try again later."
       return
     }
     busy = true

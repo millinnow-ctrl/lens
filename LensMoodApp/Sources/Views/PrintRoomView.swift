@@ -60,11 +60,23 @@ struct PrintRoomView: View {
   @State private var isSaving = false
   @State private var errorMessage: String?
   @State private var printReveal: CGFloat = 1
+  /// the selected frame's stored 2048 px decode, keyed by asset id so a
+  /// stale decode can never print under a newer selection (two-tier: a
+  /// persisted asset only carries its thumbnail in memory)
+  @State private var printPhoto: (id: UUID, image: UIImage)?
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   /// a photo added here wins; otherwise the latest developed frame prints
   private var selected: DevelopedAsset? {
     pickedAsset ?? model.library.first
+  }
+
+  /// the frame the print shows right now: the session frame, the landed
+  /// full decode, or the thumbnail while the decode is in flight
+  private func printFrame(for asset: DevelopedAsset) -> UIImage {
+    asset.image
+      ?? (printPhoto?.id == asset.id ? printPhoto?.image : nil)
+      ?? asset.thumbnail
   }
 
   var body: some View {
@@ -98,6 +110,14 @@ struct PrintRoomView: View {
       .background(Theme.paper)
       .navigationTitle("Print")
       .navigationBarTitleDisplayMode(.inline)
+      .task(id: selected?.id) {
+        // resolve the stored frame off-main whenever the printed photo changes
+        guard let asset = selected, asset.image == nil, printPhoto?.id != asset.id else { return }
+        let full = await Task.detached(priority: .userInitiated) {
+          asset.loadFullImage()
+        }.value
+        if let full { printPhoto = (asset.id, full) }
+      }
       .alert("Print saved", isPresented: $saved) {
         Button("OK", role: .cancel) {}
       }
@@ -179,7 +199,10 @@ struct PrintRoomView: View {
   @ViewBuilder
   private var printStage: some View {
     if let selected {
-      InstantPrintComposition(asset: selected, surface: surface, reveal: printReveal)
+      InstantPrintComposition(
+        asset: selected, photo: printFrame(for: selected),
+        surface: surface, reveal: printReveal
+      )
         .aspectRatio(1, contentMode: .fit)
         .overlay(Rectangle().stroke(Theme.hairline, lineWidth: 1))
         .accessibilityLabel("Instant print of \(selected.stock.name) on \(surface.rawValue)")
@@ -205,7 +228,13 @@ struct PrintRoomView: View {
   private func savePrint() {
     guard let selected else { return }
     isSaving = true
-    let composition = InstantPrintComposition(asset: selected, surface: surface)
+    // the saved print always uses the full stored frame; the synchronous
+    // fallback decode is one bounded (≤2048 px) JPEG inside a user action
+    let photo = selected.image
+      ?? (printPhoto?.id == selected.id ? printPhoto?.image : nil)
+      ?? selected.loadFullImage()
+      ?? selected.thumbnail
+    let composition = InstantPrintComposition(asset: selected, photo: photo, surface: surface)
       .frame(width: 1200, height: 1200)
     let renderer = ImageRenderer(content: composition)
     renderer.scale = 1
@@ -231,6 +260,9 @@ struct PrintRoomView: View {
 
 private struct InstantPrintComposition: View {
   let asset: DevelopedAsset
+  /// the resolved frame to print — passed in because a persisted asset only
+  /// carries its grid thumbnail in memory (two-tier Library)
+  let photo: UIImage
   let surface: PrintSurface
   /// 0 = fresh milky print, 1 = fully developed (drives the reveal ceremony)
   var reveal: CGFloat = 1
@@ -299,7 +331,7 @@ private struct InstantPrintComposition: View {
     let emergence = (1 - clear) * size.height * 0.035      // slides up into place
 
     return VStack(spacing: 0) {
-      Image(uiImage: asset.image)
+      Image(uiImage: photo)
         .resizable()
         .scaledToFill()
         .frame(width: size.width * 0.62, height: size.width * 0.62)
