@@ -76,10 +76,13 @@ final class AppModel: ObservableObject {
     if environment["LENSMOOD_AD"] == "1" {
       // Screenshot/ad harness only (set solely by CI): land on Cameras with a
       // photograph already handed to the develop flow, so the develop surface
-      // can be captured without any tap scripting. Never runs in a real
-      // session.
+      // can be captured without any tap scripting. LENSMOOD_AD_STOCK picks
+      // the camera, so one CI run photographs the real develop screen per
+      // camera — the ad's look-switch cuts are then whole real screens, not
+      // composites. Never runs in a real session.
       seedDemoLibrary()
-      pendingStock = Stock.find("tokyo-neon")
+      let stockID = environment["LENSMOOD_AD_STOCK"] ?? "tokyo-neon"
+      pendingStock = Stock.find(stockID)
       pendingDevelopImage = BundleMedia.image("style-tokyo-neon")
     } else if environment["LENSMOOD_DEMO"] == "1" {
       seedDemoLibrary()

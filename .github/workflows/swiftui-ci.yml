@@ -96,6 +96,16 @@ jobs:
             sleep $WAIT
             xcrun simctl io "$DEVICE_ID" screenshot ui-artifacts/$tab.png
           done
+          # ad material: the real develop screen once per featured camera, so
+          # the ad's look-switch cuts are whole genuine screens
+          mkdir -p ui-artifacts/develop-screens
+          for stock in disposable tokyo-neon film-noir kodachrome y2k-digicam polaroid super-8 photobooth; do
+            xcrun simctl terminate "$DEVICE_ID" app.lensmood.ios || true
+            SIMCTL_CHILD_LENSMOOD_TAB=cameras SIMCTL_CHILD_LENSMOOD_AD=1 SIMCTL_CHILD_LENSMOOD_AD_STOCK=$stock \
+              xcrun simctl launch "$DEVICE_ID" app.lensmood.ios
+            sleep 9
+            xcrun simctl io "$DEVICE_ID" screenshot ui-artifacts/develop-screens/$stock.png
+          done
 
       - name: Upload simulator capture
         if: success()
