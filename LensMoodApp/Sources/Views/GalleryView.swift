@@ -1,6 +1,11 @@
 import SwiftUI
 import UIKit
 
+/// The Library as a story: developed frames grouped into monthly rolls
+/// (`Roll.group`), each roll presented as a film sleeve — a dark chrome strip
+/// naming the month like a printed label ("JULY 2026 · 14 EXPOSURES", the same
+/// strip idiom as the Home hero card) over a grid of mounted frames, each
+/// mount carrying its camera's name and exposure number as a mono caption.
 struct GalleryView: View {
   @EnvironmentObject private var model: AppModel
   @State private var selected: DevelopedAsset?
@@ -18,38 +23,13 @@ struct GalleryView: View {
           emptyState
         } else {
           ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-              LazyVGrid(columns: columns, spacing: 14) {
-                ForEach(model.library) { asset in
-                  Button {
-                    selected = asset
-                  } label: {
-                    Color.clear
-                      .aspectRatio(0.8, contentMode: .fit)
-                      .overlay {
-                        Image(uiImage: asset.image)
-                          .resizable()
-                          .scaledToFill()
-                      }
-                      .overlay(alignment: .topTrailing) {
-                        if asset.favorite {
-                          Image(systemName: "heart.fill")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(.white)
-                            .padding(5)
-                            .background(.black.opacity(0.28), in: Circle())
-                            .padding(6)
-                        }
-                      }
-                      .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                      .oceanCardShadow()
-                  }
-                  .buttonStyle(.plain)
-                  .accessibilityLabel("\(asset.stock.name)\(asset.favorite ? ", favorite" : "")")
-                }
+            LazyVStack(alignment: .leading, spacing: 26) {
+              ForEach(model.rolls) { roll in
+                rollSection(roll)
               }
             }
             .padding(Theme.pagePadding)
+            .padding(.bottom, 20)
           }
           .background(Theme.paper)
         }
@@ -61,6 +41,100 @@ struct GalleryView: View {
           .environmentObject(model)
       }
     }
+  }
+
+  // MARK: - Rolls
+
+  private func rollSection(_ roll: Roll) -> some View {
+    VStack(alignment: .leading, spacing: 12) {
+      sleeveHeader(roll)
+      LazyVGrid(columns: columns, spacing: 12) {
+        ForEach(Array(roll.assets.enumerated()), id: \.element.id) { index, asset in
+          // exposures count up chronologically, so the newest frame (first in
+          // the roll) wears the highest number — like a wound-on film counter
+          frameCell(asset, exposure: roll.assets.count - index)
+        }
+      }
+    }
+    .accessibilityElement(children: .contain)
+    .accessibilityLabel("Roll \(roll.title), \(roll.exposureCount) exposures")
+  }
+
+  /// the sleeve's printed label — the dark chrome strip from the hero card,
+  /// reused so the Library reads as the same designer's work
+  private func sleeveHeader(_ roll: Roll) -> some View {
+    HStack {
+      HStack(spacing: 7) {
+        Circle().fill(Theme.recRed).frame(width: 6, height: 6)
+        Text(roll.title)
+      }
+      Spacer()
+      Text("\(roll.exposureCount) \(roll.exposureCount == 1 ? "EXPOSURE" : "EXPOSURES")")
+    }
+    .font(.system(size: 10.5, weight: .semibold, design: .monospaced))
+    .tracking(1)
+    .foregroundStyle(Theme.viewfinderChrome)
+    .padding(.horizontal, 12)
+    .frame(height: 32)
+    .frame(maxWidth: .infinity)
+    .background(Theme.viewfinder)
+    .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel(roll.sleeveLabel)
+  }
+
+  /// one mounted frame: the photograph in a thin white mount with its
+  /// camera's name and exposure number as the technical caption
+  private func frameCell(_ asset: DevelopedAsset, exposure: Int) -> some View {
+    Button {
+      selected = asset
+    } label: {
+      VStack(spacing: 5) {
+        Color.clear
+          .aspectRatio(0.8, contentMode: .fit)
+          .overlay {
+            Image(uiImage: asset.image)
+              .resizable()
+              .scaledToFill()
+          }
+          .overlay(alignment: .topTrailing) {
+            if asset.favorite {
+              Image(systemName: "heart.fill")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(.white)
+                .padding(5)
+                .background(.black.opacity(0.28), in: Circle())
+                .padding(5)
+            }
+          }
+          .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+        HStack(spacing: 3) {
+          Text(asset.stock.name.uppercased())
+            .tracking(0.4)
+            .lineLimit(1)
+            .minimumScaleFactor(0.85)
+            .foregroundStyle(Theme.fog)
+          Spacer(minLength: 2)
+          Text(String(format: "%02d", exposure))
+            .foregroundStyle(Theme.fog.opacity(0.65))
+        }
+        .font(.system(size: 8, weight: .semibold, design: .monospaced))
+        .padding(.horizontal, 2)
+      }
+      .padding(4)
+      .background(Theme.surface)
+      .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+      .overlay(
+        RoundedRectangle(cornerRadius: 11, style: .continuous)
+          .stroke(Theme.hairline, lineWidth: 1)
+      )
+      .oceanCardShadow()
+    }
+    .buttonStyle(.plain)
+    .accessibilityLabel(
+      "\(asset.stock.name), exposure \(exposure)\(asset.favorite ? ", favorite" : "")"
+    )
   }
 
   private var emptyState: some View {
@@ -82,6 +156,9 @@ struct GalleryView: View {
   }
 }
 
+/// One frame, remembered in full: the photograph, when it was developed, the
+/// film it was developed on (with its develop decisions — the receipts), and
+/// the actions — shoot that film again, save, share, delete.
 private struct GalleryDetailView: View {
   let asset: DevelopedAsset
 
@@ -91,6 +168,13 @@ private struct GalleryDetailView: View {
   @State private var isSaving = false
   @State private var saveConfirmation = false
   @State private var errorMessage: String?
+
+  /// "12 JUL 2026 · 14:32" — the frame's timestamp as a technical readout
+  private static let developedAt: DateFormatter = {
+    let formatter = DateFormatter()
+    formatter.dateFormat = "d MMM yyyy · HH:mm"
+    return formatter
+  }()
 
   /// live favorite state (the passed asset is a snapshot; the model is truth)
   private var isFavorite: Bool {
@@ -107,19 +191,22 @@ private struct GalleryDetailView: View {
             .frame(maxWidth: .infinity)
             .background(Theme.viewfinder)
 
-          VStack(alignment: .leading, spacing: 6) {
-            TechnicalLabel(text: asset.stock.exif)
-            Text(asset.stock.name)
-              .font(.system(size: 28, weight: .heavy))
-            Text(asset.stock.tagline)
-              .font(.system(size: 14))
-              .foregroundStyle(Theme.inkSoft)
+          TechnicalLabel(text: "Developed \(Self.developedAt.string(from: asset.createdAt))")
+
+          filmPanel
+
+          Button {
+            shootThisFilmAgain()
+          } label: {
+            Text("Shoot this film again")
           }
+          .buttonStyle(InstrumentButtonStyle(kind: .primary))
+          .accessibilityHint("Opens \(asset.stock.name) to develop a new photograph")
 
           Button(isSaving ? "Saving to Photos" : "Save to Photos") {
             save()
           }
-          .buttonStyle(InstrumentButtonStyle(kind: .primary))
+          .buttonStyle(InstrumentButtonStyle(kind: .secondary))
           .disabled(isSaving)
 
           Button("Share") {
@@ -170,6 +257,77 @@ private struct GalleryDetailView: View {
         Text(errorMessage ?? "Please try again.")
       }
     }
+  }
+
+  /// the photo remembers its film: the stock it was developed on, and the
+  /// decisions that camera made for this photograph (the receipts)
+  private var filmPanel: some View {
+    InstrumentPanel {
+      VStack(alignment: .leading, spacing: 14) {
+        TechnicalLabel(text: "Developed on")
+        HStack(spacing: 12) {
+          RoundedRectangle(cornerRadius: 12, style: .continuous)
+            .fill(
+              LinearGradient(
+                colors: [Color(hex: asset.stock.g0), Color(hex: asset.stock.g1)],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+              )
+            )
+            .frame(width: 44, height: 44)
+            .overlay(
+              RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Theme.hairline, lineWidth: 1)
+            )
+          VStack(alignment: .leading, spacing: 2) {
+            Text(asset.stock.name)
+              .font(.system(size: 17, weight: .bold))
+              .foregroundStyle(Theme.ink)
+            Text(asset.stock.tagline)
+              .font(.system(size: 13))
+              .foregroundStyle(Theme.inkSoft)
+            Text(asset.stock.exif)
+              .font(.system(size: 10, weight: .medium, design: .monospaced))
+              .tracking(0.4)
+              .foregroundStyle(Theme.fog)
+              .padding(.top, 1)
+          }
+          Spacer(minLength: 0)
+        }
+
+        if !asset.decisions.isEmpty {
+          Rectangle()
+            .fill(Theme.hairline)
+            .frame(height: 1)
+          TechnicalLabel(text: "Development decisions")
+          ForEach(Array(asset.decisions.enumerated()), id: \.offset) { index, decision in
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+              Text(String(format: "%02d", index + 1))
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundStyle(Theme.accent)
+              Text(decision)
+                .font(.system(size: 14))
+                .foregroundStyle(Theme.ink)
+            }
+          }
+        }
+      }
+      .padding(16)
+      .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel(
+      "Developed on \(asset.stock.name)."
+        + (asset.decisions.isEmpty ? "" : " Decisions: \(asset.decisions.joined(separator: ". "))")
+    )
+  }
+
+  /// route back into the develop flow with this frame's film loaded — the
+  /// same pending hand-off HomeView uses for hero photo picks
+  private func shootThisFilmAgain() {
+    model.pendingStock = asset.stock
+    model.selectedTab = .cameras
+    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    dismiss()
   }
 
   private func save() {

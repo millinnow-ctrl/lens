@@ -45,6 +45,13 @@ final class AppModel: ObservableObject {
   /// a photo chosen on the Home hero ("Choose from Library"), handed to the
   /// next DevelopView so it develops that frame straight away
   @Published var pendingDevelopImage: UIImage?
+  /// a camera queued from elsewhere in the app — the Library's "Shoot this
+  /// film again" sets it, HomeView routes it into a fresh DevelopView with
+  /// that stock loaded (same hand-off idiom as `pendingDevelopImage`)
+  @Published var pendingStock: Stock?
+
+  /// the Library as monthly film rolls, newest first (see `Roll.group`)
+  var rolls: [Roll] { Roll.group(library) }
 
   init(environment: [String: String] = ProcessInfo.processInfo.environment) {
     switch environment["LENSMOOD_TAB"] {
@@ -79,9 +86,17 @@ final class AppModel: ObservableObject {
     for (offset, id) in picks.enumerated() {
       guard let stock = Stock.all.first(where: { $0.id == id }),
             let image = BundleMedia.image("style-\(id)") else { continue }
+      // spread the frames across three months so the Library capture shows
+      // the roll sleeves (one per calendar month); minutes keep in-roll order
+      // deterministic
+      let createdAt = Calendar.current.date(
+        byAdding: DateComponents(month: -(offset / 5), minute: -offset),
+        to: Date()
+      ) ?? Date()
       // seed a couple of favorites so the Library shows the heart affordance
       library.append(DevelopedAsset(
-        image: image, source: image, stock: stock, decisions: [], favorite: offset < 2
+        image: image, source: image, stock: stock, decisions: [],
+        createdAt: createdAt, favorite: offset < 2
       ))
     }
   }

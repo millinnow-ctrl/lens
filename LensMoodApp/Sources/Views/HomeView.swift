@@ -100,10 +100,22 @@ struct HomeView: View {
       }
       .photosPicker(isPresented: $showLibraryPicker, selection: $heroPickedItem, matching: .images)
       .onChange(of: heroPickedItem) { item in loadHeroPhoto(item) }
+      // "Shoot this film again" (Library detail) queues a camera; push its
+      // develop view whether Home is already alive (onChange) or only built
+      // when the tab switch lands (onAppear)
+      .onAppear { routePendingStock() }
+      .onChange(of: model.pendingStock) { _ in routePendingStock() }
       .alert("Could not open that photo", isPresented: Binding(
         get: { heroPickError != nil }, set: { if !$0 { heroPickError = nil } }
       )) { Button("OK", role: .cancel) {} } message: { Text(heroPickError ?? "Try another photo.") }
     }
+  }
+
+  /// push the develop view for a camera queued by "Shoot this film again"
+  private func routePendingStock() {
+    guard let stock = model.pendingStock else { return }
+    model.pendingStock = nil
+    path.append(stock)
   }
 
   /// carry a library pick into a fresh develop session
