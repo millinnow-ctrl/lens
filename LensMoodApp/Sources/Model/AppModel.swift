@@ -73,7 +73,15 @@ final class AppModel: ObservableObject {
     // CI/screenshot only: seed a contact sheet so Library and Print Room show
     // their populated state. Never runs in a real user session (the env var is
     // set solely by the capture harness), so first-run stays genuinely empty.
-    if environment["LENSMOOD_DEMO"] == "1" {
+    if environment["LENSMOOD_AD"] == "1" {
+      // Screenshot/ad harness only (set solely by CI): land on Cameras with a
+      // photograph already handed to the develop flow, so the develop surface
+      // can be captured without any tap scripting. Never runs in a real
+      // session.
+      seedDemoLibrary()
+      pendingStock = Stock.find("tokyo-neon")
+      pendingDevelopImage = BundleMedia.image("style-tokyo-neon")
+    } else if environment["LENSMOOD_DEMO"] == "1" {
       seedDemoLibrary()
     } else {
       // real sessions: restore the developed Library from disk so it survives

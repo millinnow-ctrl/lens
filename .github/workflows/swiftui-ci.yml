@@ -77,7 +77,7 @@ jobs:
           APP_PATH=$(find "$HOME/Library/Developer/Xcode/DerivedData" -path '*/Build/Products/Debug-iphonesimulator/LensMood.app' -print -quit)
           test -d "$APP_PATH"
           xcrun simctl install "$DEVICE_ID" "$APP_PATH"
-          for tab in cameras capture library print tape; do
+          for tab in cameras capture library print tape develop; do
             xcrun simctl terminate "$DEVICE_ID" app.lensmood.ios || true
             # seed a demo contact sheet for the library-backed surfaces so their
             # populated state is captured (the Simulator has no camera/roll)
@@ -85,9 +85,15 @@ jobs:
               capture|library|print) DEMO=1 ;;
               *) DEMO= ;;
             esac
-            SIMCTL_CHILD_LENSMOOD_TAB=$tab SIMCTL_CHILD_LENSMOOD_DEMO=$DEMO \
+            # "develop" is the ad/marketing capture: boot straight into a
+            # developing photograph (LENSMOOD_AD) and give the engine time
+            AD=
+            LAUNCH_TAB=$tab
+            WAIT=3
+            if [ "$tab" = develop ]; then AD=1; LAUNCH_TAB=cameras; WAIT=9; fi
+            SIMCTL_CHILD_LENSMOOD_TAB=$LAUNCH_TAB SIMCTL_CHILD_LENSMOOD_DEMO=$DEMO SIMCTL_CHILD_LENSMOOD_AD=$AD \
               xcrun simctl launch "$DEVICE_ID" app.lensmood.ios
-            sleep 3
+            sleep $WAIT
             xcrun simctl io "$DEVICE_ID" screenshot ui-artifacts/$tab.png
           done
 
