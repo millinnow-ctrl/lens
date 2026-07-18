@@ -33,6 +33,8 @@ struct RootView: View {
     .sheet(isPresented: $model.accountPresented) {
       AccountView()
     }
+    // widget taps arrive here: lensmood://develop/<stockID>
+    .onOpenURL { model.open(url: $0) }
   }
 }
 

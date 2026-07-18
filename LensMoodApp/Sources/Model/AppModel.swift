@@ -101,6 +101,19 @@ final class AppModel: ObservableObject {
     }
   }
 
+  /// Route a `lensmood://` deep link (widget tap → `RootView.onOpenURL`):
+  /// queue the camera through the same `pendingStock` hand-off the Library's
+  /// "Shoot this film again" uses, and land on the Cameras tab where HomeView
+  /// pushes its develop view. Unknown URLs are ignored entirely.
+  func open(url: URL) {
+    guard let link = DeepLink.parse(url) else { return }
+    switch link {
+    case .develop(let stockID):
+      pendingStock = Stock.find(stockID)
+      selectedTab = .cameras
+    }
+  }
+
   /// flip a developed frame's favorite flag and persist it (index-only write)
   func toggleFavorite(id: UUID) {
     guard let index = library.firstIndex(where: { $0.id == id }) else { return }
