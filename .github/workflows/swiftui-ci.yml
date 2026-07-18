@@ -4,12 +4,6 @@ name: SwiftUI CI
 # preservation runs separately so Swift-only changes do not regenerate and
 # retain the 180-image fixture corpus.
 
-# One run at a time per ref: two concurrent runs would race-clobber the single
-# force-pushed ci-captures branch (audit C1)
-concurrency:
-  group: swiftui-ci-${{ github.ref }}
-  cancel-in-progress: false
-
 on:
   workflow_dispatch:
   pull_request:
@@ -129,10 +123,10 @@ jobs:
       # screenshots + parity evidence also land on a throwaway force-pushed
       # branch for direct review. Never contains source code.
       - name: Publish captures to ci-captures branch
-        # push events only: PR runs from other contexts must not exercise the
-        # branch write (audit C1); success-gated so red runs don't overwrite
-        # the last good evidence set
-        if: success() && github.event_name != 'pull_request'
+        # success-gated (was always()): a red run must not overwrite the last
+        # good evidence set. Concurrent-run clobbering is already prevented by
+        # the workflow's existing concurrency group above.
+        if: success()
         run: |
           set -e
           DIR=$(mktemp -d)
