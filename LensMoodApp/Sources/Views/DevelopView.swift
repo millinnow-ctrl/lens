@@ -588,13 +588,24 @@ struct DevelopView: View {
     }
   }
 
+  /// Screenshot-harness only (CI ad captures): after the develop lands, hold
+  /// the requested preview mode so the harness can photograph Original or
+  /// Compare states without tap scripting. Never set in a real session.
+  private var harnessPreviewMode: PreviewMode? {
+    switch ProcessInfo.processInfo.environment["LENSMOOD_AD_MODE"] {
+    case "original": return .original
+    case "compare": return .compare
+    default: return nil
+    }
+  }
+
   /// Commit a finished develop (from a fresh render or a cache hit) into editor
   /// state and the library. Runs on the main thread.
   private func applyDeveloped(image developed: UIImage, decisions newDecisions: [String], source: UIImage) {
     isDeveloping = false
     developedImage = developed
     decisions = newDecisions
-    previewMode = .developed
+    previewMode = harnessPreviewMode ?? .developed
     // the Library keeps a bounded copy of the original, built once per photo —
     // retaining 48 full-resolution sources was the session's dominant memory cost
     if librarySource == nil {

@@ -106,6 +106,16 @@ jobs:
             sleep 9
             xcrun simctl io "$DEVICE_ID" screenshot ui-artifacts/develop-screens/$stock.png
           done
+          # the same neon develop in Original and Compare preview modes — the
+          # ad's compare-slider moment wipes between genuine app states
+          for mode in original compare; do
+            xcrun simctl terminate "$DEVICE_ID" app.lensmood.ios || true
+            SIMCTL_CHILD_LENSMOOD_TAB=cameras SIMCTL_CHILD_LENSMOOD_AD=1 SIMCTL_CHILD_LENSMOOD_AD_STOCK=tokyo-neon \
+              SIMCTL_CHILD_LENSMOOD_AD_MODE=$mode \
+              xcrun simctl launch "$DEVICE_ID" app.lensmood.ios
+            sleep 9
+            xcrun simctl io "$DEVICE_ID" screenshot ui-artifacts/develop-screens/tokyo-neon-$mode.png
+          done
 
       - name: Upload simulator capture
         if: success()
