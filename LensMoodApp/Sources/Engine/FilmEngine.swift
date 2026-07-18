@@ -34,7 +34,9 @@ struct SceneReading {
 final class FilmEngine {
   static let shared = FilmEngine()
 
-  private let context: CIContext
+  // internal so the masked-light extension (a separate file) can rasterize
+  // the analysis thumbs for mask production inside `read`
+  let context: CIContext
   private let analyzer: SceneAnalyzer
   private let lutLoader = LUTLoader()
   private let grainKernel: CIColorKernel?
@@ -51,6 +53,11 @@ final class FilmEngine {
   let flashFalloffKernel: CIColorKernel?
   let keyShadowKernel: CIColorKernel?
   let clipMaskKernel: CIColorKernel?
+  // R66 masked-light kernels (used by FilmEngine+MaskedLight)
+  let rimGateKernel: CIColorKernel?
+  let maskedMeanKernel: CIColorKernel?
+  let rimCompressKernel: CIColorKernel?
+  let skinProtectKernel: CIColorKernel?
 
   init() {
     let sRGB = CGColorSpace(name: CGColorSpace.sRGB)!
@@ -206,6 +213,60 @@ final class FilmEngine {
         return vec4(pixel.rgb * t, 1.0);
       }
       """)
+    // R66 — rim gate: one light's contribution to the rim, evaluated at the
+    // matte's native resolution. band = dilated − eroded silhouette; facing =
+    // does the silhouette open toward the light (soft matte vs itself sampled
+    // a step toward the light); backlight = smoothstepped brightness of the
+    // scene just outside the silhouette (halation needs light BEHIND the
+    // edge); fall = gaussian distance falloff from the source.
+    rimGateKernel = CIColorKernel(source: """
+      kernel vec4 lensMoodRimGate(
+        __sample dilated, __sample eroded, __sample facingRef, __sample facingShifted, __sample backlight,
+        float lightX, float lightY, float invR2, float facingPower, float weight
+      ) {
+        float band = clamp(dilated.r - eroded.r, 0.0, 1.0);
+        float facing = clamp((facingRef.r - facingShifted.r) * 4.0, 0.0, 1.0);
+        facing = pow(facing, facingPower);
+        float b = clamp((backlight.r - 0.06) / 0.24, 0.0, 1.0);
+        b = b * b * (3.0 - 2.0 * b);
+        vec2 d = destCoord() - vec2(lightX, lightY);
+        float fall = exp(-dot(d, d) * invR2);
+        float rim = band * facing * fall * b * weight;
+        return vec4(vec3(rim), 1.0);
+      }
+      """)
+    // R66 — normalized masked mean: blur(luma·outside) / blur(outside), the
+    // "what is behind the subject's edge" reading for the rim's backlight gate.
+    maskedMeanKernel = CIColorKernel(source: """
+      kernel vec4 lensMoodMaskedMean(__sample num, __sample den) {
+        return vec4(vec3(num.r / max(den.r, 0.003)), 1.0);
+      }
+      """)
+    // R66 — soft-compress the accumulated rim (rim / (1 + rim)) so stacked
+    // sources can never turn the band into a hard sticker outline.
+    rimCompressKernel = CIColorKernel(source: """
+      kernel vec4 lensMoodRimCompress(__sample rim) {
+        vec3 c = max(rim.rgb, 0.0);
+        return vec4(c / (vec3(1.0) + c), 1.0);
+      }
+      """)
+    // R66 — skin protection: inside the mask the pixel eases toward a gentler
+    // variant of what the color core just did (contrast eased about the skin
+    // pivot + a small guarded midtone lift). mask == 0 returns the pixel
+    // EXACTLY — outside-mask bytes are untouched by construction.
+    skinProtectKernel = CIColorKernel(source: """
+      kernel vec4 lensMoodSkinProtect(__sample pixel, __sample mask, float ease, float lift) {
+        vec3 x = pixel.rgb;
+        vec3 gentle = vec3(0.45) + (x - vec3(0.45)) * (1.0 - ease);
+        float lum = dot(x, vec3(0.299, 0.587, 0.114));
+        float t = clamp((lum - 0.15) / 0.35, 0.0, 1.0);
+        t = t * t * (3.0 - 2.0 * t);
+        float u = clamp((lum - 0.65) / 0.30, 0.0, 1.0);
+        u = u * u * (3.0 - 2.0 * u);
+        gentle = clamp(gentle + vec3(lift * t * (1.0 - u)), 0.0, 1.0);
+        return vec4(mix(x, gentle, clamp(mask.r, 0.0, 1.0)), pixel.a);
+      }
+      """)
   }
 
   /// Run the intelligence passes alone — the meter and (optionally) the
@@ -223,9 +284,17 @@ final class FilmEngine {
       throw FilmEngineError.unreadableImage
     }
     let scene = try analyzer.analyze(image.orientedForDisplay)
-    let subject = analyzeSubjects
-      ? ((try? VisionService.analyze(source, includePersonMask: true)) ?? SubjectAnalysis(faces: [], personMask: nil))
-      : SubjectAnalysis(faces: [], personMask: nil)
+    let subject: SubjectAnalysis
+    if analyzeSubjects {
+      let base = (try? VisionService.analyze(source, includePersonMask: true))
+        ?? SubjectAnalysis(faces: [], personMask: nil)
+      // R66: the silhouette/skin/sky masks are produced HERE — in the one
+      // subject pass — and nowhere else. A develop without a cached reading
+      // carries nil masks and renders the masked-light passes structurally off.
+      subject = attachLightMasks(to: base, image: image.orientedForDisplay)
+    } else {
+      subject = SubjectAnalysis(faces: [], personMask: nil)
+    }
     return SceneReading(scene: scene, subject: subject)
   }
 
@@ -322,6 +391,17 @@ final class FilmEngine {
       image = applyTone(image, recipe: recipe)
       image = applyAdaptiveColor(image, scene: scene, recipe: recipe)
     }
+    // R66 masked-light, immediately after the color core so both passes see
+    // (and can answer) exactly what the emulsion just did: the skin mask holds
+    // a gentler counter-grade of the stock's own curve; the sky takes the
+    // film's blue response. Both are scoped to masks produced once in `read`'s
+    // subject pass — no mask (or no cached reading) means structurally off.
+    if recipe.skinProtect > 0.001 {
+      image = applySkinProtection(image, subject: subject, recipe: recipe, amount: recipe.skinProtect)
+    }
+    if recipe.skyResponse > 0.001 {
+      image = applySkyResponse(image, scene: scene, subject: subject, recipe: recipe, amount: recipe.skyResponse)
+    }
     // R62: early-CCD sensors have no film shoulder — highlights race to clip.
     if recipe.ccdClip > 0.001 {
       image = applyCCDClip(image, amount: recipe.ccdClip)
@@ -354,6 +434,12 @@ final class FilmEngine {
       image = applySourceBloom(image, scene: scene, baseBloom: recipe.bloom, amount: recipe.sourceBloom)
     } else {
       image = applyBloom(image, amount: recipe.bloom)
+    }
+    // R66: backlight-gated rim halation traced along the subject's silhouette
+    // — it rides the same glow stage as bloom, before the smear. Structural
+    // no-op without a subject matte or without metered lights.
+    if recipe.rimLight > 0.001 {
+      image = applyRimHalation(image, scene: scene, subject: subject, recipe: recipe, amount: recipe.rimLight)
     }
     // R62: clipped highlights bleed down the sensor column (CCD blooming /
     // tube comet-tails), riding on top of the bloomed highlights.
@@ -407,7 +493,7 @@ final class FilmEngine {
     return FilmRenderResult(
       image: UIImage(cgImage: cgImage, scale: source.scale, orientation: .up),
       scene: scene,
-      decisions: decisions(for: scene, recipe: recipe, adaptiveEV: adaptiveEV, faces: subject.faces),
+      decisions: decisions(for: scene, recipe: recipe, adaptiveEV: adaptiveEV, subject: subject),
       faces: subject.faces
     )
   }
@@ -785,8 +871,9 @@ final class FilmEngine {
     for scene: SceneProfile,
     recipe: CameraRecipe,
     adaptiveEV: Double,
-    faces: [FaceProfile]
+    subject: SubjectAnalysis
   ) -> [String] {
+    let faces = subject.faces
     var notes: [String] = []
     if !faces.isEmpty, recipe.protectsFaces {
       notes.append(faces.count == 1 ? "Face exposure protected" : "Group exposure balanced")
@@ -815,6 +902,18 @@ final class FilmEngine {
     }
     if recipe.highlightSmear > 0.001, scene.key < 0.30 {
       notes.append("Hot highlights smeared down the frame")
+    }
+    // R66 masked-light notes — only when the mask existed and the pass's own
+    // structural gates passed (the same gates the passes run).
+    if recipe.rimLight > 0.001, subject.subjectMatte != nil,
+       !rimSources(scene: scene, recipe: recipe).isEmpty {
+      notes.append("Rim light traced behind your subject")
+    }
+    if recipe.skinProtect > 0.001, subject.skinMask != nil {
+      notes.append("Skin held natural under the look")
+    }
+    if skyPassEngages(scene: scene, subject: subject, recipe: recipe) {
+      notes.append("Sky rendered the way this film sees it")
     }
     // Directive §8: decision notes come from real analysis only. The static
     // per-camera vocabulary is intentionally NOT used as filler — an empty or

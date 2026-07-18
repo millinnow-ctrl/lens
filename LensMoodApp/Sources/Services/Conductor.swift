@@ -155,6 +155,22 @@ final class Conductor: ObservableObject {
       if recipe.gainDrivenGrain {
         score += 0.20 * darkness
       }
+      // R66 masked-light promotions — small and structural, mirroring the new
+      // passes' own gates: rim needs a subject to trace AND a metered source
+      // behind it (its best case is a backlit subject); skin protection needs
+      // people in the photograph. Sky coverage is not measured by the scene
+      // meter, so no sky promotion is invented here.
+      if recipe.rimLight > 0.001, hasFaces, keyLight != nil {
+        if scene.isBacklit {
+          score += 0.12 * recipe.rimLight
+          reasons.append("Backlight to trace a rim from")
+        } else {
+          score += 0.05 * recipe.rimLight
+        }
+      }
+      if recipe.skinProtect > 0.001, hasFaces {
+        score += 0.05 * recipe.skinProtect
+      }
       if recipe.nightReciprocity > 0.001 {
         // slow film starves in the dark — the engine renders that honestly,
         // so the rail should not lead with it at night

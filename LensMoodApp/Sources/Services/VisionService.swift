@@ -14,6 +14,39 @@ enum VisionError: LocalizedError {
 struct SubjectAnalysis {
   let faces: [FaceProfile]
   let personMask: CIImage?
+
+  // R66 masked-light fields. All three are produced ONLY inside
+  // `FilmEngine.read`'s subject pass (heuristics on a small analysis raster,
+  // materialized to single-channel bytes at <=1024 long edge) and upscaled
+  // lazily where a pass uses them. A develop without a cached reading — or
+  // with `analyzeSubjects: false` — carries nil masks, which switches the
+  // masked passes structurally off.
+
+  /// Cleaned subject silhouette (largest connected component, holes filled)
+  /// that the rim-halation pass traces. The raw Vision matte keeps its holes
+  /// and spurs for the flash-falloff pass, whose behavior is already pinned.
+  let subjectMatte: CIImage?
+  /// Person matte intersected with tight skin chroma and a luma window,
+  /// opened-then-closed, feathered — the skin-protection scope.
+  let skinMask: CIImage?
+  /// Chromatic-blue sky evidence (hue + low texture + top prior + not-subject,
+  /// top-touching components only). nil when sky coverage is below the
+  /// refusal threshold, so the sky pass cannot fire on skyless scenes.
+  let skyMask: CIImage?
+
+  init(
+    faces: [FaceProfile],
+    personMask: CIImage?,
+    subjectMatte: CIImage? = nil,
+    skinMask: CIImage? = nil,
+    skyMask: CIImage? = nil
+  ) {
+    self.faces = faces
+    self.personMask = personMask
+    self.subjectMatte = subjectMatte
+    self.skinMask = skinMask
+    self.skyMask = skyMask
+  }
 }
 
 final class VisionService {
