@@ -1,80 +1,56 @@
 # LensMood — App Store readiness checklist
 
-Audit of everything Apple requires (App Review Guidelines + HIG), what's
-already in place, and what still needs the user's action. Updated July 2026.
+Status snapshot for the **SwiftUI app in `LensMoodApp/`** (bundle id
+`app.lensmood.ios`). The step-by-step path to submission lives in
+**`docs/LAUNCH_RUNBOOK.md`** — this file only records what is true in the
+repo today. Updated July 2026. (Earlier versions of this file described
+the pre-Swift web/Capacitor incarnation; that content is obsolete.)
 
-## Payments — guideline 3.1.1 (the big one)
-
-| Item | Status |
-|---|---|
-| Digital subscriptions must use Apple In-App Purchase on iOS | ✅ Architected: `src/lib/purchases.ts` is the platform seam. On native iOS the demo web checkout is disabled and purchases route to a StoreKit bridge; on web, the demo checkout remains. |
-| No link-outs to external payment from the iOS app | ✅ Pricing page shows "Billed through your Apple ID" on native, no external checkout links. |
-| Restore Purchases affordance | ✅ Visible on the pricing screen on native builds. |
-| Product IDs | Defined: `app.lensmood.ios.{creator,pro,studio}.monthly` — **you must create these in App Store Connect** (auto-renewable, one subscription group). |
-| StoreKit bridge | ⚠️ Stubbed. Before release, add RevenueCat (`@revenuecat/purchases-capacitor`) or `@squareetlabs/capacitor-subscriptions` and expose it as `window.LensMoodIAP { purchase, restore }`, or replace the seam calls directly. Requires a Mac-less path: config is all JS; the plugin adds via npm + `npx cap sync`. |
-| Price display | Fetch localized prices from StoreKit at runtime for the native pricing screen (App Review flags hard-coded USD). The seam is ready for it. |
-
-## Sign in — guideline 4.8
-
-- ✅ "Continue with Apple" is offered first and most prominently wherever Google sign-in appears (HIG placement).
-- ⚠️ Demo only: before release wire `@capacitor-community/apple-sign-in` and a real Google OAuth client; keep Apple's email-relay support (privacy page already promises it).
-
-## Account deletion — guideline 5.1.1(v)
-
-- ✅ "Delete account & data" in the account sheet wipes all local data with confirmation. (All data is local, so deletion is genuinely complete.)
-
-## Privacy
+## In the binary — done
 
 | Item | Status |
 |---|---|
-| Privacy policy URL (required in App Store Connect) | ✅ `/privacy` page shipped; use `https://<your-domain>/privacy`. |
-| Terms of use URL (required for auto-renewable subs) | ✅ `/terms` page shipped. |
-| App Privacy "nutrition label" answers | Data not collected — photos processed on-device, no analytics, no tracking. Answer "Data Not Collected" unless you add accounts/sync later. |
-| ATT (App Tracking Transparency) | Not needed — no tracking. Do not add the prompt. |
-| Permission strings | ✅ Camera, Photo Library (read + add), Microphone strings in `Info.plist`, each explains the actual use. |
+| `ITSAppUsesNonExemptEncryption: false` on all three targets (app, share extension, widgets) | ✅ `LensMoodApp/project.yml` — export-compliance question answered in the binary |
+| `CFBundleDisplayName` "LensMood" on the app target | ✅ `INFOPLIST_KEY_CFBundleDisplayName` |
+| `UILaunchScreen: {}` (SwiftUI system launch screen) | ✅ explicit key in the app's Info.plist properties |
+| Permission strings — camera, microphone, Photos **add-only** | ✅ calm copy on app + share extension; import uses the system photo picker, so no read permission exists anywhere |
+| Portrait-only, iPhone-only | ✅ `TARGETED_DEVICE_FAMILY: 1`, portrait orientation key |
+| 1024px app icon in the asset catalog | ✅ `Resources/Assets.xcassets/AppIcon.appiconset` |
+| Privacy manifest (`PrivacyInfo.xcprivacy`) in all three targets | ✅ no tracking, no collection, UserDefaults CA92.1; required-reason audit recorded in the file (no file-timestamp/boot-time/disk-space APIs used) |
+| Share extension activation rule | ✅ one image max — never `TRUEPREDICATE` |
+| No App Groups / push / iCloud capabilities needed | ✅ widgets and extension are self-contained |
 
-## Binary & assets
+## Review-risk posture — done
 
-- ✅ App icon 1024 (`AppIcon-512@2x.png`, regenerate at 1024 naming if ASC complains), adaptive PWA icons, splash via Capacitor.
-- ✅ `ITSAppUsesNonExemptEncryption=false` (skips export-compliance questions).
-- ✅ Portrait-first mobile UI, safe-area insets respected, haptics via Capacitor.
-- ✅ Reduced-motion honored (hero video and 3D deck fall back).
-- CI: `.github/workflows/testflight.yml` builds and uploads on tag push once the four ASC secrets are set.
+| Item | Status |
+|---|---|
+| Paywall with placeholder prices reachable by a reviewer (2.1/3.1 risk) | ✅ closed — in **release** builds the Account "Preview the supporter offer" row renders only when real StoreKit products loaded; DEBUG builds always show it for design review (`AccountView.swift`) |
+| Hard-coded USD on a live purchase path | ✅ real prices always come from `Product.displayPrice`; placeholders render only when no products exist, and that screen is then unreachable in release |
+| Restore-purchases affordance | ✅ always present on the paywall |
+| No dark patterns | ✅ per `docs/PROFIT_ENGINE.md` never-list (no urgency, no confirm-shaming, no weekly plans) |
+| Brand-referencing look names (old 5.2 IP concern) | ✅ resolved — shipped display names are original (Direct Flash, Tape 94, Street 35, Editorial Strobe, Independent Still, Instant 600, Slide 64, Toy Color, Wet Plate, …); real-brand words survive only in internal ids, which never render |
+| Account deletion (5.1.1(v)) | n/a — there are no accounts and no collected data |
+| ATT prompt | Correctly absent — no tracking |
 
-## Content risks — guideline 5.2 (intellectual property) ⚠️ ACTION NEEDED
+## Documents — done, need owner action to go live
 
-Style names reference real brands: **GQ Editorial, A24 Movie Still, Leica
-Street, Polaroid, Kodachrome, Lomo, Blockbuster, iPhone Flash, Super 8**.
-App Review and rights holders can (and do) flag this. Recommended rename map
-kept in one place (`src/lib/styles.ts` names only — engine ids can stay):
+| Item | Status |
+|---|---|
+| Privacy policy text | ✅ `docs/PRIVACY_POLICY.md` — owner must set contact email + host it publicly (GitHub Pages suffices); URL goes into App Store Connect |
+| App Privacy questionnaire answers | ✅ spelled out in runbook §6 — **Data Not Collected** |
+| Age rating answers | ✅ runbook §7 — all None → 4+ |
+| Review notes text | ✅ runbook §11 — on-device processing, no account, Tape uses camera+mic |
+| IAP definitions | ✅ ids + types + group in runbook §10 (`app.lensmood.ios.plus.yearly`, `app.lensmood.ios.plus.lifetime`), pricing bands in `docs/PROFIT_ENGINE.md` |
 
-- iPhone Flash → Phone Flash · GQ Editorial → Magazine Editorial · A24 Movie
-  Still → Indie Film Still · Leica Street → Classic Street · Polaroid →
-  Instant Film · Kodachrome → 60s Slide Film · Lomo → Toy Camera ·
-  Blockbuster → Summer Movie · Super 8 → Home Movie 8mm
+## Open items (owner-only, in runbook order)
 
-The Terms page already carries a non-affiliation disclaimer, but renaming
-before submission is the safe call. **Waiting on your go-ahead.**
-
-## Guideline 2.1 — completeness
-
-- ✅ No dead links (placeholder social links removed), no "demo" copy on
-  the native purchase path, all features work offline after install.
-- Demo sign-in is acceptable for TestFlight; App Store release needs the
-  real auth above.
-
-## Website (App Store marketing URL)
-
-- ✅ OG/Twitter cards + 1200×630 `og.jpg`, new-brand favicon, theme-color,
-  descriptive title/meta, `/privacy` + `/terms` in the footer, PWA manifest
-  and offline support.
-
-## Submission-day inputs only you can provide
-
-1. Apple Developer Program membership + the 4 GitHub secrets
-   (`ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_API_KEY_P8`, `APPLE_TEAM_ID`) — then
-   push tag `v1.0.0` to trigger the TestFlight workflow.
-2. App Store Connect: create the app, the three subscription products, and
-   paste the privacy/terms URLs.
-3. Decide on the style-name rename map above.
-4. Support URL + marketing URL (any page on your domain works).
+1. Apple Developer Program enrollment (+ Small Business Program before
+   any gate flip) — runbook §1–2.
+2. Signing on a Mac with automatic signing — §3.
+3. Host the privacy policy; set the effective date and contact email — §4.
+4. Create the ASC app record; **subtitle decision**: `18 cameras.
+   One-time purchase.` only if the lifetime IAP ships with v1, otherwise
+   use a neutral subtitle until the gate flips — §5.
+5. Archive/upload, TestFlight device pass — §8.
+6. Screenshots (6.9" required set; five tabs + Develop) — §9.
+7. Submission — §11. Gate flip much later — §12.

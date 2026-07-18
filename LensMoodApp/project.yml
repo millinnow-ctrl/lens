@@ -49,6 +49,15 @@ targets:
           - CFBundleURLName: app.lensmood.ios
             CFBundleURLSchemes:
               - lensmood
+        # Export compliance: only exempt encryption (HTTPS/ATS + system
+        # crypto). Answers the App Store Connect question in the binary so
+        # every TestFlight/App Store upload skips the compliance prompt.
+        ITSAppUsesNonExemptEncryption: false
+        # SwiftUI launch behavior: an empty UILaunchScreen dict opts into the
+        # system-generated launch screen (correct sizing/rotation metadata).
+        # Kept here explicitly instead of INFOPLIST_KEY_UILaunchScreen_Generation
+        # so the key can't conflict with the merged Info.plist.
+        UILaunchScreen: {}
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.lensmood.ios
@@ -58,7 +67,6 @@ targets:
         GENERATE_INFOPLIST_FILE: true
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         INFOPLIST_KEY_CFBundleDisplayName: LensMood
-        INFOPLIST_KEY_UILaunchScreen_Generation: true
         # PHPicker reads need no permission; the app only ever ADDS to Photos
         INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: Save developed photographs and tapes to your library.
         INFOPLIST_KEY_NSCameraUsageDescription: Use the camera to make photographs and tapes in LensMood.
@@ -93,6 +101,8 @@ targets:
         CFBundleDisplayName: LensMood
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # Export compliance (same answer as the app: exempt crypto only).
+        ITSAppUsesNonExemptEncryption: false
         NSPhotoLibraryAddUsageDescription: Save developed photographs to your library.
         NSExtension:
           NSExtensionPointIdentifier: com.apple.share-services
@@ -129,6 +139,8 @@ targets:
         CFBundleDisplayName: LensMood
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # Export compliance (same answer as the app: exempt crypto only).
+        ITSAppUsesNonExemptEncryption: false
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:

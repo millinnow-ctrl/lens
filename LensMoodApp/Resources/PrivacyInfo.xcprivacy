@@ -3,7 +3,20 @@
 <plist version="1.0">
 <dict>
 	<!-- LensMood processes photographs entirely on device: no tracking,
-	     no data collection, no network. -->
+	     no data collection, no network. This one manifest ships in all three
+	     targets (app, share extension, widgets).
+
+	     Required-reason API audit (2026-07, all Sources/ShareExtension/Widgets):
+	     - UserDefaults: yes — @AppStorage first-run flag (CaptureView) and
+	       model-storage preferences (ModelDelivery). Declared below, CA92.1
+	       (app-only access, no app group, no third-party SDK).
+	     - File timestamp APIs (C617.x): NOT used. LibraryStore keeps its own
+	       createdAt in index.json; no creationDate/modificationDate resource
+	       keys, no attributesOfItem(atPath:), no stat(). CamcorderView's
+	       contentsOfDirectory(atPath:) reads names only, which is not a
+	       required-reason API.
+	     - System boot time, disk space, active keyboard APIs: NOT used.
+	     Re-run the audit if any of those APIs are introduced. -->
 	<key>NSPrivacyTracking</key>
 	<false/>
 	<key>NSPrivacyTrackingDomains</key>

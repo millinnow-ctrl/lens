@@ -16,6 +16,18 @@ struct AccountView: View {
     return v ?? "1.0.0"
   }
 
+  /// App Review safety: the supporter-offer preview only appears when real
+  /// App Store products loaded (so a reviewer never lands on placeholder
+  /// prices) — except in DEBUG builds, where design review stays possible
+  /// without any App Store Connect setup.
+  private var showsOfferPreview: Bool {
+    #if DEBUG
+      return true
+    #else
+      return !store.products.isEmpty
+    #endif
+  }
+
   var body: some View {
     NavigationStack {
       List {
@@ -35,6 +47,9 @@ struct AccountView: View {
             .foregroundStyle(Theme.accent)
         }
       }
+      // Load products here (not only on the paywall) so the offer-preview
+      // row can appear in release builds once App Store products exist.
+      .task { await store.start() }
     }
   }
 
@@ -50,12 +65,15 @@ struct AccountView: View {
       }
       if Store.everythingFreeForNow {
         // Design-review doorway: the paywall is otherwise unreachable
-        // while every gate is open.
-        NavigationLink {
-          PaywallView()
-        } label: {
-          Label("Preview the supporter offer", systemImage: "heart")
-            .foregroundStyle(Theme.accent)
+        // while every gate is open. Hidden in release builds until real
+        // products load, so App Review never sees placeholder prices.
+        if showsOfferPreview {
+          NavigationLink {
+            PaywallView()
+          } label: {
+            Label("Preview the supporter offer", systemImage: "heart")
+              .foregroundStyle(Theme.accent)
+          }
         }
       } else if store.isPlus {
         Text("You keep the darkroom open. Thank you.")
