@@ -99,12 +99,12 @@ final class Conductor: ObservableObject {
     // brightness uses the mean too: the log-average key underrates scenes
     // with deep shadow pockets, which left the mid-key band unranked (seen
     // in the day-fixture evidence review)
-    let daylight = unit((max(scene.key, scene.meanLuminance) - 0.40) / 0.30)
+    let daylight = unit((max(scene.key, scene.meanLuminance) - 0.34) / 0.30)
     let keyLight = scene.lights.first ?? scene.auxLights.first
     // THE engine's own refusal gate — a look is promoted for bloom only when
     // the bloom pass would truly find emitters (white daylight speculars are
     // refused, exactly as in the render)
-    let emissive = !FilmEngine.emissiveLights(in: scene).isEmpty
+    let emitters = FilmEngine.emissiveLights(in: scene)
     let hasFaces = !faces.isEmpty
     let colorRichness = unit((scene.sat - 0.18) / 0.35)
     let range = unit(scene.dynamicRange)
@@ -127,8 +127,14 @@ final class Conductor: ObservableObject {
         }
       }
       if recipe.sourceBloom > 0.001 {
-        if emissive {
-          score += 0.42
+        if let best = emitters.max(by: { $0.intensity < $1.intensity }) {
+          // graded by how "neon" the scene really is: deep dark, strongly
+          // colored emitters = the look's best case; a bright window in a
+          // dim room still promotes, but doesn't pin the top of the rail
+          let mx = best.tint.max() ?? 0
+          let mn = best.tint.min() ?? 0
+          let tintSat = mx > 1e-4 ? (mx - mn) / mx : 0
+          score += 0.42 * (0.35 + 0.65 * darkness) * (0.5 + 0.5 * tintSat)
           reasons.append("Found light sources to bloom")
         } else {
           // the pass refuses without emissive sources — demote honestly
