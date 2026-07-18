@@ -1,83 +1,227 @@
+// Store — the profit engine's plumbing, with every gate hard-wired OPEN.
+//
+// Mirrors EVERYTHING_FREE_FOR_NOW in the frozen reference
+// (lensmood-native/src/store/store.tsx): while the product is being shaped,
+// nothing locks, nothing meters, nothing says "Pro". What is actually paid
+// gets decided at the end; the owner flips `everythingFreeForNow` then.
+//
+// Design source: docs/PROFIT_ENGINE.md. One membership ("Plus"), two ways to
+// buy it (yearly auto-renewable + lifetime non-consumable), and a catalog
+// that splits the 18 cameras into a free-forever set and the Plus set.
+// Import/export and full-resolution output are never gated at any tier.
+//
+// No App Store Connect products exist yet (no paid Apple account), so every
+// StoreKit call degrades gracefully: products fail to load -> the paywall
+// shows the design with placeholder prices, and nothing crashes.
+
+import Foundation
 import StoreKit
 
-/// StoreKit 2 scaffold for LensMood Premium.
-///
-/// Monetization is intentionally **OFF** for now (`EVERYTHING_FREE_FOR_NOW`):
-/// `isPro` defaults to `true`, so nothing is gated. This type exists so the
-/// paywall, product loading, purchase, and restore paths are all in place and
-/// StoreKit-correct; when pricing is finalized in App Store Connect, flip the
-/// default and let `isPro` reflect real entitlements (see `refreshEntitlements`).
-///
-/// Product ids are constants here but are meant to be **remote-configurable** so
-/// pricing/packaging can be tested without an app release.
+// MARK: - Catalog + entitlement logic (pure, testable, actor-free)
+
+enum PlusCatalog {
+  /// StoreKit 2 product identifiers, following the bundle-id convention
+  /// already documented in docs/APP_STORE_CHECKLIST.md.
+  static let yearlyID = "app.lensmood.ios.plus.yearly"
+  static let lifetimeID = "app.lensmood.ios.plus.lifetime"
+  static let productIDs: [String] = [yearlyID, lifetimeID]
+
+  /// Cameras that are free forever — a real product on their own, spanning
+  /// the aesthetic range (party flash, tape video, classic street, instant,
+  /// monochrome, night neon). Per docs/PROFIT_ENGINE.md never-list #6,
+  /// nothing ever leaves this set once shipped.
+  static let freeForeverStockIDs: Set<String> = [
+    "disposable",
+    "camcorder-90s",
+    "leica-street",
+    "polaroid",
+    "film-noir",
+    "tokyo-neon",
+  ]
+
+  /// Design-time placeholder price strings. Shown ONLY when StoreKit has no
+  /// products to offer (no App Store Connect setup yet, or offline on first
+  /// run). Real, localized prices always come from Product.displayPrice —
+  /// App Review flags hard-coded USD on a live purchase path, so these must
+  /// never render once real products load.
+  enum PlaceholderPrice {
+    static let yearly = "$19.99"
+    static let lifetime = "$34.99"
+  }
+
+  enum Entitlement: String {
+    case free
+    case plus
+  }
+
+  /// The Plus set is everything that is not free forever, derived so a new
+  /// stock can never silently fall through the gate.
+  static func plusStockIDs(allStockIDs: [String]) -> Set<String> {
+    Set(allStockIDs).subtracting(freeForeverStockIDs)
+  }
+
+  /// The single gate every lock check goes through. `everythingFree` is
+  /// `Store.everythingFreeForNow` in production and a plain parameter here
+  /// so tests can simulate the flip without touching the flag.
+  static func isStockUnlocked(
+    _ stockID: String,
+    entitlement: Entitlement,
+    everythingFree: Bool
+  ) -> Bool {
+    if everythingFree { return true }
+    if entitlement == .plus { return true }
+    return freeForeverStockIDs.contains(stockID)
+  }
+
+  /// Exactly which cameras are locked for a given state — the paywall and
+  /// tests both key off this, so the lock set has one definition.
+  static func lockedStockIDs(
+    allStockIDs: [String],
+    entitlement: Entitlement,
+    everythingFree: Bool
+  ) -> Set<String> {
+    Set(allStockIDs).filter {
+      !isStockUnlocked($0, entitlement: entitlement, everythingFree: everythingFree)
+    }
+  }
+}
+
+// MARK: - Store (StoreKit 2)
+
 @MainActor
 final class Store: ObservableObject {
-  static let annualID = "app.lensmood.pro.annual"
-  static let monthlyID = "app.lensmood.pro.monthly"
-  static let productIDs = [annualID, monthlyID]
+  static let shared = Store()
 
-  /// While EVERYTHING_FREE_FOR_NOW this stays true and gates nothing.
-  @Published private(set) var isPro = true
+  /// THE gate. True while the product is being shaped: no locks anywhere,
+  /// the paywall is reachable only from AccountView as a design preview.
+  /// The owner flips this to false when pricing is decided at the end —
+  /// mirroring EVERYTHING_FREE_FOR_NOW in the reference store.
+  static let everythingFreeForNow = true
+
+  /// Loaded App Store products, cheapest first. Empty until
+  /// App Store Connect products exist and load — the paywall then falls
+  /// back to PlusCatalog.PlaceholderPrice.
   @Published private(set) var products: [Product] = []
-  @Published var purchasing = false
-  @Published var loadFailed = false
 
-  /// Annual first — the value anchor the paywall defaults to.
-  var annual: Product? { products.first { $0.id == Store.annualID } }
-  var monthly: Product? { products.first { $0.id == Store.monthlyID } }
+  /// True once a load attempt finished (success or failure), so the paywall
+  /// can tell "still loading" apart from "nothing to load".
+  @Published private(set) var productsLoaded = false
+
+  /// What the user actually owns, from verified StoreKit transactions.
+  /// Independent of the global gate: while everythingFreeForNow is true a
+  /// `free` entitlement still unlocks everything.
+  @Published private(set) var entitlement: PlusCatalog.Entitlement = .free
+
+  private var updatesTask: Task<Void, Never>?
+
+  private init() {
+    // Keep entitlement fresh across renewals, refunds, and Ask to Buy —
+    // safe with zero products configured: the sequence just stays quiet.
+    updatesTask = Task { [weak self] in
+      for await update in StoreKit.Transaction.updates {
+        guard case .verified(let transaction) = update else { continue }
+        await transaction.finish()
+        await self?.refreshEntitlement()
+      }
+    }
+  }
+
+  // MARK: Gate checks (every lock in the app goes through these)
+
+  var isPlus: Bool {
+    Self.everythingFreeForNow || entitlement == .plus
+  }
+
+  func isUnlocked(_ stock: Stock) -> Bool {
+    PlusCatalog.isStockUnlocked(
+      stock.id,
+      entitlement: entitlement,
+      everythingFree: Self.everythingFreeForNow
+    )
+  }
+
+  // MARK: Products
+
+  var yearlyProduct: Product? {
+    products.first { $0.id == PlusCatalog.yearlyID }
+  }
+
+  var lifetimeProduct: Product? {
+    products.first { $0.id == PlusCatalog.lifetimeID }
+  }
+
+  /// Load products and refresh ownership. Call from the paywall's .task —
+  /// never blocks UI, never throws out, tolerates total StoreKit absence.
+  func start() async {
+    await loadProducts()
+    await refreshEntitlement()
+  }
 
   func loadProducts() async {
     do {
-      let loaded = try await Product.products(for: Store.productIDs)
-      products = loaded.sorted { $0.price > $1.price }
-      loadFailed = false
+      let loaded = try await Product.products(for: PlusCatalog.productIDs)
+      products = loaded.sorted { $0.price < $1.price }
     } catch {
-      // No App Store Connect configuration yet — the paywall shows its layout
-      // with placeholder pricing until products exist.
+      // No App Store Connect setup yet, or no network: the paywall renders
+      // its design with placeholder prices instead.
       products = []
-      loadFailed = true
     }
+    productsLoaded = true
   }
 
-  @discardableResult
-  func purchase(_ product: Product) async -> Bool {
-    purchasing = true
-    defer { purchasing = false }
+  func refreshEntitlement() async {
+    var ownsPlus = false
+    for await result in StoreKit.Transaction.currentEntitlements {
+      guard case .verified(let transaction) = result else { continue }
+      guard transaction.revocationDate == nil else { continue }
+      if PlusCatalog.productIDs.contains(transaction.productID) {
+        ownsPlus = true
+      }
+    }
+    entitlement = ownsPlus ? .plus : .free
+  }
+
+  // MARK: Purchasing
+
+  enum PurchaseOutcome: Equatable {
+    case success
+    case cancelled
+    case pending
+    case unavailable
+    case failed
+  }
+
+  func purchase(_ product: Product) async -> PurchaseOutcome {
     do {
       let result = try await product.purchase()
       switch result {
-      case let .success(verification):
-        if case let .verified(transaction) = verification {
-          await transaction.finish()
-          await refreshEntitlements()
-          return true
-        }
-        return false
-      case .userCancelled, .pending:
-        return false
+      case .success(let verification):
+        guard case .verified(let transaction) = verification else { return .failed }
+        await transaction.finish()
+        await refreshEntitlement()
+        return .success
+      case .userCancelled:
+        return .cancelled
+      case .pending:
+        // Ask to Buy / deferred — the updates listener completes it later.
+        return .pending
       @unknown default:
-        return false
+        return .failed
       }
     } catch {
-      return false
+      return .failed
     }
   }
 
-  func restore() async {
-    try? await AppStore.sync()
-    await refreshEntitlements()
-  }
-
-  /// Reads real entitlements. While free-for-now this records ownership without
-  /// gating; when monetization turns on, set `isPro = owned` here.
-  func refreshEntitlements() async {
-    var owned = false
-    for await result in Transaction.currentEntitlements {
-      if case let .verified(transaction) = result,
-         Store.productIDs.contains(transaction.productID) {
-        owned = true
-      }
+  /// Restore is always offered on the paywall (App Review requires the
+  /// affordance) and quietly re-reads ownership even when sync fails.
+  func restore() async -> Bool {
+    do {
+      try await AppStore.sync()
+    } catch {
+      // User cancelled the sign-in sheet or nothing is configured yet.
     }
-    _ = owned  // EVERYTHING_FREE_FOR_NOW — do not gate yet
+    await refreshEntitlement()
+    return entitlement == .plus
   }
 }

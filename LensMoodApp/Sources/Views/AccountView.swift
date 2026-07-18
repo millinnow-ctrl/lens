@@ -1,90 +1,116 @@
+// Account — quiet housekeeping, and the only doorway to the paywall while
+// Store.everythingFreeForNow is true ("Preview the supporter offer").
+//
+// Never-list #3 (docs/PROFIT_ENGINE.md): once the gate flips, a Plus member
+// sees a thank-you line here instead of any offer row — a paying user is
+// never shown an upsell again.
+
 import SwiftUI
 
 struct AccountView: View {
+  @ObservedObject private var store = Store.shared
   @Environment(\.dismiss) private var dismiss
-  @State private var showPaywall = false
+
+  private var appVersion: String {
+    let v = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+    return v ?? "1.0.0"
+  }
 
   var body: some View {
     NavigationStack {
-      ScrollView {
-        VStack(alignment: .leading, spacing: 28) {
-          VStack(alignment: .center, spacing: 8) {
-            TechnicalLabel(text: "LensMood")
-            Text("Your darkroom")
-              .font(.system(size: 32, weight: .heavy))
-              .foregroundStyle(Theme.ink)
-              .multilineTextAlignment(.center)
-          }
-          .frame(maxWidth: .infinity)
-
-          Button {
-            showPaywall = true
-          } label: {
-            HStack(spacing: 12) {
-              Image(systemName: "sparkles")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(.white)
-              VStack(alignment: .leading, spacing: 2) {
-                Text("LensMood Premium").font(.system(size: 16, weight: .bold)).foregroundStyle(.white)
-                Text("Every look, high-res export, seasonal drops")
-                  .font(.system(size: 12)).foregroundStyle(.white.opacity(0.85))
-              }
-              Spacer()
-              Image(systemName: "chevron.right").font(.system(size: 13, weight: .bold)).foregroundStyle(.white.opacity(0.9))
-            }
-            .padding(16)
-            .frame(maxWidth: .infinity)
-            .background(Theme.brandFill)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .oceanCardShadow()
-          }
-          .buttonStyle(.plain)
-          .accessibilityLabel("LensMood Premium. See plans.")
-
-          InstrumentPanel {
-            VStack(alignment: .leading, spacing: 0) {
-              accountRow("Processing", value: "On device")
-              Divider().overlay(Theme.hairline)
-              accountRow("Film library", value: "18 looks")
-              Divider().overlay(Theme.hairline)
-              accountRow("Version", value: "1.0.0")
-            }
-          }
-
-          VStack(alignment: .leading, spacing: 8) {
-            TechnicalLabel(text: "Privacy")
-            Text("Photos are read only when you choose them and saved only when you ask.")
-              .font(.system(size: 14))
-              .foregroundStyle(Theme.inkSoft)
-              .lineSpacing(4)
-          }
-        }
-        .padding(Theme.pagePadding)
+      List {
+        membershipSection
+        privacySection
+        aboutSection
       }
+      .scrollContentBackground(.hidden)
       .background(Theme.paper)
       .navigationTitle("Account")
       .navigationBarTitleDisplayMode(.inline)
-      .sheet(isPresented: $showPaywall) {
-        PaywallView(triggerSurface: "account")
-      }
       .toolbar {
-        ToolbarItem(placement: .confirmationAction) {
+        // .navigationBarTrailing (not .topBarTrailing) — iOS 16 floor.
+        ToolbarItem(placement: .navigationBarTrailing) {
           Button("Done") { dismiss() }
-            .foregroundStyle(Theme.ink)
+            .font(.system(size: 16, weight: .semibold))
+            .foregroundStyle(Theme.accent)
         }
       }
     }
   }
 
-  private func accountRow(_ title: String, value: String) -> some View {
-    HStack {
-      Text(title).foregroundStyle(Theme.ink)
-      Spacer()
-      Text(value)
-        .font(.system(size: 12, design: .monospaced))
-        .foregroundStyle(Theme.fog)
+  private var membershipSection: some View {
+    Section {
+      HStack {
+        Text("Membership")
+          .foregroundStyle(Theme.ink)
+        Spacer()
+        Text(membershipLabel)
+          .font(.system(size: 14, weight: .semibold))
+          .foregroundStyle(Theme.inkSoft)
+      }
+      if Store.everythingFreeForNow {
+        // Design-review doorway: the paywall is otherwise unreachable
+        // while every gate is open.
+        NavigationLink {
+          PaywallView()
+        } label: {
+          Label("Preview the supporter offer", systemImage: "heart")
+            .foregroundStyle(Theme.accent)
+        }
+      } else if store.isPlus {
+        Text("You keep the darkroom open. Thank you.")
+          .font(.system(size: 14))
+          .foregroundStyle(Theme.inkSoft)
+      } else {
+        NavigationLink {
+          PaywallView()
+        } label: {
+          Label("Get the twelve signature cameras", systemImage: "camera")
+            .foregroundStyle(Theme.accent)
+        }
+      }
+    } footer: {
+      if Store.everythingFreeForNow {
+        Text("Everything in LensMood is free while it's being built. Pricing gets decided at the end — nothing is locked today.")
+      }
     }
-    .font(.system(size: 15))
-    .padding(16)
+    .listRowBackground(Theme.surface)
   }
+
+  private var privacySection: some View {
+    Section {
+      Label {
+        Text("Photos develop on your phone. Nothing uploads. Ever.")
+          .font(.system(size: 14))
+          .foregroundStyle(Theme.inkSoft)
+      } icon: {
+        Image(systemName: "lock")
+          .foregroundStyle(Theme.accent)
+      }
+    }
+    .listRowBackground(Theme.surface)
+  }
+
+  private var aboutSection: some View {
+    Section {
+      HStack {
+        Text("Version")
+          .foregroundStyle(Theme.ink)
+        Spacer()
+        Text(appVersion)
+          .font(.system(size: 14, design: .monospaced))
+          .foregroundStyle(Theme.fog)
+      }
+    }
+    .listRowBackground(Theme.surface)
+  }
+
+  private var membershipLabel: String {
+    if Store.everythingFreeForNow { return "Everything free for now" }
+    return store.isPlus ? "Plus" : "Free"
+  }
+}
+
+#Preview {
+  AccountView()
 }
