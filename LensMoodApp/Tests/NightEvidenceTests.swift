@@ -2,12 +2,14 @@ import UIKit
 import XCTest
 @testable import LensMood
 
-/// Renders the light-intelligence stocks on the dark fixtures and publishes the
-/// results to `ui-artifacts/night-evidence/` (force-pushed to the ci-captures
-/// branch by CI) — the visual-verification loop for night behavior that the
-/// daylight parity golden cannot exercise. Assertions are existence/size only;
-/// the LOOK is judged by eye from the published images, per the directive
-/// ("done means visually approved, never merely compiles").
+/// Renders the light-intelligence and masked-light stocks on the fixtures and
+/// publishes the results to `ui-artifacts/night-evidence/` (force-pushed to
+/// the ci-captures branch by CI) — the visual-verification loop for behavior
+/// that the daylight parity golden cannot exercise. Since R66 these renders go
+/// through the shipping path (one cached reading per photo, subject pass
+/// included) so the rim/skin/sky passes actually engage. Assertions are
+/// existence/size only; the LOOK is judged by eye from the published images,
+/// per the directive ("done means visually approved, never merely compiles").
 final class NightEvidenceTests: XCTestCase {
 
   func testRenderNightEvidence() throws {
@@ -30,8 +32,12 @@ final class NightEvidenceTests: XCTestCase {
     let stocks = [
       "super-8", "y2k-digicam", "camcorder-90s", "security-cam",
       "tokyo-neon", "film-noir", "iphone-flash", "photobooth",
+      // R66 masked-light: the strongest rim / skin-protect / sky stocks, so
+      // the new passes are reviewed by eye on all three fixtures
+      "kodachrome", "gq-editorial", "tintype", "lomo", "pastel-cinema", "polaroid",
     ]
 
+    let engine = FilmEngine()
     for (sceneName, path) in scenes {
       let sourceURL = repoRoot.appendingPathComponent(path)
       guard let source = UIImage(contentsOfFile: sourceURL.path) else {
@@ -39,13 +45,17 @@ final class NightEvidenceTests: XCTestCase {
         // repo layout change) shouldn't fail the suite — evidence just skips.
         continue
       }
+      // R66: evidence renders through the shipping path — ONE reading per
+      // photograph (scene meter + Vision subject pass + masked-light masks)
+      // shared by every stock, exactly as the Conductor hands it to the app.
+      let reading = try engine.read(source)
       for stock in stocks {
-        let rendered = try FilmEngine().develop(
+        let rendered = try engine.develop(
           source,
           with: CameraRecipe.recipe(for: stock),
           maxPixelSize: 560,
           seed: 1,
-          analyzeSubjects: false
+          reading: reading
         ).image
         let url = outDir.appendingPathComponent("\(sceneName)-\(stock).png")
         try XCTUnwrap(rendered.pngData()).write(to: url)
@@ -80,13 +90,16 @@ final class NightEvidenceTests: XCTestCase {
     try FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
 
     let engine = FilmEngine()
+    // the real hardware path: ONE reading (faces + person mask + the R66
+    // silhouette/skin/sky masks) shared by all 18 develops
+    let reading = try engine.read(source)
     for recipe in CameraRecipe.all {
       let rendered = try engine.develop(
         source,
         with: recipe,
         maxPixelSize: 900,
         seed: 1,
-        analyzeSubjects: true // the real hardware path: faces + person mask
+        reading: reading
       ).image
       let url = outDir.appendingPathComponent("busstop-\(recipe.id).png")
       try XCTUnwrap(rendered.pngData()).write(to: url)
