@@ -13,8 +13,11 @@ final class PreviewCache {
 
   private let cache = NSCache<NSString, CachedRender>()
 
-  init(countLimit: Int = 24) {
+  init(countLimit: Int = 24, totalCostBytes: Int = 192 * 1024 * 1024) {
     cache.countLimit = countLimit
+    // byte-cost bound as well as count: 24 × 2048px renders would otherwise
+    // rely entirely on memory-pressure eviction
+    cache.totalCostLimit = totalCostBytes
   }
 
   func render(forKey key: String) -> CachedRender? {
@@ -22,7 +25,9 @@ final class PreviewCache {
   }
 
   func insert(_ render: CachedRender, forKey key: String) {
-    cache.setObject(render, forKey: key as NSString)
+    let pixelWidth = Int(render.image.size.width * render.image.scale)
+    let pixelHeight = Int(render.image.size.height * render.image.scale)
+    cache.setObject(render, forKey: key as NSString, cost: pixelWidth * pixelHeight * 4)
   }
 
   func removeAll() {

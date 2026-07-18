@@ -49,6 +49,15 @@ struct DevelopView: View {
   /// done and Developing becomes the active one
   @State private var ceremonySteps: [String] = []
   @State private var ceremonyActiveIndex = 0
+  /// the memory-bounded copy of the original stored in the Library (the
+  /// full-res `sourceImage` stays only for the on-screen stage + export)
+  @State private var librarySource: UIImage?
+  /// the composited share frame, built off-main in the button action
+  @State private var shareImage: UIImage?
+  /// the single gate site: developing a locked camera opens the offer
+  /// (inert while Store.everythingFreeForNow)
+  @State private var paywallPresented = false
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   var body: some View {
     ScrollView {
@@ -93,12 +102,12 @@ struct DevelopView: View {
     // Conductor's small LRU cap bounds memory instead; load() still forgets
     // the replaced photo's key explicitly.
     .sheet(isPresented: $sharePresented) {
-      if let developedImage {
-        let shareImage = sourceImage.map {
-          blended(developed: developedImage, over: $0, intensity: intensity)
-        } ?? developedImage
+      if let shareImage {
         ActivitySheet(items: [shareImage])
       }
+    }
+    .sheet(isPresented: $paywallPresented) {
+      PaywallView()
     }
     .alert("Saved to Photos", isPresented: $saveConfirmation) {
       Button("OK", role: .cancel) {}
@@ -149,6 +158,12 @@ struct DevelopView: View {
           .padding(.vertical, 2)
         }
         .onAppear { proxy.scrollTo(currentStock.id, anchor: .center) }
+        // when the rail reorders for the photo, keep the active camera in view
+        .onChange(of: matches) { _ in
+          withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.35)) {
+            proxy.scrollTo(currentStock.id, anchor: .center)
+          }
+        }
       }
       .accessibilityLabel("Camera switcher")
     }
@@ -176,6 +191,17 @@ struct DevelopView: View {
           .overlay {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
               .stroke(active ? Theme.accent : Theme.hairline, lineWidth: active ? 2.5 : 1)
+          }
+          .overlay(alignment: .bottomTrailing) {
+            // membership gate marker — invisible while every gate is open
+            if !Store.shared.isUnlocked(item) {
+              Image(systemName: "lock.fill")
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(.white)
+                .padding(3)
+                .background(Circle().fill(Theme.ink.opacity(0.72)))
+                .offset(x: 4, y: 4)
+            }
           }
         Text(item.name)
           .font(.system(size: 10, weight: active ? .bold : .medium))
@@ -293,9 +319,14 @@ struct DevelopView: View {
         case .compare:
           fittedImage(source)
           if let developed {
-            fittedImage(developed)
-              .frame(width: size.width * compareFraction, alignment: .leading)
-              .clipped()
+            // the developed side honors the strength slider — the compare
+            // wipe must show exactly what Save will produce
+            ZStack(alignment: .leading) {
+              fittedImage(source)
+              fittedImage(developed).opacity(Double(intensity))
+            }
+            .frame(width: size.width * compareFraction, alignment: .leading)
+            .clipped()
             Rectangle()
               .fill(Theme.paper)
               .frame(width: 1)
@@ -402,8 +433,18 @@ struct DevelopView: View {
           .disabled(developedImage == nil || isSaving)
       }
       Button("Share developed photograph") {
-        Analytics.log(.photoShared)
-        sharePresented = true
+        // composite off-main; presenting inside the sheet's body re-ran the
+        // full-frame blend on every view evaluation
+        guard let developedImage, let sourceImage else { return }
+        let strength = intensity
+        Task.detached(priority: .userInitiated) {
+          let composed = blended(developed: developedImage, over: sourceImage, intensity: strength)
+          await MainActor.run {
+            shareImage = composed
+            Analytics.log(.photoShared)
+            sharePresented = true
+          }
+        }
       }
       .buttonStyle(InstrumentButtonStyle(kind: .secondary))
       .disabled(developedImage == nil)
@@ -454,6 +495,7 @@ struct DevelopView: View {
         }
         sourceImage = image
         sessionAssetID = nil   // a new photograph starts a new library entry
+        librarySource = nil    // new photo ⇒ rebuild the bounded library copy
         Conductor.shared.forget(key: photoKey)
         photoKey = UUID()      // new photo ⇒ fresh preview-cache + reading scope
         matches = nil          // rail returns to catalog order until the read lands
@@ -466,6 +508,14 @@ struct DevelopView: View {
   }
 
   private func develop(_ image: UIImage) {
+    // THE gate site: every render of a locked camera stops here and shows the
+    // offer instead. A no-op while Store.everythingFreeForNow keeps all 18 open.
+    guard Store.shared.isUnlocked(currentStock) else {
+      isDeveloping = false
+      paywallPresented = true
+      return
+    }
+    Analytics.log(.developStarted(lookID: currentStock.id))
     let request = UUID()
     renderID = request
     isDeveloping = true
@@ -499,14 +549,14 @@ struct DevelopView: View {
       do {
         let reading = try await Conductor.shared.reading(for: image, key: key)
         if matches == nil, key == photoKey {
-          withAnimation(.easeInOut(duration: 0.35)) {
+          withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.35)) {
             matches = Conductor.rank(scene: reading.scene, faces: reading.subject.faces)
           }
         }
         // the read is done — its real steps show as completed, Developing runs
         if renderID == request {
           let narration = Conductor.narration(for: reading)
-          withAnimation(.easeInOut(duration: 0.25)) {
+          withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.25)) {
             ceremonySteps = narration
             ceremonyActiveIndex = narration.count - 1
           }
@@ -545,16 +595,43 @@ struct DevelopView: View {
     developedImage = developed
     decisions = newDecisions
     previewMode = .developed
+    // the Library keeps a bounded copy of the original, built once per photo —
+    // retaining 48 full-resolution sources was the session's dominant memory cost
+    if librarySource == nil {
+      librarySource = boundedLibraryCopy(of: source)
+    }
+    // replacing the session frame (lens switch) must not lose a favorite the
+    // user set from the Library in the meantime
+    let keptFavorite = sessionAssetID
+      .flatMap { id in model.library.first(where: { $0.id == id })?.favorite } ?? false
     let asset = DevelopedAsset(
       image: developed,
-      source: source,
+      source: librarySource ?? source,
       stock: currentStock,
-      decisions: newDecisions
+      decisions: newDecisions,
+      favorite: keptFavorite
     )
     if let previous = sessionAssetID { model.remove(id: previous) }
     model.add(asset)
     sessionAssetID = asset.id
     UIImpactFeedbackGenerator(style: .light).impactOccurred()
+  }
+
+  /// Cap the stored original's longest edge — detail-view quality at a
+  /// fraction of the memory (full-res stays in `sourceImage` for export only).
+  private func boundedLibraryCopy(of image: UIImage, maxEdge: CGFloat = 1600) -> UIImage {
+    let largest = max(image.size.width * image.scale, image.size.height * image.scale)
+    guard largest > maxEdge else { return image }
+    let scale = maxEdge / largest
+    let size = CGSize(
+      width: (image.size.width * image.scale * scale).rounded(.down),
+      height: (image.size.height * image.scale * scale).rounded(.down)
+    )
+    let format = UIGraphicsImageRendererFormat.default()
+    format.scale = 1
+    return UIGraphicsImageRenderer(size: size, format: format).image { _ in
+      image.draw(in: CGRect(origin: .zero, size: size))
+    }
   }
 
   private func save() {
@@ -582,6 +659,9 @@ struct DevelopView: View {
         saveConfirmation = true
         Analytics.log(.photoSaved(lookID: stockID))
         UINotificationFeedbackGenerator().notificationOccurred(.success)
+      } catch is CancellationError {
+        // a new photo replaced this one mid-save; not an error worth an alert
+        isSaving = false
       } catch {
         isSaving = false
         errorMessage = error.localizedDescription

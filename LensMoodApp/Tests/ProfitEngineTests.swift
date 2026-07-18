@@ -3,11 +3,6 @@
 // PlusCatalog is deliberately pure (no actor, no StoreKit state) so the
 // gate can be tested exactly as it will behave after the owner flips
 // Store.everythingFreeForNow, without touching the flag itself.
-//
-// NOTE: project.yml currently has no test target (owned by the CI
-// workstream; XcodeGen edits were out of scope for this pass). To run these,
-// add a LensMoodTests unit-test bundle target sourcing `Tests` with a
-// dependency on LensMood, then `xcodebuild test`.
 
 import XCTest
 

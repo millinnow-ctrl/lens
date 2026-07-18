@@ -14,6 +14,9 @@ struct LensMoodApp: App {
       RootView()
         .environmentObject(model)
         .preferredColorScheme(.light)
+        // entitlements are read at launch, not first paywall visit — after the
+        // gate flips, a member's relaunch must land already unlocked
+        .task { await Store.shared.start() }
     }
   }
 

@@ -17,7 +17,7 @@ struct SubjectAnalysis {
 
   // R66 masked-light fields. All three are produced ONLY inside
   // `FilmEngine.read`'s subject pass (heuristics on a small analysis raster,
-  // materialized to single-channel bytes at <=1024 long edge) and upscaled
+  // materialized to single-channel bytes at <=512 long edge) and upscaled
   // lazily where a pass uses them. A develop without a cached reading — or
   // with `analyzeSubjects: false` — carries nil masks, which switches the
   // masked passes structurally off.

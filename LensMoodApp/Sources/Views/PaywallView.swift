@@ -53,7 +53,10 @@ struct PaywallView: View {
     .background(Theme.paper)
     .navigationTitle("LensMood Plus")
     .navigationBarTitleDisplayMode(.inline)
-    .task { await store.start() }
+    .task {
+      Analytics.log(.paywallViewed(surface: "account"))
+      await store.start()
+    }
   }
 
   // MARK: pieces

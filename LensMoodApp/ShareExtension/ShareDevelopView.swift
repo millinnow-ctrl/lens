@@ -79,6 +79,9 @@ struct ShareDevelopView: View {
           .background(Theme.surface)
           .clipShape(Circle())
           .overlay(Circle().stroke(Theme.hairline, lineWidth: 1))
+          // 44pt minimum touch target around the 30pt glyph
+          .frame(width: 44, height: 44)
+          .contentShape(Rectangle())
       }
       .accessibilityLabel("Close")
     }

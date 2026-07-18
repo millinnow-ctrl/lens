@@ -1,3 +1,4 @@
+import ImageIO
 import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
@@ -37,13 +38,20 @@ final class ShareViewController: UIViewController {
 
     let raw: UIImage? = await withCheckedContinuation { continuation in
       provider.loadItem(forTypeIdentifier: UTType.image.identifier, options: nil) { item, _ in
-        // hosts hand images over as a file URL, a UIImage, or raw data
-        if let url = item as? URL, let data = try? Data(contentsOf: url) {
-          continuation.resume(returning: UIImage(data: data))
+        // Hosts hand images over as a file URL, a UIImage, or raw data.
+        // URL/data paths decode DOWNSAMPLED via ImageIO — a 48MP share would
+        // otherwise decompress ~190MB of bitmap and blow the extension's
+        // ~120MB ceiling before the working-frame cap ever ran.
+        if let url = item as? URL {
+          continuation.resume(returning: Self.downsampledImage(
+            source: CGImageSourceCreateWithURL(url as CFURL, nil), maxEdge: 1500
+          ))
         } else if let image = item as? UIImage {
-          continuation.resume(returning: image)
+          continuation.resume(returning: image) // already decoded by the host
         } else if let data = item as? Data {
-          continuation.resume(returning: UIImage(data: data))
+          continuation.resume(returning: Self.downsampledImage(
+            source: CGImageSourceCreateWithData(data as CFData, nil), maxEdge: 1500
+          ))
         } else {
           continuation.resume(returning: nil)
         }
@@ -53,6 +61,25 @@ final class ShareViewController: UIViewController {
     return await Task.detached(priority: .userInitiated) {
       Self.workingFrame(from: raw, maxEdge: 1500)
     }.value
+  }
+
+  /// Decode at most `maxEdge` pixels on the longest side, orientation baked in
+  /// (ImageIO thumbnailing never materializes the full-resolution bitmap).
+  nonisolated private static func downsampledImage(
+    source: CGImageSource?,
+    maxEdge: CGFloat
+  ) -> UIImage? {
+    guard let source else { return nil }
+    let options: [CFString: Any] = [
+      kCGImageSourceCreateThumbnailFromImageAlways: true,
+      kCGImageSourceCreateThumbnailWithTransform: true,
+      kCGImageSourceShouldCacheImmediately: true,
+      kCGImageSourceThumbnailMaxPixelSize: maxEdge,
+    ]
+    guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
+      return nil
+    }
+    return UIImage(cgImage: cgImage)
   }
 
   /// Render into a fresh bitmap: normalizes EXIF orientation and caps the

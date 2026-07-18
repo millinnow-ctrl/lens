@@ -88,47 +88,65 @@ enum LibraryStore {
       }
   }
 
+  /// All writes run on one serial utility queue: develop taps stay hitch-free
+  /// (the 2048px downscale + JPEG encode used to run on the main thread), and
+  /// serial ordering keeps persist→prune sequences race-free.
+  private static let ioQueue = DispatchQueue(label: "app.lensmood.library-io", qos: .utility)
+
+  /// Test hook: block until every queued write has landed on disk.
+  static func waitForWrites() {
+    ioQueue.sync {}
+  }
+
   /// Write one asset's developed frame + index entry (idempotent per id).
   static func persist(_ asset: DevelopedAsset) {
-    if let data = downscaled(asset.image).jpegData(compressionQuality: jpegQuality) {
-      try? data.write(to: imageURL(asset.id), options: .atomic)
+    ioQueue.async {
+      if let data = downscaled(asset.image).jpegData(compressionQuality: jpegQuality) {
+        try? data.write(to: imageURL(asset.id), options: .atomic)
+      }
+      var index = loadIndex().filter { $0.id != asset.id }
+      index.append(StoredAsset(
+        id: asset.id,
+        stockID: asset.stock.id,
+        decisions: asset.decisions,
+        createdAt: asset.createdAt,
+        favorite: asset.favorite
+      ))
+      writeIndex(index)
     }
-    var index = loadIndex().filter { $0.id != asset.id }
-    index.append(StoredAsset(
-      id: asset.id,
-      stockID: asset.stock.id,
-      decisions: asset.decisions,
-      createdAt: asset.createdAt,
-      favorite: asset.favorite
-    ))
-    writeIndex(index)
   }
 
   /// Flip a stored asset's favorite flag in place (no image rewrite).
   static func setFavorite(id: UUID, favorite: Bool) {
-    let updated = loadIndex().map { entry -> StoredAsset in
-      guard entry.id == id else { return entry }
-      return StoredAsset(
-        id: entry.id, stockID: entry.stockID, decisions: entry.decisions,
-        createdAt: entry.createdAt, favorite: favorite
-      )
+    ioQueue.async {
+      let updated = loadIndex().map { entry -> StoredAsset in
+        guard entry.id == id else { return entry }
+        return StoredAsset(
+          id: entry.id, stockID: entry.stockID, decisions: entry.decisions,
+          createdAt: entry.createdAt, favorite: favorite
+        )
+      }
+      writeIndex(updated)
     }
-    writeIndex(updated)
   }
 
   static func delete(id: UUID) {
-    try? FileManager.default.removeItem(at: imageURL(id))
-    writeIndex(loadIndex().filter { $0.id != id })
+    ioQueue.async {
+      try? FileManager.default.removeItem(at: imageURL(id))
+      writeIndex(loadIndex().filter { $0.id != id })
+    }
   }
 
   /// Drop any on-disk frames whose ids are no longer kept in memory (the roll
   /// is capped, so trimmed frames should not linger on disk).
   static func prune(keeping ids: [UUID]) {
-    let keep = Set(ids)
-    for entry in loadIndex() where !keep.contains(entry.id) {
-      try? FileManager.default.removeItem(at: imageURL(entry.id))
+    ioQueue.async {
+      let keep = Set(ids)
+      for entry in loadIndex() where !keep.contains(entry.id) {
+        try? FileManager.default.removeItem(at: imageURL(entry.id))
+      }
+      writeIndex(loadIndex().filter { keep.contains($0.id) })
     }
-    writeIndex(loadIndex().filter { keep.contains($0.id) })
   }
 
   // MARK: - Helpers

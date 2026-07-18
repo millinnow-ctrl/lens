@@ -262,6 +262,10 @@ struct HomeView: View {
     .accessibilityLabel("Open the camcorder")
   }
 
+  /// held statically so view re-evaluations don't resubscribe a fresh timer
+  /// (which froze the rotation while the carousel was interacting)
+  private static let wordTimer = Timer.publish(every: 3.4, on: .main, in: .common).autoconnect()
+
   @ViewBuilder
   private var tapePoster: some View {
     if let ui = BundleMedia.image("camcorder-cover") {
@@ -623,7 +627,7 @@ struct HeroCard: View {
     }
     .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
     .oceanCardShadow(deep: true)
-    .onReceive(Timer.publish(every: 3.4, on: .main, in: .common).autoconnect()) { _ in
+    .onReceive(Self.wordTimer) { _ in
       withAnimation(.easeInOut(duration: 0.34)) {
         word = (word + 1) % Self.words.count
       }

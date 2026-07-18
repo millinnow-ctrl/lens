@@ -40,7 +40,9 @@ struct DevelopedAsset: Identifiable {
 @MainActor
 final class AppModel: ObservableObject {
   @Published var selectedTab: AppTab = .cameras
-  @Published var library: [DevelopedAsset] = []
+  @Published var library: [DevelopedAsset] = [] {
+    didSet { rollsCache = nil }
+  }
   @Published var accountPresented = false
   /// a photo chosen on the Home hero ("Choose from Library"), handed to the
   /// next DevelopView so it develops that frame straight away
@@ -50,8 +52,15 @@ final class AppModel: ObservableObject {
   /// that stock loaded (same hand-off idiom as `pendingDevelopImage`)
   @Published var pendingStock: Stock?
 
-  /// the Library as monthly film rolls, newest first (see `Roll.group`)
-  var rolls: [Roll] { Roll.group(library) }
+  /// the Library as monthly film rolls, newest first (see `Roll.group`) —
+  /// memoized so Gallery body evaluations don't regroup an unchanged library
+  private var rollsCache: [Roll]?
+  var rolls: [Roll] {
+    if let rollsCache { return rollsCache }
+    let grouped = Roll.group(library)
+    rollsCache = grouped
+    return grouped
+  }
 
   init(environment: [String: String] = ProcessInfo.processInfo.environment) {
     switch environment["LENSMOOD_TAB"] {
@@ -125,13 +134,21 @@ final class AppModel: ObservableObject {
 
   func add(_ asset: DevelopedAsset) {
     library.insert(asset, at: 0)
-    // full-resolution frames are heavy — bound the session roll so long
-    // sessions can't grow memory without limit
+    // The cap is a memory bound, not an archive policy: trim the OLDEST
+    // non-favorite frames only. A favorite is never silently deleted — the
+    // Library presents itself as a permanent archive of rolls, and deleting
+    // a starred frame as a side effect of developing would be data loss.
     if library.count > 48 {
-      library.removeLast(library.count - 48)
+      var excess = library.count - 48
+      for index in stride(from: library.count - 1, through: 0, by: -1) where excess > 0 {
+        if !library[index].favorite {
+          library.remove(at: index)
+          excess -= 1
+        }
+      }
     }
     // durability: persist the new frame, then drop any on-disk frames that fell
-    // off the capped roll
+    // off the capped roll (writes run on the store's serial queue, off-main)
     LibraryStore.persist(asset)
     LibraryStore.prune(keeping: library.map(\.id))
   }

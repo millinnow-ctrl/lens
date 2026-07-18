@@ -40,6 +40,7 @@ final class LibraryStoreTests: XCTestCase {
   func testPersistThenLoadRoundTrips() {
     let a = asset()
     LibraryStore.persist(a)
+    LibraryStore.waitForWrites()
 
     let loaded = LibraryStore.load()
     XCTAssertEqual(loaded.count, 1)
@@ -54,7 +55,9 @@ final class LibraryStoreTests: XCTestCase {
     let older = asset(createdAt: Date(timeIntervalSince1970: 1_000))
     let newer = asset(createdAt: Date(timeIntervalSince1970: 2_000))
     LibraryStore.persist(older)
+    LibraryStore.waitForWrites()
     LibraryStore.persist(newer)
+    LibraryStore.waitForWrites()
 
     let loaded = LibraryStore.load()
     XCTAssertEqual(loaded.map(\.id), [newer.id, older.id])
@@ -63,9 +66,11 @@ final class LibraryStoreTests: XCTestCase {
   func testDeleteRemovesEntryAndFile() {
     let a = asset()
     LibraryStore.persist(a)
+    LibraryStore.waitForWrites()
     XCTAssertEqual(LibraryStore.loadIndex().count, 1)
 
     LibraryStore.delete(id: a.id)
+    LibraryStore.waitForWrites()
     XCTAssertTrue(LibraryStore.load().isEmpty)
     XCTAssertTrue(LibraryStore.loadIndex().isEmpty)
   }
@@ -74,18 +79,23 @@ final class LibraryStoreTests: XCTestCase {
     let keep = asset()
     let drop = asset()
     LibraryStore.persist(keep)
+    LibraryStore.waitForWrites()
     LibraryStore.persist(drop)
+    LibraryStore.waitForWrites()
 
     LibraryStore.prune(keeping: [keep.id])
+    LibraryStore.waitForWrites()
     XCTAssertEqual(LibraryStore.load().map(\.id), [keep.id])
   }
 
   func testFavoriteFlagPersistsAndToggles() {
     let a = asset()
     LibraryStore.persist(a)
+    LibraryStore.waitForWrites()
     XCTAssertEqual(LibraryStore.load().first?.favorite, false)
 
     LibraryStore.setFavorite(id: a.id, favorite: true)
+    LibraryStore.waitForWrites()
     XCTAssertEqual(LibraryStore.load().first?.favorite, true)
     XCTAssertEqual(LibraryStore.loadIndex().count, 1, "toggling must not duplicate the entry")
   }
@@ -95,6 +105,7 @@ final class LibraryStoreTests: XCTestCase {
     let big = plate(.red, size: CGSize(width: 4000, height: 3000))
     let a = DevelopedAsset(image: big, source: big, stock: Stock.find("kodachrome"), decisions: [])
     LibraryStore.persist(a)
+    LibraryStore.waitForWrites()
 
     let loaded = try? XCTUnwrap(LibraryStore.load().first)
     let longest = max(loaded?.image.size.width ?? 0, loaded?.image.size.height ?? 0)

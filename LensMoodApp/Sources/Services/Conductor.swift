@@ -27,8 +27,8 @@ final class Conductor: ObservableObject {
 
   private var readings: [UUID: SceneReading] = [:]
   private var inFlight: [UUID: Task<SceneReading, Error>] = [:]
-  /// insertion order for the small LRU cap — a reading retains a full-res
-  /// person mask, so the cache must stay tiny
+  /// recency order for the small LRU cap — a reading retains the person
+  /// matte plus the masked-light rasters (~1–3 MB), so the cache stays tiny
   private var order: [UUID] = []
   private let capacity = 4
 
@@ -47,7 +47,14 @@ final class Conductor: ObservableObject {
   /// Read the photograph once, off the main thread. Concurrent callers for
   /// the same key share a single in-flight task.
   func reading(for photo: UIImage, key: UUID) async throws -> SceneReading {
-    if let finished = readings[key] { return finished }
+    if let finished = readings[key] {
+      // true LRU: a hit refreshes recency, so the ACTIVE photo's reading is
+      // never the one evicted (a re-read would re-run the subject pass,
+      // which is not guaranteed bit-stable)
+      order.removeAll { $0 == key }
+      order.append(key)
+      return finished
+    }
     if let running = inFlight[key] { return try await running.value }
     let task = Task.detached(priority: .userInitiated) {
       try FilmEngine.shared.read(photo)

@@ -157,9 +157,17 @@ final class SegmentationService {
     if #available(iOS 17.0, *), let fg = foregroundRequest as? VNGenerateForegroundInstanceMaskRequest,
        let result = fg.results?.first {
       if let buffer = try? result.generateScaledMaskForImage(forInstances: result.allInstances, from: handler) {
-        // Foreground alpha; sky ≈ inverse. Kept as the raw foreground CI here;
-        // the engine inverts when it grades the sky.
-        masks.skyHint = CIImage(cvPixelBuffer: buffer)
+        // Foreground alpha; sky ≈ inverse (the engine inverts when grading).
+        // The Vision buffer is FULL-RESOLUTION Float32 (~46MB at 12MP) — bound
+        // it before it enters the cache, or six cached photos hold ~280MB.
+        let raw = CIImage(cvPixelBuffer: buffer)
+        let largest = max(raw.extent.width, raw.extent.height)
+        let scale = min(1, 1024 / max(largest, 1))
+        masks.skyHint = scale < 1
+          ? raw.applyingFilter("CILanczosScaleTransform", parameters: [
+              kCIInputScaleKey: scale, kCIInputAspectRatioKey: 1,
+            ])
+          : raw
       }
     }
 

@@ -106,7 +106,9 @@ final class RollTests: XCTestCase {
     let julyFrame = asset(createdAt: date(2026, 7, 12))
     let juneFrame = asset(createdAt: date(2026, 6, 5))
     LibraryStore.persist(julyFrame)
+    LibraryStore.waitForWrites()
     LibraryStore.persist(juneFrame)
+    LibraryStore.waitForWrites()
 
     let rolls = Roll.group(LibraryStore.load(), calendar: calendar)
     XCTAssertEqual(rolls.map(\.id), ["2026-07", "2026-06"])
