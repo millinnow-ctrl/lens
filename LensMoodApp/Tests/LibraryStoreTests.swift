@@ -48,7 +48,11 @@ final class LibraryStoreTests: XCTestCase {
     XCTAssertEqual(first?.id, a.id)
     XCTAssertEqual(first?.stock.id, "film-noir")
     XCTAssertEqual(first?.decisions, a.decisions)
-    XCTAssertNotNil(first?.image)
+    // two-tier: only the thumbnail is resident; the stored frame is decoded
+    // on demand from imageURL
+    XCTAssertNil(first?.image, "loaded frames must not hold the full bitmap in memory")
+    XCTAssertNotNil(first?.imageURL)
+    XCTAssertNotNil(first?.loadFullImage())
   }
 
   func testLoadReturnsNewestFirst() {
@@ -108,7 +112,54 @@ final class LibraryStoreTests: XCTestCase {
     LibraryStore.waitForWrites()
 
     let loaded = try? XCTUnwrap(LibraryStore.load().first)
-    let longest = max(loaded?.image.size.width ?? 0, loaded?.image.size.height ?? 0)
+    let full = loaded?.loadFullImage()
+    XCTAssertNotNil(full)
+    let longest = max(full?.size.width ?? 0, full?.size.height ?? 0)
     XCTAssertLessThanOrEqual(longest, 2048 + 1)
+  }
+
+  func testLoadedThumbnailIsGridTierBounded() {
+    // load() must decode only the grid tier: ≤480 px long edge, pixel-true
+    let big = plate(.green, size: CGSize(width: 1600, height: 1200))
+    let a = DevelopedAsset(image: big, source: big, stock: Stock.find("kodachrome"), decisions: [])
+    LibraryStore.persist(a)
+    LibraryStore.waitForWrites()
+
+    let loaded = try? XCTUnwrap(LibraryStore.load().first)
+    let thumb = loaded?.thumbnail
+    let longest = max(
+      (thumb?.size.width ?? 0) * (thumb?.scale ?? 1),
+      (thumb?.size.height ?? 0) * (thumb?.scale ?? 1)
+    )
+    XCTAssertGreaterThan(longest, 0)
+    XCTAssertLessThanOrEqual(longest, DevelopedAsset.thumbnailEdge + 1)
+  }
+
+  func testSessionAssetBuildsBoundedThumbnailAndKeepsFullFrame() {
+    // a just-developed asset keeps its full frame in memory AND carries a
+    // grid-tier thumbnail built at creation
+    let big = plate(.yellow, size: CGSize(width: 900, height: 600))
+    let a = DevelopedAsset(image: big, source: big, stock: Stock.find("polaroid"), decisions: [])
+    XCTAssertNotNil(a.image)
+    XCTAssertNotNil(a.source)
+    XCTAssertNil(a.imageURL)
+    let longest = max(a.thumbnail.size.width * a.thumbnail.scale,
+                      a.thumbnail.size.height * a.thumbnail.scale)
+    XCTAssertLessThanOrEqual(longest, DevelopedAsset.thumbnailEdge + 1)
+  }
+
+  func testDemotedAssetDropsBitmapsButKeepsFrameOnDisk() {
+    // once a newer frame arrives, an older session asset demotes: bitmaps
+    // released, frame of record readable from the store's JPEG
+    let a = asset()
+    LibraryStore.persist(a)
+    LibraryStore.waitForWrites()
+
+    let demoted = a.demotedToStored()
+    XCTAssertEqual(demoted.id, a.id)
+    XCTAssertNil(demoted.image)
+    XCTAssertNil(demoted.source)
+    XCTAssertEqual(demoted.imageURL, LibraryStore.frameURL(for: a.id))
+    XCTAssertNotNil(demoted.loadFullImage())
   }
 }

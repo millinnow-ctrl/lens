@@ -1,13 +1,15 @@
+import ImageIO
 import UIKit
 
 /// On-disk persistence for the developed Library so it survives relaunch, and a
-/// memory guard: frames are stored downsized (≤`maxEdge`) as JPEG, so a reloaded
-/// Library holds bounded bitmaps instead of full-resolution captures.
+/// memory guard: frames are stored downsized (≤`maxEdge`) as JPEG, and `load()`
+/// decodes only a grid-tier thumbnail per frame (ImageIO downsample, ≤480 px) —
+/// the stored 2048 px frame is decoded on demand via `DevelopedAsset.loadFullImage()`
+/// when a detail view, print, or save actually needs it.
 ///
 /// Only the *developed* frame is persisted — the original `source` is transient
-/// (used during in-camera review); Gallery and Print read the developed frame,
-/// so on load `source` is set to the developed image. `Stock` is reconstructed
-/// from its stable id via `Stock.find`.
+/// (used during in-camera review) and is never written. `Stock` is
+/// reconstructed from its stable id via `Stock.find`.
 struct StoredAsset: Codable {
   let id: UUID
   let stockID: String
@@ -54,6 +56,12 @@ enum LibraryStore {
     dir.appendingPathComponent("\(id.uuidString).jpg")
   }
 
+  /// Where a frame's stored 2048 px JPEG lives (or will live once its queued
+  /// write lands) — used when a session asset demotes to the stored tier.
+  static func frameURL(for id: UUID) -> URL {
+    imageURL(id)
+  }
+
   // MARK: - Index
 
   static func loadIndex() -> [StoredAsset] {
@@ -71,21 +79,42 @@ enum LibraryStore {
   // MARK: - High-level
 
   /// Persisted assets, newest first, with `Stock` reconstructed by id.
+  /// Two-tier: only a grid thumbnail is decoded per frame; the stored 2048 px
+  /// JPEG stays on disk behind `imageURL` for on-demand decode.
   static func load() -> [DevelopedAsset] {
     loadIndex()
       .sorted { $0.createdAt > $1.createdAt }
       .compactMap { entry in
-        guard let image = UIImage(contentsOfFile: imageURL(entry.id).path) else { return nil }
+        let url = imageURL(entry.id)
+        guard let thumbnail = decodeThumbnail(at: url) else { return nil }
         return DevelopedAsset(
           id: entry.id,
-          image: image,
-          source: image,
+          thumbnail: thumbnail,
+          imageURL: url,
           stock: Stock.find(entry.stockID),
           decisions: entry.decisions,
           createdAt: entry.createdAt,
           favorite: entry.favorite
         )
       }
+  }
+
+  /// ImageIO downsample: decode the stored JPEG straight to the grid tier
+  /// (long edge ≤ `DevelopedAsset.thumbnailEdge`) without ever materializing
+  /// the full 2048 px bitmap in memory.
+  private static func decodeThumbnail(at url: URL) -> UIImage? {
+    let sourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
+    guard let source = CGImageSourceCreateWithURL(url as CFURL, sourceOptions) else { return nil }
+    let thumbnailOptions = [
+      kCGImageSourceCreateThumbnailFromImageAlways: true,
+      kCGImageSourceCreateThumbnailWithTransform: true,
+      kCGImageSourceShouldCacheImmediately: true,
+      kCGImageSourceThumbnailMaxPixelSize: DevelopedAsset.thumbnailEdge,
+    ] as [CFString: Any] as CFDictionary
+    guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, thumbnailOptions) else {
+      return nil
+    }
+    return UIImage(cgImage: cgImage)
   }
 
   /// All writes run on one serial utility queue: develop taps stay hitch-free
@@ -99,9 +128,12 @@ enum LibraryStore {
   }
 
   /// Write one asset's developed frame + index entry (idempotent per id).
+  /// Only session assets carry the full frame; a loaded/demoted asset's frame
+  /// of record is already this store's JPEG, so persisting it is a no-op.
   static func persist(_ asset: DevelopedAsset) {
+    guard let frame = asset.image else { return }
     ioQueue.async {
-      if let data = downscaled(asset.image).jpegData(compressionQuality: jpegQuality) {
+      if let data = downscaled(frame).jpegData(compressionQuality: jpegQuality) {
         try? data.write(to: imageURL(asset.id), options: .atomic)
       }
       var index = loadIndex().filter { $0.id != asset.id }

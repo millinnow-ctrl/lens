@@ -10,6 +10,22 @@ private enum PreviewMode: String, CaseIterable, Identifiable {
   var id: String { rawValue }
 }
 
+/// The develop screen's one presentation seat. SwiftUI reliably honors a
+/// single sheet per attachment point — share and the membership offer used to
+/// sit as two `.sheet` modifiers on the same ScrollView chain, so they are
+/// consolidated into one `sheet(item:)` that can never race.
+private enum DevelopSheet: Identifiable {
+  case share(UIImage)
+  case paywall
+
+  var id: String {
+    switch self {
+    case .share: return "share"
+    case .paywall: return "paywall"
+    }
+  }
+}
+
 struct DevelopView: View {
   init(stock: Stock) {
     _currentStock = State(initialValue: stock)
@@ -31,7 +47,6 @@ struct DevelopView: View {
   @State private var isDeveloping = false
   @State private var isSaving = false
   @State private var errorMessage: String?
-  @State private var sharePresented = false
   @State private var saveConfirmation = false
   @State private var renderID = UUID()
   /// Per-import session id so the preview cache never reuses one photo's render
@@ -52,11 +67,9 @@ struct DevelopView: View {
   /// the memory-bounded copy of the original stored in the Library (the
   /// full-res `sourceImage` stays only for the on-screen stage + export)
   @State private var librarySource: UIImage?
-  /// the composited share frame, built off-main in the button action
-  @State private var shareImage: UIImage?
-  /// the single gate site: developing a locked camera opens the offer
-  /// (inert while Store.everythingFreeForNow)
-  @State private var paywallPresented = false
+  /// share (carrying its composited frame) or the membership offer — one
+  /// presentation seat, so the two can never collide on this view
+  @State private var activeSheet: DevelopSheet?
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   var body: some View {
@@ -101,13 +114,13 @@ struct DevelopView: View {
     // force a fresh subject pass — splitting export from preview. The
     // Conductor's small LRU cap bounds memory instead; load() still forgets
     // the replaced photo's key explicitly.
-    .sheet(isPresented: $sharePresented) {
-      if let shareImage {
-        ActivitySheet(items: [shareImage])
+    .sheet(item: $activeSheet) { sheet in
+      switch sheet {
+      case .share(let image):
+        ActivitySheet(items: [image])
+      case .paywall:
+        PaywallView()
       }
-    }
-    .sheet(isPresented: $paywallPresented) {
-      PaywallView()
     }
     .alert("Saved to Photos", isPresented: $saveConfirmation) {
       Button("OK", role: .cancel) {}
@@ -440,9 +453,8 @@ struct DevelopView: View {
         Task.detached(priority: .userInitiated) {
           let composed = blended(developed: developedImage, over: sourceImage, intensity: strength)
           await MainActor.run {
-            shareImage = composed
             Analytics.log(.photoShared)
-            sharePresented = true
+            activeSheet = .share(composed)
           }
         }
       }
@@ -512,7 +524,7 @@ struct DevelopView: View {
     // offer instead. A no-op while Store.everythingFreeForNow keeps all 18 open.
     guard Store.shared.isUnlocked(currentStock) else {
       isDeveloping = false
-      paywallPresented = true
+      activeSheet = .paywall
       return
     }
     Analytics.log(.developStarted(lookID: currentStock.id))
