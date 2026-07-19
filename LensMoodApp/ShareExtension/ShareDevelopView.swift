@@ -219,6 +219,11 @@ struct ShareDevelopView: View {
       Slider(value: $intensity, in: 0...1)
         .tint(Theme.accent)
         .accessibilityLabel("Intensity")
+        // moving intensity changes the output recipe just as switching the
+        // camera does — so it must clear "Saved", or the button would offer to
+        // Done a frame the user never saved at this strength (selecting a
+        // camera already resets saved; this is its other half)
+        .onChange(of: intensity) { _ in saved = false }
     }
   }
 
