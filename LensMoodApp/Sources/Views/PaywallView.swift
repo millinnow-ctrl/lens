@@ -31,6 +31,7 @@ struct PaywallView: View {
 
   @ObservedObject private var store = Store.shared
   @Environment(\.dismiss) private var dismiss
+  @Environment(\.dynamicTypeSize) private var typeSize
 
   @State private var busy = false
   @State private var notice: String?
@@ -97,6 +98,7 @@ struct PaywallView: View {
     HStack(spacing: 8) {
       Image(systemName: "hammer")
         .scaledFont(size: 13, weight: .semibold, relativeTo: .footnote)
+        .accessibilityHidden(true)   // decorative — the text carries the meaning
       Text("Everything is free right now. This is a preview of the supporter offer — nothing is locked.")
         .font(.footnote.weight(.medium))   // 13pt at the default size
     }
@@ -177,32 +179,50 @@ struct PaywallView: View {
     .padding(.top, 4)
   }
 
+  /// Accessibility type sizes: side by side, each card would offer its
+  /// grown price and detail ~150pt of width — they stack full-width instead.
+  @ViewBuilder
   private var offerRow: some View {
-    HStack(alignment: .top, spacing: 12) {
-      OfferCard(
-        title: "Yearly",
-        // Placeholder shown only while no App Store product is loaded.
-        price: store.yearlyProduct?.displayPrice ?? PlusCatalog.PlaceholderPrice.yearly,
-        cadence: "per year",
-        detail: "Billed once a year through your Apple ID. Cancel anytime.",
-        tag: nil,
-        highlighted: false,
-        disabled: busy
-      ) {
-        buy(store.yearlyProduct)
+    if typeSize.isAccessibilitySize {
+      VStack(spacing: 12) {
+        yearlyOffer
+        lifetimeOffer
       }
-      OfferCard(
-        title: "Lifetime",
-        // Placeholder shown only while no App Store product is loaded.
-        price: store.lifetimeProduct?.displayPrice ?? PlusCatalog.PlaceholderPrice.lifetime,
-        cadence: "once",
-        detail: "Yours for good. Future cameras included.",
-        tag: "ONE-TIME PURCHASE",
-        highlighted: true,
-        disabled: busy
-      ) {
-        buy(store.lifetimeProduct)
+    } else {
+      HStack(alignment: .top, spacing: 12) {
+        yearlyOffer
+        lifetimeOffer
       }
+    }
+  }
+
+  private var yearlyOffer: some View {
+    OfferCard(
+      title: "Yearly",
+      // Placeholder shown only while no App Store product is loaded.
+      price: store.yearlyProduct?.displayPrice ?? PlusCatalog.PlaceholderPrice.yearly,
+      cadence: "per year",
+      detail: "Billed once a year through your Apple ID. Cancel anytime.",
+      tag: nil,
+      highlighted: false,
+      disabled: busy
+    ) {
+      buy(store.yearlyProduct)
+    }
+  }
+
+  private var lifetimeOffer: some View {
+    OfferCard(
+      title: "Lifetime",
+      // Placeholder shown only while no App Store product is loaded.
+      price: store.lifetimeProduct?.displayPrice ?? PlusCatalog.PlaceholderPrice.lifetime,
+      cadence: "once",
+      detail: "Yours for good. Future cameras included.",
+      tag: "ONE-TIME PURCHASE",
+      highlighted: true,
+      disabled: busy
+    ) {
+      buy(store.lifetimeProduct)
     }
   }
 
@@ -249,7 +269,12 @@ struct PaywallView: View {
   /// Plus cameras carry no caption.
   private var shelfGrid: some View {
     LazyVGrid(
-      columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 6),
+      // six across at regular sizes; three at accessibility sizes, where a
+      // sixth-width cell reduces every camera name to one or two glyphs
+      columns: Array(
+        repeating: GridItem(.flexible(), spacing: 8),
+        count: typeSize.isAccessibilitySize ? 3 : 6
+      ),
       spacing: 10
     ) {
       ForEach(Stock.all) { stock in
@@ -300,6 +325,7 @@ struct PaywallView: View {
         .scaledFont(size: 11, weight: .bold, relativeTo: .caption2)
         .foregroundStyle(Theme.accent)
         .padding(.top, 3)
+        .accessibilityHidden(true)   // decorative bullet mark — VoiceOver reads the text alone
       Text(text)
         .scaledFont(size: 14, relativeTo: .footnote)
         .foregroundStyle(Theme.inkSoft)

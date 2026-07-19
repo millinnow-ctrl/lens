@@ -17,11 +17,21 @@ struct HomeView: View {
   @State private var heroPickedItem: PhotosPickerItem?
   @State private var heroPickError: String?
   @State private var carouselIndex = 0
+  @Environment(\.dynamicTypeSize) private var typeSize
 
-  private let columns = [
-    GridItem(.flexible(), spacing: 12),
-    GridItem(.flexible(), spacing: 12),
-  ]
+  /// the carousel card's width rides the footnote curve (its name's style) so
+  /// grown text keeps a readable line length; capped so one card can never
+  /// outgrow a small screen. 144pt at the default size, exactly as approved.
+  @ScaledMetric(relativeTo: .footnote) private var carouselCardBase: CGFloat = 144
+  private var carouselCardWidth: CGFloat { min(carouselCardBase, 210) }
+
+  /// two cards across at regular sizes; accessibility sizes get one
+  /// full-width card so the tagline survives as a sentence
+  private var columns: [GridItem] {
+    typeSize.isAccessibilitySize
+      ? [GridItem(.flexible(), spacing: 12)]
+      : [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
+  }
 
   private var shelf: [Stock] {
     category.filter(Stock.all)
@@ -164,7 +174,7 @@ struct HomeView: View {
             Button {
               path.append(stock)
             } label: {
-              CarouselCard(stock: stock, index: index)
+              CarouselCard(stock: stock, index: index, width: carouselCardWidth)
                 .modifier(CarouselDepth())
             }
             .buttonStyle(.plain)
@@ -185,8 +195,9 @@ struct HomeView: View {
       }
       .coordinateSpace(name: "carousel")
       .onPreferenceChange(CarouselOffsetKey.self) { offset in
-        // 144pt card + 14pt gap; tick the haptic as each card passes center
-        let index = max(0, min(Stock.all.count - 1, Int((offset / 158).rounded())))
+        // card width (scaled) + 14pt gap; tick the haptic as each card passes center
+        let stride = carouselCardWidth + 14
+        let index = max(0, min(Stock.all.count - 1, Int((offset / stride).rounded())))
         if index != carouselIndex {
           carouselIndex = index
           UISelectionFeedbackGenerator().selectionChanged()
@@ -206,6 +217,7 @@ struct HomeView: View {
             .padding(.trailing, 2)
         }
         .allowsHitTesting(false)
+        .accessibilityHidden(true)   // decorative scroll cue over the fade
       }
 
       // page dots — the scroll position, one dot per camera
@@ -398,6 +410,10 @@ private struct CarouselDepth: ViewModifier {
 struct CarouselCard: View {
   let stock: Stock
   let index: Int
+  /// scaled by the owner (HomeView) along the footnote curve; 144pt at the
+  /// default size
+  var width: CGFloat = 144
+  @Environment(\.dynamicTypeSize) private var typeSize
 
   /// The only badge the app can say honestly: "NEW", for a real camera
   /// drop. The trending/featured vocabulary is gone — the app has no data
@@ -411,7 +427,7 @@ struct CarouselCard: View {
     VStack(alignment: .leading, spacing: 0) {
       ZStack(alignment: .topTrailing) {
         artwork
-          .frame(width: 144, height: 180)
+          .frame(width: width, height: width * 1.25)   // 144×180 at the default size
           .clipped()
         if let badgeLabel {
           Text(badgeLabel)
@@ -444,11 +460,13 @@ struct CarouselCard: View {
         Text(stock.tagline)
           .font(.caption2)   // 11pt at the default size
           .foregroundStyle(Theme.inkSoft)
-          .lineLimit(2, reservesSpace: true)
+          // accessibility sizes reserve a third line — two grown lines in a
+          // card-width column truncate most taglines mid-thought
+          .lineLimit(typeSize.isAccessibilitySize ? 3 : 2, reservesSpace: true)
       }
       .padding(10)
     }
-    .frame(width: 144)
+    .frame(width: width)
     .background(Theme.surface)
     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
     .overlay(
@@ -546,6 +564,7 @@ struct HeroCard: View {
   private static let wordTimer = Timer.publish(every: 3.4, on: .main, in: .common).autoconnect()
   @State private var word = 0
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @Environment(\.dynamicTypeSize) private var typeSize
 
   var body: some View {
     VStack(spacing: 0) {
@@ -627,18 +646,30 @@ struct HeroCard: View {
           .minimumScaleFactor(0.7)
           .foregroundStyle(.white)
           .shadow(color: .black.opacity(0.5), radius: 7, y: 1)
+          // one sentence for VoiceOver instead of three fragments — and a
+          // stable one: the rotating word must not churn the element
+          .accessibilityElement(children: .combine)
+          .accessibilityLabel("Every photo has a mood")
 
           Button(action: onStart) {
             HStack(spacing: 8) {
-              Image(systemName: "photo.badge.plus")
-                .scaledFont(size: 15, weight: .semibold, relativeTo: .subheadline)
+              // accessibility sizes: the two decorative glyphs cost ~90pt the
+              // grown title needs — the words are the button
+              if !typeSize.isAccessibilitySize {
+                Image(systemName: "photo.badge.plus")
+                  .scaledFont(size: 15, weight: .semibold, relativeTo: .subheadline)
+              }
               Text("Start with a photo")
                 .font(.subheadline.weight(.bold))   // 15pt at the default size
-                .lineLimit(1)
+                // at accessibility sizes the title may take a second line
+                // rather than shrink-and-truncate inside the capsule
+                .lineLimit(typeSize.isAccessibilitySize ? 2 : 1)
                 .minimumScaleFactor(0.8)
-              Image(systemName: "chevron.down")
-                .scaledFont(size: 10, weight: .bold, relativeTo: .caption2)
-                .opacity(0.45)
+              if !typeSize.isAccessibilitySize {
+                Image(systemName: "chevron.down")
+                  .scaledFont(size: 10, weight: .bold, relativeTo: .caption2)
+                  .opacity(0.45)
+              }
             }
             .foregroundStyle(Theme.ink)
             .padding(.horizontal, 20)
@@ -653,7 +684,10 @@ struct HeroCard: View {
         }
         .padding(16)
       }
-      .aspectRatio(4.0 / 3.6, contentMode: .fit)
+      // accessibility sizes get a slightly taller poster (4:4.6): the grown
+      // two-line headline plus button no longer clear the SHOT ON tag inside
+      // 4:3.6 on small screens — everything else about the frame is unchanged
+      .aspectRatio(typeSize.isAccessibilitySize ? 4.0 / 4.6 : 4.0 / 3.6, contentMode: .fit)
       .clipped()
     }
     .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))

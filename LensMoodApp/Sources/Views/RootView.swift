@@ -27,8 +27,18 @@ struct RootView: View {
     }
     .tint(Theme.accent)
     .safeAreaInset(edge: .bottom, spacing: 0) {
-      // the camera is a full-screen instrument — no app dock over it
-      if model.selectedTab != .capture { OceanDock() }
+      // the camera is a full-screen instrument — no app dock over it.
+      // Five slots plus the capture pill cannot host accessibility-size text
+      // on one row (labels fell to unreadable truncation at AX5, and the
+      // scaled pill crowded the slots off small screens). Like UIKit's tab
+      // bar, the dock's chrome stops growing at the largest regular size —
+      // each slot instead offers the system large-content viewer (press and
+      // hold). Applied here, at the call site, so the dock's own
+      // @ScaledMetric pill reads the capped environment too.
+      if model.selectedTab != .capture {
+        OceanDock()
+          .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+      }
     }
     .sheet(isPresented: $model.accountPresented) {
       AccountView()
@@ -90,6 +100,9 @@ private struct OceanDock: View {
     }
     .buttonStyle(.plain)
     .frame(maxWidth: .infinity)
+    .accessibilityShowsLargeContentViewer {
+      Label("Capture", systemImage: "camera.fill")
+    }
     .accessibilityLabel("Capture")
     .accessibilityAddTraits(on ? .isSelected : [])
   }
@@ -119,6 +132,9 @@ private struct OceanDock: View {
       .contentShape(Capsule())
     }
     .buttonStyle(.plain)
+    .accessibilityShowsLargeContentViewer {
+      Label(label, systemImage: icon)
+    }
     .accessibilityLabel(label)
     .accessibilityAddTraits(on ? .isSelected : [])
   }

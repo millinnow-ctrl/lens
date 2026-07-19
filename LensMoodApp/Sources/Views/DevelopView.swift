@@ -474,18 +474,20 @@ struct DevelopView: View {
           .scaledFont(size: 12, weight: .semibold, design: .monospaced, relativeTo: .caption)
           .foregroundStyle(Theme.inkSoft)
       }
+      // the readout row repeats what the slider speaks — combining the whole
+      // control into one element muted the slider's adjustable gesture, so
+      // the slider itself carries the name and stays adjustable
+      .accessibilityHidden(true)
       Slider(value: $intensity, in: 0...1) { editing in
         if !editing { UISelectionFeedbackGenerator().selectionChanged() }
       }
       .tint(Theme.accent)
+      .accessibilityLabel("Look strength")
       .onChange(of: intensity) { _ in
         // adjusting strength always reads against the developed view
         if previewMode != .developed { previewMode = .developed }
       }
     }
-    .accessibilityElement(children: .combine)
-    .accessibilityLabel("Look strength")
-    .accessibilityValue("\(Int((intensity * 100).rounded())) percent")
   }
 
 
