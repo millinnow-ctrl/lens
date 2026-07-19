@@ -240,3 +240,53 @@ exists and currently always returns true).
    for cameras not yet announced (recommendation: don't).
 5. Free-forever set membership — the six above are a recommendation; the
    set is one line in `PlusCatalog`.
+
+---
+
+## 6. Council ruling, 2026-07-18 (RECOMMENDATION — owner decides pricing and the flip)
+
+Dated addendum. Nothing above this line is rewritten; where this section
+differs (the lifetime price), this is the newer recommendation and the
+owner arbitrates.
+
+**Preview flow status change.** The §3 on-your-photo preview flow is now
+**WIRED** (was "documented only" in §4):
+
+- Locked cameras develop **fully** — full ceremony, full quality, on the
+  user's own photo. The gate sits at **Save/Share**, never at the aha.
+- Locked develops **never enter the roll** — "the roll keeps what you
+  keep."
+- The paywall carries the **user's own frame**, not stock art.
+- Paywall surfaces are exactly two: `develop-keep` and `account`.
+  Nothing else in the app ever presents an offer.
+- All of it is inert while `Store.everythingFreeForNow = true`.
+
+**Price RECOMMENDATION: $19.99 yearly / $49.99 lifetime** (lifetime was
+~$34.99 in §3). The honest rationale: at $34.99 the lifetime nets
+≈ $29.75 after the 15% cut, versus ≈ $28 expected yearly LTV [believed:
+category renewal assumptions per §2 — first year net ≈ $17 plus ~40%
+renewal tail]. A forever-promise priced ~6% above one expected
+subscriber cannibalizes the compounding SKU. Halide sustains a $59.99
+lifetime beside the same $19.99 yearly [researched: market teardown,
+`docs/MARKET_RESEARCH.md` finding 4]. $49.99 keeps lifetime ≈ 2.5× the
+yearly, inside the respected craft-app pattern. **No launch discount, no
+founders' window** — prices lower easily, raise expensively, and an
+owned camera's price doesn't wobble.
+
+**Drop cadence.** The first seasonal drop opens cycle 2 (~day 120 after
+launch). The **public** cadence promise is capped at 2 drops/year
+[believed: sustainable for one owner]; anything above that is upside,
+never a commitment.
+
+**Floor math, on record** [believed: assumptions stated, no install
+data exists yet]:
+
+- ~30% of installs reach the warm paywall — composed of 60% of users
+  developing ≥3 photos × half of those meeting a ranked-locked #1 camera
+  and tapping Keep.
+- × ~5% paywall conversion ≈ **1.5% overall payer conversion** — the
+  conservative bracket already used in §2.
+- **Watch trigger:** if App Store Connect conversion sits below ~1.5% at
+  week 4, the stage-resolution-only preview mitigation returns to the
+  table (locked previews develop at stage resolution rather than full).
+  Never a watermark, never a degraded render — the never-list holds.

@@ -106,6 +106,23 @@ Then on the App Information / version pages:
 - **Price**: Free (v1 ships with all gates open).
 - Content rights: no third-party content.
 
+> **Council RECOMMENDATION, 2026-07-18 — the owner decides all of this;
+> nothing here is self-executing.**
+>
+> - **Gate ON before public visibility**: flip
+>   `Store.everythingFreeForNow = false` as the **last pre-submission
+>   step**, so the app is never publicly visible in its all-free state.
+> - **Products** (create per §10): `app.lensmood.ios.plus.yearly` at
+>   **$19.99/yr** and `app.lensmood.ios.plus.lifetime` at **$49.99**,
+>   lifetime visually primary on the paywall.
+> - **No launch discount, no founders' window** [council ruling;
+>   rationale in one line: prices lower easily, raise expensively — and
+>   an owned camera's price doesn't wobble].
+> - Subtitle rule unchanged: `18 cameras. One-time purchase.` only with
+>   a live IAP; otherwise the neutral fallback above.
+> - If the owner declines gate-ON at launch, the fallback is the
+>   **founding roll** (§12a) — not a silent later flip.
+
 ## 6. App Privacy questionnaire **[OWNER]**
 
 App Store Connect → App Privacy. The truthful answers for this app:
@@ -161,6 +178,29 @@ sense and needs no moderation answer.
    - Cold-launch performance, memory pressure on a big import, dark
      mode, Dynamic Type sanity.
 
+   **Device-pass additions (council amendment, 2026-07-18):**
+
+   1. **Masked-light matrix.** Develop a fixture set spanning diverse
+      skin tones × dim/bright lighting — explicitly including **dark
+      skin in dim light** — on a physical device, where person
+      segmentation returns real mattes, and eyeball skin protection and
+      rim behavior on each. This validates the cycle-1 skin-mask bug fix
+      on real Vision output; CI cannot cover it [measured: simulator
+      segmentation output is empty — see item 2].
+   2. **Ad-material re-capture.** Re-run the ad/matte exports on the
+      device so every marketing asset that claims mask-driven behavior
+      (the depth-parallax video above all) is built from real mattes.
+      Simulator matte exports are empty [measured: ci-captures
+      ad-material run, max pixel 3/255] — assets built from simulator
+      renders **may not ship with mask-behavior claims** (§16 honesty:
+      that would be belief dressed as fact). The blocked-asset list
+      lives in `docs/PRESS_KIT.md`.
+   3. **Print + Tape maintenance QA.** Full pass of both tabs every
+      release: record/develop/save on Tape, the Print Room object end to
+      end. Zero cycle-1 feature work on either; bugs fixed at parity.
+      Maintenance ≠ abandoned — Tape stays in metadata and screenshots
+      as shipped.
+
 ## 9. Screenshots + metadata **[OWNER approves, capture is scriptable]**
 
 Current App Store Connect rules (2026): one set of **6.9" iPhone**
@@ -194,7 +234,10 @@ Create in App Store Connect → the app → Monetization:
 
 - Price bands per `docs/PROFIT_ENGINE.md` §3 (~$19.99/yr, ~$34.99
   lifetime) — final points are the owner's call, set here, never
-  hard-coded.
+  hard-coded. **Amendment 2026-07-18:** the council RECOMMENDATION
+  revises lifetime to **$49.99** (yearly stays $19.99); rationale and
+  floor math in the dated addendum at the end of
+  `docs/PROFIT_ENGINE.md`. Owner decides.
 - Each product needs display name, description, and a review screenshot
   (a paywall screenshot works).
 - **Auto-renewable extras**: App Store Connect requires a Terms of Use
@@ -237,6 +280,73 @@ When pricing is decided (per `CLAUDE.md`, at the end):
    neutral subtitle was used.
 6. Submit as a normal version update; in review notes state which
    cameras are paid and that previously-free cameras remain free.
+
+### 12a. Fallback if the owner declines gate-ON at launch: the founding roll (council amendment, 2026-07-18)
+
+This replaces any reading of this section as a quiet later flip. If v1
+ships all-free and the gate flips in a later version:
+
+- **Every install before the flip date keeps all 18 cameras forever.**
+  Entitlement by install date; nothing anyone already holds is taken
+  away (never-list #6 in `docs/PROFIT_ENGINE.md`, applied to the whole
+  catalog for early users).
+- The flip release notes state it as **plain thanks** — "early
+  developers keep all 18, with thanks" — not as a promotion.
+- The subtitle stays **neutral until the IAP exists** (§5 rule).
+- **No dated in-listing removal promises** ("free until August!") —
+  pre-announced loss is still loss, and it reads as urgency mechanics,
+  which the never-list bans.
+
+## 13. Launch schedule (council amendment, 2026-07-18)
+
+Dates are relative to App Review approval; the calendar date is the
+owner's decision (RECOMMENDATION only).
+
+- **Day −2 (at App Review approval):** submit the Apple featuring
+  nomination — draft paragraph in `docs/PRESS_KIT.md`. Featuring lead
+  time runs in weeks, and a nomination amplifies nothing by itself, so
+  it costs nothing to file early.
+- **Day 0:** public launch (manual release per §11). **Quiet period: 7
+  days** — no press, no seeding — conditional on the §8 masked-light
+  matrix having run on a physical device. **If it has not run, hold 14
+  days** [the guarded failure class: device-only rendering defects with
+  zero CI coverage — exactly what §8 items 1–2 exist to catch].
+- **Day 8:** press emails (`docs/PRESS_KIT.md`) + Product Hunt + the
+  first creator batch (5 lifetime codes per `docs/GROWTH_PLAYBOOK.md`
+  §5), coverage landing days 9–14.
+- Review-prompt policy as in `docs/GROWTH_PLAYBOOK.md` §5: the prompt
+  needs installs that are ≥5 days old — another reason press waits for
+  day 8 (early organic installs can leave reviews before the coverage
+  wave arrives).
+
+## 14. Owner-decision checklist (added 2026-07-18)
+
+Everything on this list belongs to the owner; agents prepare, the owner
+decides.
+
+- [ ] **Pricing** — accept/adjust $19.99 yearly / $49.99 lifetime
+      (council RECOMMENDATION, §5 block + `docs/PROFIT_ENGINE.md`
+      addendum).
+- [ ] **The gate flip** — gate-ON pre-submission (recommended) or the
+      founding roll (§12a).
+- [ ] **ASC product creation** (§10) + **subtitle choice** (§5 rule:
+      purchase subtitle only with a live IAP).
+- [ ] **Small Business Program** confirmation before any paid product
+      goes live (§1).
+- [ ] **§8 device pass** — the base list + masked-light matrix +
+      ad-material re-capture + Print/Tape QA.
+- [ ] **Launch date + quiet-period length** (7 days with the matrix
+      run; 14 without — §13).
+- [ ] **Featuring nomination** submission (§13, draft in
+      `docs/PRESS_KIT.md`).
+- [ ] **Press send** (day 8, `docs/PRESS_KIT.md`).
+- [ ] **Approvals still pending from cycle-1 builds:** the paywall
+      keep-context layout, the Light Test card design, and the grain
+      stage-1 side-by-side grids — review artifacts under
+      `ui-artifacts/` (share cards in `ui-artifacts/share-cards/`).
+- [ ] **Any future analytics sink** — adding one is a privacy-label
+      change and breaks "Data Not Collected" (council recommends:
+      never).
 
 ---
 
