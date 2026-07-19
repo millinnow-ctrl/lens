@@ -371,6 +371,111 @@ final class LensFixEvidenceTests: XCTestCase {
     )
   }
 
+  // MARK: - Disposable daylight grain (R84 item 5 — the owner's loved lens)
+
+  /// Disposable's daylight grain read as a grunge-texture overlay + HDR crunch,
+  /// not film (critic A #6). This is the OWNER'S LOVED lens, so the fix is a
+  /// conservative amplitude softening on bright scenes — a refinement, never a
+  /// transform. Because the softening scales with brightGuardWeight and every
+  /// other disposable pass is key-independent on a flat, faceless field, a
+  /// key-swap isolates ONLY the grain: the low-key render is bit-equivalent to
+  /// the pre-fix daylight render (un-softened), the daylight-key render is the
+  /// softened one. Pin the amplitude ratio on a flat patch; export the real-photo
+  /// pair (street) for the owner's eye. Night grain is byte-identical (weight 0).
+  func testDisposableDaylightGrainEvidence() throws {
+    let engine = FilmEngine()
+    let recipe = CameraRecipe.recipe(for: "disposable")
+    let dir = try outDir()
+
+    // --- numeric pin: grain amplitude on a flat mid-gray patch.
+    let flat = flatGrayImage()
+    let subject = SubjectAnalysis(faces: [], personMask: nil)
+    let softened = try engine.develop(flat, with: recipe, seed: 3,
+      reading: SceneReading(scene: flatGrayScene(key: 0.55), subject: subject))   // daylight
+    let full = try engine.develop(flat, with: recipe, seed: 3,
+      reading: SceneReading(scene: flatGrayScene(key: 0.20), subject: subject))   // pre-fix
+    guard let softR = ImageMetrics.raster(softened.image),
+          let fullR = ImageMetrics.raster(full.image) else { return XCTFail("raster failed") }
+    // central crop where the vignette is flat, so std ≈ grain amplitude.
+    let center = CGRect(x: 0.375, y: 0.375, width: 0.25, height: 0.25)
+    let softStd = lumaStd(softR, in: center)
+    let fullStd = lumaStd(fullR, in: center)
+    print("disposable grain std: daylight(softened) \(softStd) vs pre-fix \(fullStd)")
+    // grain is linear in amplitude and the softening halves it on full daylight
+    // (weight 1 → ×0.5). Bound the ratio tight: real reduction, grain not killed.
+    XCTAssertLessThan(softStd, fullStd * 0.7, "daylight grain must be softened (less grunge)")
+    XCTAssertGreaterThan(softStd, fullStd * 0.3, "grain must remain — a refinement, not a transform")
+    XCTAssertGreaterThan(softStd, 1.0, "grain must still be visible where film shows it")
+
+    // --- owner evidence: the real flash-print look on a bright street photo.
+    if let street = source("sample-street.jpg") {
+      let real = try engine.read(street)
+      let after = try engine.develop(street, with: recipe, maxPixelSize: 1024, seed: 1, reading: real)
+      let before = try engine.develop(
+        street, with: recipe, maxPixelSize: 1024, seed: 1,
+        reading: SceneReading(scene: sceneWithKey(real.scene, key: 0.20), subject: real.subject)
+      )
+      try XCTUnwrap(before.image.pngData()).write(to: dir.appendingPathComponent("disposable-daylight-before.png"))
+      try XCTUnwrap(after.image.pngData()).write(to: dir.appendingPathComponent("disposable-daylight-after.png"))
+    }
+
+    // --- night byte-identity: at friends' key the softening weight is 0.
+    if let friends = source("sample-friends.jpg") {
+      let nightReading = try engine.read(friends)
+      XCTAssertEqual(FilmEngine.brightGuardWeight(nightReading.scene), 0, "friends must meter below the guard ramp")
+      let a = try engine.develop(friends, with: recipe, maxPixelSize: 512, seed: 1, reading: nightReading)
+      // a second develop at a forced low key must match — the softening is a
+      // no-op in the dark, so the loved night grain is untouched.
+      let b = try engine.develop(
+        friends, with: recipe, maxPixelSize: 512, seed: 1,
+        reading: SceneReading(scene: sceneWithKey(nightReading.scene, key: 0.10), subject: nightReading.subject)
+      )
+      XCTAssertEqual(
+        try XCTUnwrap(a.image.pngData()), try XCTUnwrap(b.image.pngData()),
+        "disposable night grain must be byte-identical — the daylight softening is a no-op in the dark"
+      )
+    }
+  }
+
+  /// A uniform mid-gray (0.55) field — grain is the only pixel-to-pixel variance
+  /// in a flat central crop, so its std reads the grain amplitude directly.
+  private func flatGrayImage(side: CGFloat = 160) -> UIImage {
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = 1
+    return UIGraphicsImageRenderer(size: CGSize(width: side, height: side), format: format).image { ctx in
+      ctx.cgContext.setFillColor(UIColor(white: 0.55, alpha: 1).cgColor)
+      ctx.cgContext.fill(CGRect(x: 0, y: 0, width: side, height: side))
+    }
+  }
+
+  /// A flat-scene profile at a chosen key, everything else fixed — so two keys
+  /// differ ONLY in the grain-softening weight (median 0.55 keeps the adaptive
+  /// correction identical and negative in both, no faces → no key-dependent lift).
+  private func flatGrayScene(key: Double) -> SceneProfile {
+    SceneProfile(
+      analyzed: true, key: key, p01: 0.50, p50: 0.55, p99: 0.60,
+      illum: [1, 1, 1], sat: 0.10, lights: [], auxLights: [], faceLum: nil,
+      meanLuminance: 0.55, medianLuminance: 0.55, shadowFraction: 0,
+      highlightFraction: 0, dynamicRange: 0.1, averageRed: 0.55,
+      averageGreen: 0.55, averageBlue: 0.55, saturation: 0.10, warmth: 0,
+      isLowKey: false, isHighKey: false, isBacklit: false
+    )
+  }
+
+  /// A copy of `base` with only `key` changed (for the grain-isolation key-swap).
+  private func sceneWithKey(_ base: SceneProfile, key: Double) -> SceneProfile {
+    SceneProfile(
+      analyzed: base.analyzed, key: key, p01: base.p01, p50: base.p50, p99: base.p99,
+      illum: base.illum, sat: base.sat, lights: base.lights, auxLights: base.auxLights,
+      faceLum: base.faceLum, meanLuminance: base.meanLuminance,
+      medianLuminance: base.medianLuminance, shadowFraction: base.shadowFraction,
+      highlightFraction: base.highlightFraction, dynamicRange: base.dynamicRange,
+      averageRed: base.averageRed, averageGreen: base.averageGreen,
+      averageBlue: base.averageBlue, saturation: base.saturation, warmth: base.warmth,
+      isLowKey: base.isLowKey, isHighKey: base.isHighKey, isBacklit: base.isBacklit
+    )
+  }
+
   // MARK: - Camcorder / Security-cam daylight clip (R84 item 4)
 
   /// The two video stocks clip a bright daylight frame — camcorder 6.8%,
@@ -530,5 +635,26 @@ final class LensFixEvidenceTests: XCTestCase {
   private func meanLuma(_ r: ImageMetrics.Raster, in rect: CGRect) -> Double {
     guard let c = ImageMetrics.meanColor(r, in: rect) else { return 0 }
     return c.r * 0.299 + c.g * 0.587 + c.b * 0.114
+  }
+
+  /// Std-dev of Rec.601 luma (0…255) inside a normalized rect — on a flat field
+  /// this reads the grain amplitude, the rest of the develop being uniform.
+  private func lumaStd(_ r: ImageMetrics.Raster, in rect: CGRect) -> Double {
+    let x0 = max(0, Int(Double(rect.minX) * Double(r.w)))
+    let x1 = min(r.w, Int(Double(rect.maxX) * Double(r.w)))
+    let y0 = max(0, Int(Double(rect.minY) * Double(r.h)))
+    let y1 = min(r.h, Int(Double(rect.maxY) * Double(r.h)))
+    guard x1 > x0, y1 > y0 else { return 0 }
+    var sum = 0.0, sumSq = 0.0, n = 0.0
+    for y in y0..<y1 {
+      for x in x0..<x1 {
+        let i = (y * r.w + x) * 4
+        let l = Double(r.px[i]) * 0.299 + Double(r.px[i + 1]) * 0.587 + Double(r.px[i + 2]) * 0.114
+        sum += l; sumSq += l * l; n += 1
+      }
+    }
+    guard n > 0 else { return 0 }
+    let mean = sum / n
+    return (sumSq / n - mean * mean).squareRoot()
   }
 }

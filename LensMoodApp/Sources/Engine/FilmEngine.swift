@@ -539,9 +539,19 @@ final class FilmEngine {
       image = applyVignette(image, amount: recipe.vignette)
       // R61: video stocks run real AGC — noise follows scene darkness instead
       // of shipping one fixed overlay for night and daylight alike.
-      let grainAmount = recipe.gainDrivenGrain
+      var grainAmount = recipe.gainDrivenGrain
         ? recipe.grain * FilmEngine.gainGrainFactor(key: scene.key)
         : recipe.grain
+      // R84 (item 5): on a bright daylight frame disposable's flash-print grain
+      // read as a grunge-texture overlay + HDR crunch, not film (critic A #6 —
+      // the owner's LOVED lens, so refine, don't transform). Soften the amplitude
+      // as the scene brightens: a conservative cut that keeps grain visible where
+      // film shows it (the midtone-peaked response is untouched) without laying a
+      // decal over the clean light. Weight 0 at night → the loved warm-flash
+      // night grain is byte-identical.
+      if recipe.id == "disposable" {
+        grainAmount *= 1 - 0.5 * FilmEngine.brightGuardWeight(scene)
+      }
       image = applyGrain(image, amount: grainAmount, size: recipe.grainSize, seed: seed)
     }
     // Stage 2 of the in-app camera: the physical look of the exposure triangle
