@@ -11,6 +11,23 @@ enum VisionError: LocalizedError {
   }
 }
 
+/// The masked-light masks in the raw, serializable form they were built from:
+/// the exact L8 bytes `FilmEngine.attachLightMasks` materialized each mask
+/// CIImage out of, at the shared analysis resolution (≤512 px long edge). A
+/// reading carries this so it can be frozen beside its developed frame and
+/// replayed byte-for-byte on a later develop — Vision output is not guaranteed
+/// bit-stable across separate runs (or OS updates), so a second read would
+/// drift. The person matte is intentionally absent: only these three derived
+/// masks have committed byte arrays that round-trip losslessly, and the flash
+/// near-field falls back to the (persisted) faces when no person matte exists.
+struct SubjectMaskRaster: Equatable {
+  let width: Int
+  let height: Int
+  let subjectMatte: [UInt8]?
+  let skinMask: [UInt8]?
+  let skyMask: [UInt8]?
+}
+
 struct SubjectAnalysis {
   let faces: [FaceProfile]
   let personMask: CIImage?
@@ -34,18 +51,26 @@ struct SubjectAnalysis {
   /// refusal threshold, so the sky pass cannot fire on skyless scenes.
   let skyMask: CIImage?
 
+  /// The raw L8 bytes the three masks above were materialized from, kept only
+  /// so a reading can be persisted and replayed later (see PersistedReading).
+  /// The passes consume the CIImages above, never this — it is provenance for
+  /// serialization, not a render input.
+  let maskRaster: SubjectMaskRaster?
+
   init(
     faces: [FaceProfile],
     personMask: CIImage?,
     subjectMatte: CIImage? = nil,
     skinMask: CIImage? = nil,
-    skyMask: CIImage? = nil
+    skyMask: CIImage? = nil,
+    maskRaster: SubjectMaskRaster? = nil
   ) {
     self.faces = faces
     self.personMask = personMask
     self.subjectMatte = subjectMatte
     self.skinMask = skinMask
     self.skyMask = skyMask
+    self.maskRaster = maskRaster
   }
 }
 
