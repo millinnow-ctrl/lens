@@ -53,6 +53,8 @@ final class FilmEngine {
   let flashFalloffKernel: CIColorKernel?
   let keyShadowKernel: CIColorKernel?
   let clipMaskKernel: CIColorKernel?
+  // R62 night reciprocity emissive carve-out (used by FilmEngine+LightIntelligence)
+  let nightEmissiveMaskKernel: CIColorKernel?
   // R66 masked-light kernels (used by FilmEngine+MaskedLight)
   let rimGateKernel: CIColorKernel?
   let maskedMeanKernel: CIColorKernel?
@@ -230,6 +232,24 @@ final class FilmEngine {
         float t = clamp((lum - t0) / max(t1 - t0, 1e-4), 0.0, 1.0);
         t = t * t * (3.0 - 2.0 * t);
         return vec4(pixel.rgb * t, 1.0);
+      }
+      """)
+    // R62 — night-reciprocity emissive carve-out mask (super-8): the scalar
+    // weight (all channels) for holding a lit neon/practical back from the
+    // uniform night EV collapse. High only where a pixel is BOTH near the
+    // scene's top highlights (bright t0..t1 smoothstep) AND emissive (colored
+    // like neon, or very hot like a white lamp). The dark, desaturated street
+    // reads ~0 → it still starves. `strength` scales the whole mask.
+    nightEmissiveMaskKernel = CIColorKernel(source: """
+      kernel vec4 lensMoodNightEmissiveMask(__sample pixel, float t0, float t1, float strength) {
+        float lum = dot(pixel.rgb, vec3(0.299, 0.587, 0.114));
+        float mx = max(pixel.r, max(pixel.g, pixel.b));
+        float mn = min(pixel.r, min(pixel.g, pixel.b));
+        float sat = mx > 1e-4 ? (mx - mn) / mx : 0.0;
+        float bright = clamp((lum - t0) / max(t1 - t0, 1e-4), 0.0, 1.0);
+        bright = bright * bright * (3.0 - 2.0 * bright);
+        float emissive = clamp(sat * 2.0 + max(lum - 0.85, 0.0) * 5.0, 0.0, 1.0);
+        return vec4(vec3(bright * emissive * strength), 1.0);
       }
       """)
     // R66 — rim gate: one light's contribution to the rim, evaluated at the

@@ -342,6 +342,43 @@ final class LightIntelligenceTests: XCTestCase {
     XCTAssertEqual(render(day), render(img), "daylight must be byte-identical (parity safety)")
   }
 
+  /// R62.1 — the ratified verdict is "only the neon survives": a lit sign must
+  /// stay readable while the street crushes. A bright, saturated neon patch on
+  /// a dark field, in a scene the meter reads as emissive-lit; the carve-out
+  /// (protectEmissive) must hold the sign back from the −2 EV collapse without
+  /// rescuing the dead street.
+  func testSuper8NightReciprocityLetsEmissiveHighlightsSurvive() {
+    let img = canvas { g, size in
+      g.setFillColor(UIColor(white: 0.08, alpha: 1).cgColor)
+      g.fill(CGRect(origin: .zero, size: size))
+      // a bright, saturated cyan neon sign
+      g.setFillColor(UIColor(red: 0.55, green: 1.0, blue: 1.0, alpha: 1).cgColor)
+      g.fill(CGRect(x: 32, y: 16, width: 32, height: 24))
+    }
+    let neonLight = LightSource(x: 0.5, y: 0.28, r: 0.06, intensity: 0.9, tint: [0.2, 0.9, 1.0])
+    let night = scene(key: 0.06, p99: 0.88, lights: [neonLight])
+    XCTAssertFalse(FilmEngine.emissiveLights(in: night).isEmpty, "scene must read as emissive")
+
+    let before = FilmEngine.shared.applyNightReciprocity(img, scene: night, amount: 1.0, protectEmissive: false)
+    let after = FilmEngine.shared.applyNightReciprocity(img, scene: night, amount: 1.0, protectEmissive: true)
+
+    // neon region (CI y-up: UIKit y16..40 of 96 → CI 0.583..0.833)
+    let neon = CGRect(x: 0.36, y: 0.60, width: 0.25, height: 0.20)
+    // a dark corner of the street, away from the sign
+    let street = CGRect(x: 0.05, y: 0.05, width: 0.20, height: 0.20)
+
+    let beforeNeon = meanLuma(before, region: neon)
+    let afterNeon = meanLuma(after, region: neon)
+    let afterStreet = meanLuma(after, region: street)
+
+    XCTAssertGreaterThan(afterNeon, beforeNeon + 20,
+                         "the carve-out must let the lit sign survive the pull")
+    XCTAssertGreaterThan(afterNeon, afterStreet + 40,
+                         "the neon must read far above the dead street")
+    XCTAssertLessThan(afterStreet, 25,
+                      "the street must still crush — shadows die, only the neon survives")
+  }
+
   func testCCDClipRacesHighlightsToWhite() {
     let img = canvas { g, size in
       g.setFillColor(UIColor(white: 0.9, alpha: 1).cgColor)
