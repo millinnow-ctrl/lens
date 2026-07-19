@@ -432,21 +432,22 @@ extension FilmEngine {
       ])
     case "tokyo-neon":
       // R84 (item 3): the neon-night grade smears a magenta/lavender cast onto a
-      // bright daylight sky. Neutralize it toward tokyo's COOL signature — pull
-      // the magenta red down, hold blue, desaturate the overcast — scene-keyed by
-      // brightGuardWeight so its GOOD night is byte-identical (weight 0 → the sky
-      // is left exactly alone). Sky-mask scoped, so the golden path is untouched.
+      // bright daylight sky. The magenta IS the excess RED — pull red down hard
+      // and nudge blue up so the sky always moves toward tokyo's COOL signature
+      // (a blue sky just deepens; a magenta sky neutralizes — never the reverse).
+      // NO desaturation (that greyed a blue sky toward magenta — wrong way).
+      // Scene-keyed by brightGuardWeight so its GOOD night is byte-identical
+      // (weight 0 → sky left exactly alone); sky-mask scoped → golden untouched.
       let w = FilmEngine.brightGuardWeight(scene)
       guard w > 0.001 else { return image }
       weight = amount * w
       graded = image
         .applyingFilter("CIColorMatrix", parameters: [
-          "inputRVector": CIVector(x: 0.78, y: 0, z: 0, w: 0),
+          "inputRVector": CIVector(x: 0.58, y: 0, z: 0, w: 0),
           "inputGVector": CIVector(x: 0, y: 1.0, z: 0, w: 0),
-          "inputBVector": CIVector(x: 0, y: 0, z: 1.02, w: 0),
+          "inputBVector": CIVector(x: 0, y: 0, z: 1.04, w: 0),
           "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 1),
         ])
-        .applyingFilter("CIColorControls", parameters: [kCIInputSaturationKey: 0.72])
     case "polaroid", "pastel-cinema":
       // creamy desaturated sky, exactly the prototype's pastel grade
       graded = image
