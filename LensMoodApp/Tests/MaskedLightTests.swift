@@ -141,7 +141,8 @@ final class MaskedLightTests: XCTestCase {
       ccdClip: r.ccdClip, highlightSmear: r.highlightSmear,
       highlightSmearDarkOnly: r.highlightSmearDarkOnly,
       rimLight: 0, skinProtect: 0, skyResponse: 0,
-      flashHighlightHeadroom: r.flashHighlightHeadroom
+      flashHighlightHeadroom: r.flashHighlightHeadroom,
+      daylightHighlightGuard: r.daylightHighlightGuard
     )
   }
 

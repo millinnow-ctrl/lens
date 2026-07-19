@@ -155,9 +155,77 @@ final class LensFixEvidenceTests: XCTestCase {
     }
   }
 
-  /// photobooth with the R78 flash headroom disabled — reproduces the pre-fix
-  /// (blown) render for the before pane and the reduction pin.
-  private func withoutFlashHeadroom(_ r: CameraRecipe) -> CameraRecipe {
+  // MARK: - y2k-digicam daylight blowout (owner report, R81)
+
+  /// The glossy "Pocket 2002" was tuned on dark party scenes; on a bright, well-
+  /// exposed daylight frame its CCD clip + flash gloss + subject lifts stacked
+  /// past clip and bleached faces and background. Renders y2k on the brightest
+  /// daylight fixture (street) with the daylight guard OFF (before) and ON
+  /// (after), publishes the pair, and pins the reduction. Disposable is the
+  /// owner-ratified reference for how much transformation is right, so its clip
+  /// is printed alongside as the target band. Also prints point-shoot /
+  /// iphone-flash on the same frame (fix only if measured broken — reported).
+  func testY2KDaylightGuardEvidence() throws {
+    guard let source = source("sample-street.jpg") else {
+      throw XCTSkip("missing sample-street.jpg")
+    }
+    let engine = FilmEngine()
+    let reading = try engine.read(source)
+    XCTAssertGreaterThan(reading.scene.key, 0.34,
+                         "street must meter as a bright daylight scene for this guard")
+    let recipe = CameraRecipe.recipe(for: "y2k-digicam")
+    XCTAssertGreaterThan(recipe.daylightHighlightGuard, 0, "y2k must carry the daylight guard")
+
+    let after = try engine.develop(source, with: recipe, maxPixelSize: 1024, seed: 1, reading: reading)
+    let before = try engine.develop(
+      source, with: withoutDaylightGuard(recipe), maxPixelSize: 1024, seed: 1, reading: reading
+    )
+    let dir = try outDir()
+    try XCTUnwrap(before.image.pngData()).write(to: dir.appendingPathComponent("y2k-daylight-before.png"))
+    try XCTUnwrap(after.image.pngData()).write(to: dir.appendingPathComponent("y2k-daylight-after.png"))
+
+    guard let beforeR = ImageMetrics.raster(before.image),
+          let afterR = ImageMetrics.raster(after.image) else {
+      return XCTFail("raster failed")
+    }
+
+    // reference band: disposable (owner-ratified "good") on the same frame
+    let dispo = try engine.develop(
+      source, with: .recipe(for: "disposable"), maxPixelSize: 1024, seed: 1, reading: reading
+    )
+    let dispoClip = ImageMetrics.raster(dispo.image).map { ImageMetrics.highlightClipRate($0, threshold: 250) } ?? -1
+    // family check (report only — fix only if measured broken)
+    for id in ["point-shoot", "iphone-flash"] {
+      let r = try engine.develop(source, with: .recipe(for: id), maxPixelSize: 1024, seed: 1, reading: reading)
+      let clip = ImageMetrics.raster(r.image).map { ImageMetrics.highlightClipRate($0, threshold: 250) } ?? -1
+      print("family daylight clip ≥250: \(id) \(clip)")
+    }
+
+    let beforeClip = ImageMetrics.highlightClipRate(beforeR, threshold: 250)
+    let afterClip = ImageMetrics.highlightClipRate(afterR, threshold: 250)
+    print("y2k daylight whole-frame clip ≥250: before \(beforeClip) after \(afterClip) (disposable \(dispoClip))")
+    XCTAssertLessThan(afterClip, beforeClip * 0.7,
+                      "the daylight guard must materially reduce the bleaching")
+    XCTAssertLessThan(afterClip, 0.12,
+                      "y2k must stop bleaching daylight — highlights held off clip")
+
+    // faces keep structure (best-effort — runs when Vision detected faces)
+    for face in after.faces {
+      let b = ImageMetrics.highlightClipRate(beforeR, in: face.bounds, threshold: 250)
+      let a = ImageMetrics.highlightClipRate(afterR, in: face.bounds, threshold: 250)
+      print("y2k daylight face clip ≥250: before \(b) after \(a)")
+      if b > 0.12 {
+        XCTAssertLessThan(a, b * 0.7, "a washed daylight face must recover structure")
+        XCTAssertLessThan(a, 0.25, "a recovered face must not stay mostly white")
+      }
+    }
+  }
+
+  /// A recipe clone with the R78/R81 headroom knobs overridden — reproduces the
+  /// pre-fix (blown) render for the before pane and the reduction pins.
+  private func clone(
+    _ r: CameraRecipe, flashHeadroom: Double, dayGuard: Double
+  ) -> CameraRecipe {
     CameraRecipe(
       id: r.id, engineClass: r.engineClass, lutName: r.lutName,
       postLUTExposure: r.postLUTExposure, postLUTSaturation: r.postLUTSaturation,
@@ -174,8 +242,16 @@ final class LensFixEvidenceTests: XCTestCase {
       ccdClip: r.ccdClip, highlightSmear: r.highlightSmear,
       highlightSmearDarkOnly: r.highlightSmearDarkOnly,
       rimLight: r.rimLight, skinProtect: r.skinProtect, skyResponse: r.skyResponse,
-      flashHighlightHeadroom: 0
+      flashHighlightHeadroom: flashHeadroom, daylightHighlightGuard: dayGuard
     )
+  }
+
+  private func withoutFlashHeadroom(_ r: CameraRecipe) -> CameraRecipe {
+    clone(r, flashHeadroom: 0, dayGuard: r.daylightHighlightGuard)
+  }
+
+  private func withoutDaylightGuard(_ r: CameraRecipe) -> CameraRecipe {
+    clone(r, flashHeadroom: r.flashHighlightHeadroom, dayGuard: 0)
   }
 
   // MARK: helpers

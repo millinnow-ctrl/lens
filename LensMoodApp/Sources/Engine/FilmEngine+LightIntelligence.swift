@@ -356,12 +356,43 @@ extension FilmEngine {
   /// night skies (per-channel clip exaggerating hue splits).
   func applyCCDClip(_ image: CIImage, amount: Double) -> CIImage {
     guard amount > 0.001 else { return image }
+    // R81: the clip-race scales with `amount` (each output point eases toward
+    // the identity y=x by 1-amount), so a graded daylight guard can soften the
+    // CCD shoulder on bright scenes. amount 1.0 is the original R62 curve exactly.
+    let a = min(1, amount)
+    func p(_ x: Double, _ y: Double) -> CIVector { CIVector(x: x, y: x + (y - x) * a) }
+    return image.applyingFilter("CIToneCurve", parameters: [
+      "inputPoint0": p(0, 0),
+      "inputPoint1": p(0.25, 0.24),
+      "inputPoint2": p(0.5, 0.51),
+      "inputPoint3": p(0.78, 0.82),
+      "inputPoint4": p(0.95, 1.0),
+    ]).cropped(to: image.extent)
+  }
+
+  // MARK: - Daylight highlight guard (R81 — glossy night stocks don't bleach day)
+
+  /// 0 on the dark scenes a glossy CCD/flash stock was tuned for, ramping to 1
+  /// as the scene key rises through daylight — the weight for the daylight
+  /// guard, so its restraint never touches the dark-scene identity.
+  static func brightGuardWeight(_ scene: SceneProfile) -> Double {
+    guard scene.analyzed else { return 0 }
+    let t = max(0, min(1, (scene.key - 0.27) / 0.18))
+    return t * t * (3 - 2 * t)
+  }
+
+  /// A highlight shoulder that rolls the top of the (twice-applied) contrast off
+  /// so a glossy stock's daylight highlights don't fuse to paper-white. `amount`
+  /// (the graded daylight guard) scales the rolloff; 0 is a no-op.
+  func applyDaylightHighlightRolloff(_ image: CIImage, amount: Double) -> CIImage {
+    guard amount > 0.001 else { return image }
+    let a = min(1, amount)
     return image.applyingFilter("CIToneCurve", parameters: [
       "inputPoint0": CIVector(x: 0, y: 0),
-      "inputPoint1": CIVector(x: 0.25, y: 0.24),
-      "inputPoint2": CIVector(x: 0.5, y: 0.51),
-      "inputPoint3": CIVector(x: 0.78, y: 0.82),
-      "inputPoint4": CIVector(x: 0.95, y: 1.0),
+      "inputPoint1": CIVector(x: 0.5, y: 0.5),
+      "inputPoint2": CIVector(x: 0.78, y: 0.78 - 0.02 * a),
+      "inputPoint3": CIVector(x: 0.9, y: 0.9 - 0.07 * a),
+      "inputPoint4": CIVector(x: 1.0, y: 1.0 - 0.14 * a),
     ]).cropped(to: image.extent)
   }
 

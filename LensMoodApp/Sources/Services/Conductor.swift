@@ -206,7 +206,11 @@ final class Conductor: ObservableObject {
         if daylight > 0.30 { reasons.append("Slow film loves this much light") }
       }
       if recipe.ccdClip > 0.001 {
-        score += 0.06 * daylight
+        // R81 rank honesty: the CCD "glossy clip" is a dark-scene character —
+        // the engine now grades it DOWN on bright, well-exposed frames (it
+        // bleached them), so the rail must not promote it on daylight. Mirror
+        // the render: promote where the gloss actually engages (dark scenes).
+        score += 0.06 * darkness
       }
       if recipe.monochrome {
         score += 0.14 * range

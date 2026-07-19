@@ -81,6 +81,20 @@ final class ConductorTests: XCTestCase {
     XCTAssertLessThan(position["super-8"]!, position["tokyo-neon"]!)
   }
 
+  func testGlossyCCDNotPromotedOnBrightDaylight() {
+    // R81 rank honesty: the CCD "glossy clip" gate used to promote y2k on
+    // daylight (score += 0.06 * daylight) — the exact scenes it bleached. The
+    // engine now grades that gloss DOWN on bright frames, so the rail must
+    // mirror it: y2k no longer leads a bright, well-exposed daylight rail, and
+    // the daylight emulsion characters (kodachrome) outrank it.
+    let ranked = Conductor.rank(scene: scene(key: 0.55, sat: 0.4), faces: oneFace)
+    let position = Dictionary(uniqueKeysWithValues: ranked.enumerated().map { ($1.stockID, $0) })
+    XCTAssertGreaterThanOrEqual(position["y2k-digicam"]!, 3,
+      "glossy CCD must not lead a bright daylight rail: \(ranked.map(\.stockID))")
+    XCTAssertLessThan(position["kodachrome"]!, position["y2k-digicam"]!,
+      "a daylight color emulsion must outrank the glossy night stock in daylight")
+  }
+
   func testDarkFacesPromoteFlashCameras() {
     let withFaces = Conductor.rank(scene: scene(key: 0.12), faces: oneFace)
     let withoutFaces = Conductor.rank(scene: scene(key: 0.12), faces: [])

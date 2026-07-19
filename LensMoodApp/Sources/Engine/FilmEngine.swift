@@ -402,6 +402,13 @@ final class FilmEngine {
     }
 
     let adaptiveEV = adaptiveExposure(for: scene, recipe: recipe)
+    // R81: how far to grade a glossy CCD/flash stock's highlight-racing passes
+    // down on an already-bright, well-exposed scene (0 on the dark party scenes
+    // the look was tuned for, so their identity renders byte-identically).
+    let dayGuard = recipe.daylightHighlightGuard * FilmEngine.brightGuardWeight(scene)
+    // the subject-lift restraint the flash passes read: photobooth's
+    // unconditional headroom OR the daylight guard, whichever is larger.
+    let subjectRestraint = max(recipe.flashHighlightHeadroom, dayGuard)
     if recipe.engineClass == .staticLUT, let lutName = recipe.lutName {
       // The baked cube is the complete per-pixel color core. Applying the
       // recipe's exposure, white balance, and tone again would double-develop it.
@@ -429,6 +436,12 @@ final class FilmEngine {
       image = applyWhiteBalance(image, scene: scene, recipe: recipe)
       image = applyTone(image, recipe: recipe)
       image = applyAdaptiveColor(image, scene: scene, recipe: recipe)
+      // R81: on a bright scene, roll the top of the (twice-applied) contrast
+      // off so the glossy stock's highlights don't fuse to paper-white. No-op
+      // on the dark scenes the look was tuned for (dayGuard 0).
+      if dayGuard > 0.001 {
+        image = applyDaylightHighlightRolloff(image, amount: dayGuard)
+      }
     }
     // R66 masked-light, immediately after the color core so both passes see
     // (and can answer) exactly what the emulsion just did: the skin mask holds
@@ -442,8 +455,10 @@ final class FilmEngine {
       image = applySkyResponse(image, scene: scene, subject: subject, recipe: recipe, amount: recipe.skyResponse)
     }
     // R62: early-CCD sensors have no film shoulder — highlights race to clip.
+    // R81: grade that race DOWN on a bright scene (the CCD gloss is a dark-scene
+    // character; on daylight it just bleaches) — full at dayGuard 0.
     if recipe.ccdClip > 0.001 {
-      image = applyCCDClip(image, amount: recipe.ccdClip)
+      image = applyCCDClip(image, amount: recipe.ccdClip * (1 - 0.85 * dayGuard))
     }
 
     if let profile = recipe.referenceSpatial {
@@ -452,11 +467,12 @@ final class FilmEngine {
     }
 
     if recipe.protectsFaces, !subject.faces.isEmpty {
-      // R78: a flash stock already lit the face — lifting it again drives the
-      // flashed skin into clip. Back the protection lift off by the headroom
-      // (0 for the color flash family and every LUT stock → unchanged).
+      // R78/R81: a flash stock already lit the face — lifting it again drives the
+      // flashed skin into clip. Back the protection lift off by the subject
+      // restraint (photobooth's headroom, or a glossy stock's daylight guard;
+      // 0 for the color flash family and every LUT stock → unchanged).
       let base = scene.isBacklit ? 0.22 : 0.10
-      let faceLift = base * (1 - recipe.flashHighlightHeadroom)
+      let faceLift = base * (1 - subjectRestraint)
       if faceLift > 0.001 {
         image = applyFaceProtection(image, faces: subject.faces, amount: faceLift)
       }
@@ -466,7 +482,7 @@ final class FilmEngine {
     if recipe.flashPhysics > 0.001 {
       image = applyFlashPhysics(
         image, scene: scene, subject: subject, amount: recipe.flashPhysics,
-        highlightHeadroom: recipe.flashHighlightHeadroom
+        highlightHeadroom: subjectRestraint
       )
     }
     if recipe.keyShadow > 0.001 {
