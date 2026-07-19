@@ -371,6 +371,54 @@ final class LensFixEvidenceTests: XCTestCase {
     )
   }
 
+  // MARK: - Camcorder / Security-cam daylight clip (R84 item 4)
+
+  /// The two video stocks clip a bright daylight frame — camcorder 6.8%,
+  /// security-cam 12.6% (critic B). Both are adaptive stocks (NOT in the Class-A
+  /// golden list), so a measured daylightHighlightGuard rides the normal develop
+  /// path and rolls those highlights back. Pinned on the near-clip bright raster;
+  /// the guard must lower the highlight band and (security) cut the pure-white
+  /// clip below the target. Night byte-identity pinned on friends (weight 0).
+  func testVideoDaylightClipGuardEvidence() throws {
+    let engine = FilmEngine()
+    let dir = try outDir()
+    let bright = photoboothBrightImage()
+    let scene = photoboothBrightScene()
+    XCTAssertGreaterThan(FilmEngine.brightGuardWeight(scene), 0.9, "the guard must fully engage")
+    let reading = SceneReading(scene: scene, subject: SubjectAnalysis(faces: [], personMask: nil))
+    let hiBand = CGRect(x: 0, y: 0, width: 1, height: 0.45)
+
+    for (id, clipCeiling) in [("camcorder-90s", 1.0), ("security-cam", 0.06)] {
+      let recipe = CameraRecipe.recipe(for: id)
+      XCTAssertGreaterThan(recipe.daylightHighlightGuard, 0, "\(id) must carry the daylight guard")
+      let after = try engine.develop(bright, with: recipe, seed: 1, reading: reading)
+      let before = try engine.develop(bright, with: withoutDaylightGuard(recipe), seed: 1, reading: reading)
+      try XCTUnwrap(before.image.pngData()).write(to: dir.appendingPathComponent("\(id)-daylight-before.png"))
+      try XCTUnwrap(after.image.pngData()).write(to: dir.appendingPathComponent("\(id)-daylight-after.png"))
+
+      guard let beforeR = ImageMetrics.raster(before.image),
+            let afterR = ImageMetrics.raster(after.image) else { return XCTFail("raster failed \(id)") }
+      let beforeHi = meanLuma(beforeR, in: hiBand)
+      let afterHi = meanLuma(afterR, in: hiBand)
+      let beforeClip = ImageMetrics.highlightClipRate(beforeR, threshold: 250)
+      let afterClip = ImageMetrics.highlightClipRate(afterR, threshold: 250)
+      print("\(id) daylight: hi before \(beforeHi) after \(afterHi); clip before \(beforeClip) after \(afterClip)")
+      XCTAssertLessThan(afterHi, beforeHi - 2, "\(id): the guard must roll the daylight highlights back")
+      XCTAssertLessThanOrEqual(afterClip, beforeClip, "\(id): the guard must not add clip")
+      XCTAssertLessThan(afterClip, clipCeiling, "\(id): daylight clip must sit under the measured ceiling")
+
+      if let friends = source("sample-friends.jpg") {
+        let nightReading = try engine.read(friends)
+        let nAfter = try engine.develop(friends, with: recipe, maxPixelSize: 512, seed: 1, reading: nightReading)
+        let nBefore = try engine.develop(friends, with: withoutDaylightGuard(recipe), maxPixelSize: 512, seed: 1, reading: nightReading)
+        XCTAssertEqual(
+          try XCTUnwrap(nAfter.image.pngData()), try XCTUnwrap(nBefore.image.pngData()),
+          "\(id) night must be byte-identical — the daylight guard is a no-op in the dark"
+        )
+      }
+    }
+  }
+
   /// Owner-like bright daylight raster whose highlights sit AT clip: the top 45%
   /// (shirts / background) at 0.98, a mid face band at 0.72, darker ground 0.40.
   private func photoboothBrightImage(side: CGFloat = 160) -> UIImage {
