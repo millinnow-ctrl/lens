@@ -176,6 +176,11 @@ struct DevelopView: View {
       get: { errorMessage != nil },
       set: { if !$0 { errorMessage = nil } }
     )) {
+      // a transient render failure left the source on the stage with every
+      // develop affordance disabled — offer the retry directly
+      if let sourceImage, !isDeveloping {
+        Button("Try again") { develop(sourceImage) }
+      }
       Button("OK", role: .cancel) {}
     } message: {
       Text(errorMessage ?? "Try another photograph.")
@@ -239,7 +244,13 @@ struct DevelopView: View {
   private func railChip(_ item: Stock) -> some View {
     let active = item.id == currentStock.id
     return Button {
-      guard item.id != currentStock.id else { return }
+      if item.id == currentStock.id {
+        // re-tapping the active camera does nothing normally, but when a
+        // develop failed (nothing on the stage) it becomes the retry
+        guard developedImage == nil, !isDeveloping, let sourceImage else { return }
+        develop(sourceImage)
+        return
+      }
       currentStock = item
       UISelectionFeedbackGenerator().selectionChanged()
       if let sourceImage {
