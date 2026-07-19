@@ -256,10 +256,10 @@ struct CaptureView: View {
           .lineLimit(1).tracking(1.5)
           .foregroundStyle(.white.opacity(0.45))
       }
-      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-      .padding(.bottom, 16)
       // the wheel is a drag-only instrument — expose it to VoiceOver as one
-      // adjustable element (swipe up/down steps the active parameter)
+      // adjustable element (swipe up/down steps the active parameter). Scoped
+      // before the expanding frame so the element is the wheel itself, not a
+      // viewfinder-sized plate over the zoom and focus pills.
       .accessibilityElement(children: .ignore)
       .accessibilityLabel("\(spokenDialName) dial")
       .accessibilityValue(activeDialLabel)
@@ -270,6 +270,8 @@ struct CaptureView: View {
         @unknown default: break
         }
       }
+      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+      .padding(.bottom, 16)
     }
     .frame(width: size.width, height: size.height * 0.62)
     .clipped()
