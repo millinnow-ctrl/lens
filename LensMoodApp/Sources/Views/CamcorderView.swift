@@ -186,6 +186,10 @@ struct CamcorderView: View {
     guard let item else { return }
     isExporting = true
     Task { @MainActor in
+      // clear the selection so re-picking the SAME clip fires onChange again
+      // (an equal PhotosPickerItem would otherwise be a dead tap); PrintRoom
+      // resets its item the same way
+      defer { pickerItem = nil }
       do {
         guard let movie = try await item.loadTransferable(type: ImportedMovie.self) else {
           throw VhsError.badInput("The selected clip could not be opened.")
