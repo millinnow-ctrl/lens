@@ -38,6 +38,9 @@ struct CaptureView: View {
   // legibility helpers: tap-to-focus confirmation, a mode explainer, and a
   // one-time guide so a first-time user knows what every control does
   @State private var focusPulse: FocusPulse?
+  /// converts tap points into the device's point-of-interest space (the
+  /// preview layer registers itself; see CaptureDevicePointConverter)
+  @State private var focusConverter = CaptureDevicePointConverter()
   @State private var modeHint: String?
   @State private var modeHintToken = UUID()
   @State private var guideShown = false
@@ -175,7 +178,8 @@ struct CaptureView: View {
       CameraPreviewView(
         session: camera.session,
         isAvailable: camera.isAvailable,
-        placeholder: BundleMedia.image("style-\(loadedStock.id)")
+        placeholder: BundleMedia.image("style-\(loadedStock.id)"),
+        converter: focusConverter
       )
       // no hardware (Simulator): the plate itself answers the zoom and flip
       // controls, so every button still visibly changes the frame
@@ -728,7 +732,12 @@ struct CaptureView: View {
   // MARK: actions
 
   private func focusHere(_ location: CGPoint, in size: CGSize) {
-    camera.focus(at: CGPoint(x: location.x / size.width, y: max(0, location.y) / (size.height * 0.62)))
+    camera.focus(
+      at: CGPoint(x: location.x / size.width, y: max(0, location.y) / (size.height * 0.62)),
+      // the hardware's point-of-interest space is the unrotated sensor's, not
+      // the view's — the preview layer performs the honest conversion
+      devicePoint: focusConverter.devicePoint(fromViewPoint: location)
+    )
     let pulse = FocusPulse(point: location)
     focusPulse = pulse
     UISelectionFeedbackGenerator().selectionChanged()
