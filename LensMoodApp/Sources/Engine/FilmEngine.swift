@@ -452,7 +452,14 @@ final class FilmEngine {
     }
 
     if recipe.protectsFaces, !subject.faces.isEmpty {
-      image = applyFaceProtection(image, faces: subject.faces, amount: scene.isBacklit ? 0.22 : 0.10)
+      // R78: a flash stock already lit the face — lifting it again drives the
+      // flashed skin into clip. Back the protection lift off by the headroom
+      // (0 for the color flash family and every LUT stock → unchanged).
+      let base = scene.isBacklit ? 0.22 : 0.10
+      let faceLift = base * (1 - recipe.flashHighlightHeadroom)
+      if faceLift > 0.001 {
+        image = applyFaceProtection(image, faces: subject.faces, amount: faceLift)
+      }
     }
     // R61 light-intelligence: flash physics (speculars + subject falloff) and
     // the noir key-light direction — both read the scene, both recipe-gated.
@@ -567,14 +574,16 @@ final class FilmEngine {
       if scene.key < 0.30 {
         correction *= 0.35
       }
-      // R78 highlight headroom: when the flashed face (or the scene's bright
-      // end) already sits near clip, don't chase the dark median and blow the
-      // subject to paper-white. Scales the positive lift down as it approaches
-      // clip, weighted by the stock's headroom. Off (headroom 0) for the color
-      // flash family, which measured sound at 7–10% face clip.
+      // R78 highlight headroom: a flash scene whose bright end already sits near
+      // clip (p99 high) will have its flashed skin pushed to paper-white once
+      // the median chase + hard contrast run — so back the positive lift off.
+      // Keyed on the SCENE's highlights (p99), not the original face luminance
+      // (the flashed face reads dark in the meter, e.g. 0.245 on friends, yet
+      // clips after develop). Off (headroom 0) for the color flash family.
       if recipe.flashHighlightHeadroom > 0.001 {
-        let faceHot = scene.faceLum.map { max(0, min(1, ($0 - 0.62) / 0.28)) } ?? 0
-        let hiHot = max(0, min(1, (scene.p99 - 0.85) / 0.15))
+        let hiT = max(0, min(1, (scene.p99 - 0.70) / 0.22))
+        let hiHot = hiT * hiT * (3 - 2 * hiT)
+        let faceHot = scene.faceLum.map { max(0, min(1, ($0 - 0.55) / 0.30)) } ?? 0
         let hot = max(faceHot, hiHot)
         correction *= 1 - recipe.flashHighlightHeadroom * hot
       }

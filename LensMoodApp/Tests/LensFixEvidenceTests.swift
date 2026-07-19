@@ -136,9 +136,11 @@ final class LensFixEvidenceTests: XCTestCase {
     let beforeClip = ImageMetrics.highlightClipRate(beforeR, in: subject, threshold: 250)
     let afterClip = ImageMetrics.highlightClipRate(afterR, in: subject, threshold: 250)
     print("photobooth flashed-subject clip ≥250: before \(beforeClip) after \(afterClip)")
-    XCTAssertLessThan(afterClip, beforeClip - 0.02,
-                      "flash headroom must reduce the flashed-subject blowout")
-    XCTAssertLessThan(afterClip, 0.45,
+    // The headroom removes the subject over-lifts, so the fused-white bulk drops
+    // below clip. Require a real reduction (>=30%) and a low absolute floor.
+    XCTAssertLessThan(afterClip, beforeClip * 0.7,
+                      "flash headroom must materially reduce the flashed-subject blowout")
+    XCTAssertLessThan(afterClip, 0.10,
                       "the flashed subject must keep structure — not fuse to paper-white")
 
     // Best-effort per-face (runs when Vision detected faces).
@@ -146,8 +148,9 @@ final class LensFixEvidenceTests: XCTestCase {
       let b = ImageMetrics.highlightClipRate(beforeR, in: face.bounds, threshold: 250)
       let a = ImageMetrics.highlightClipRate(afterR, in: face.bounds, threshold: 250)
       print("photobooth face clip ≥250: before \(b) after \(a)")
-      if b > 0.20 {
-        XCTAssertLessThan(a, b - 0.05, "a blown face must recover structure")
+      if b > 0.12 {
+        XCTAssertLessThan(a, b * 0.7, "a blown face must recover structure (>=30% less clip)")
+        XCTAssertLessThan(a, 0.20, "a recovered face must not stay mostly paper-white")
       }
     }
   }

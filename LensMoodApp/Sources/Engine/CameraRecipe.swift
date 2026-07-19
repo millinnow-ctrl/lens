@@ -83,13 +83,14 @@ struct CameraRecipe: Identifiable, Equatable {
   let skyResponse: Double
 
   // MARK: Flash highlight headroom (R78 — flashed faces keep structure)
-  /// A flash exposes the SUBJECT. On a stock whose flashed faces already sit at
-  /// clip, chasing the dark median (adaptive lift) and popping every bright,
-  /// desaturated pixel as a mirror specular fuses the face to paper-white. This
-  /// caps the positive adaptive lift as the face/highlights approach clip and
-  /// restrains the flash specular to genuine top-percentile glints — so faces
-  /// keep structure while the hard-flash identity survives. 0 = off (the color
-  /// flash family measured sound at 7–10% face clip; only photobooth clips).
+  /// A flash already exposes the SUBJECT, so the develop path must not lift it
+  /// again. On a headroom stock the engine backs off every pass that over-brightens
+  /// the flashed face into clip — the face-protection lift, the flash-falloff
+  /// subject lift, the adaptive median chase (scaled by scene highlights), and the
+  /// mono-defeated specular pop — while keeping the flash's background falloff and
+  /// hard contrast. So the face keeps structure and the hard-flash identity
+  /// survives. 0 = off (the color flash family measured sound at 7–10% face clip;
+  /// only photobooth, whose mono conversion compounds every push, clips).
   let flashHighlightHeadroom: Double
 
   static func recipe(for stockID: String) -> CameraRecipe {

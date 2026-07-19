@@ -37,7 +37,11 @@ extension FilmEngine {
     let darkness = max(0, min(1, (0.5 - scene.key) / 0.5))
     let fall = amount * (0.10 + 0.48 * pow(darkness, 1.2))
     if fall > 0.02, let nearMask = flashNearMask(for: image, subject: subject) {
-      let lift = 0.08 * amount
+      // R78: the falloff darkens the background toward ambient (kept) AND lifts
+      // the subject a touch (removed for headroom stocks — the flash already
+      // over-exposed the face; the extra subject lift pushes it into clip). The
+      // background darkening survives; only the subject over-lift backs off.
+      let lift = 0.08 * amount * (1 - highlightHeadroom)
       if let kernel = flashFalloffKernel {
         let shaded = kernel.apply(
           extent: extent,
