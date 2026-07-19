@@ -42,6 +42,7 @@ struct CaptureView: View {
   @State private var modeHintToken = UUID()
   @State private var guideShown = false
   @AppStorage("cameraGuideSeen") private var guideSeen = false
+  @Environment(\.dynamicTypeSize) private var typeSize
 
   struct FocusPulse: Equatable { let id = UUID(); let point: CGPoint }
 
@@ -51,13 +52,16 @@ struct CaptureView: View {
     GeometryReader { geo in
       ZStack {
         CameraTheme.bg.ignoresSafeArea()
-        VStack(spacing: 0) {
-          topBar
-          viewfinder(size: geo.size)
-          modeHintBar
-          filmBar
-          modesRow
-          captureRow
+        // accessibility sizes: the grown readouts, film bar, and mode labels
+        // no longer fit the fixed instrument column beside the 62% viewfinder
+        // — the column scrolls so the shutter and modes stay reachable.
+        // Identical below accessibility sizes.
+        if typeSize.isAccessibilitySize {
+          ScrollView(showsIndicators: false) {
+            instrumentColumn(size: geo.size)
+          }
+        } else {
+          instrumentColumn(size: geo.size)
         }
 
         closeButton
@@ -98,7 +102,31 @@ struct CaptureView: View {
 
   // MARK: top readout
 
+  private func instrumentColumn(size: CGSize) -> some View {
+    VStack(spacing: 0) {
+      topBar
+      viewfinder(size: size)
+      modeHintBar
+      filmBar
+      modesRow
+      captureRow
+    }
+  }
+
+  @ViewBuilder
   private var topBar: some View {
+    // accessibility sizes: five grown readouts cannot share one screen width
+    // — the row keeps full-size values and pans sideways instead of
+    // shrinking exposure numbers into unreadable truncation
+    if typeSize.isAccessibilitySize {
+      ScrollView(.horizontal, showsIndicators: false) { topBarRow }
+        .background(.ultraThinMaterial)
+    } else {
+      topBarRow.background(.ultraThinMaterial)
+    }
+  }
+
+  private var topBarRow: some View {
     HStack(alignment: .bottom, spacing: 4) {
       flashReadout
       readout("ISO", "\(Int(camera.settings.iso))", .iso)
@@ -109,7 +137,6 @@ struct CaptureView: View {
       autoLightToggle
     }
     .padding(.horizontal, 18).padding(.top, 14).padding(.bottom, 12)
-    .background(.ultraThinMaterial)
   }
 
   /// the scene-relight switch — tapping it turns the Vision + Core Image
@@ -289,6 +316,8 @@ struct CaptureView: View {
       HStack(spacing: 10) {
         canisterIcon
         Text(loadedStock.name).font(.spaceMono(15, bold: true)).foregroundStyle(CameraTheme.text)
+          // one film bar row: a grown name shrinks a touch, never wraps mid-word
+          .lineLimit(1).minimumScaleFactor(0.7)
         filmCounter
         Image(systemName: "chevron.down").scaledFont(size: 11, weight: .semibold, relativeTo: .caption2).foregroundStyle(CameraTheme.dim)
         Spacer()
@@ -354,6 +383,8 @@ struct CaptureView: View {
           VStack(spacing: 5) {
             Image(systemName: mode.systemImage).scaledFont(size: 20, relativeTo: .title3)
             Text(mode.rawValue.uppercased()).font(.spaceMono(11, bold: on)).tracking(0.5)
+              // four fixed slots: a grown mode name shrinks, never wraps mid-word
+              .lineLimit(1).minimumScaleFactor(0.6)
             Rectangle().fill(on ? CameraTheme.gold : .clear).frame(width: 18, height: 2).clipShape(Capsule())
           }
           .foregroundStyle(on ? CameraTheme.gold : CameraTheme.dim)
@@ -608,26 +639,39 @@ struct CaptureView: View {
   private var guideOverlay: some View {
     ZStack {
       Color.black.opacity(0.82).ignoresSafeArea()
-      VStack(alignment: .leading, spacing: 18) {
-        Text("YOUR CAMERA").font(.spaceMono(12, bold: true)).tracking(2).foregroundStyle(CameraTheme.gold)
-        guideRow("camera.aperture", "Tap the shutter to shoot",
-                 "The frame is metered, auto-relit, and developed through the loaded film.")
-        guideRow("hand.draw", "Drag the dial to expose",
-                 "Tap ISO / Shutter / Aperture / EV up top, then drag the wheel to change it.")
-        guideRow("viewfinder", "Tap the frame to focus",
-                 "Sets focus and metering on the spot you touch.")
-        guideRow("photo.on.rectangle", "Where your photos go",
-                 "Every shot lands on your in-app Roll. Tap Save to Photos to export it to your iPhone’s camera roll.")
-        Button { dismissGuide() } label: { Text("Start shooting").frame(maxWidth: .infinity) }
-          .buttonStyle(InstrumentButtonStyle(kind: .primary)).padding(.top, 4)
+      // accessibility sizes: the grown guide outruns the screen and its
+      // centered card would clip both ends — trapping the user, since the
+      // only way out is the button. The card scrolls instead.
+      Group {
+        if typeSize.isAccessibilitySize {
+          ScrollView(showsIndicators: false) { guideCard }
+        } else {
+          guideCard
+        }
       }
-      .padding(24)
       .background(CameraTheme.panel)
       .clipShape(RoundedRectangle(cornerRadius: 20))
       .overlay(RoundedRectangle(cornerRadius: 20).stroke(CameraTheme.line, lineWidth: 1))
       .padding(28)
     }
     .transition(.opacity)
+  }
+
+  private var guideCard: some View {
+    VStack(alignment: .leading, spacing: 18) {
+      Text("YOUR CAMERA").font(.spaceMono(12, bold: true)).tracking(2).foregroundStyle(CameraTheme.gold)
+      guideRow("camera.aperture", "Tap the shutter to shoot",
+               "The frame is metered, auto-relit, and developed through the loaded film.")
+      guideRow("hand.draw", "Drag the dial to expose",
+               "Tap ISO / Shutter / Aperture / EV up top, then drag the wheel to change it.")
+      guideRow("viewfinder", "Tap the frame to focus",
+               "Sets focus and metering on the spot you touch.")
+      guideRow("photo.on.rectangle", "Where your photos go",
+               "Every shot lands on your in-app Roll. Tap Save to Photos to export it to your iPhone’s camera roll.")
+      Button { dismissGuide() } label: { Text("Start shooting").frame(maxWidth: .infinity) }
+        .buttonStyle(InstrumentButtonStyle(kind: .primary)).padding(.top, 4)
+    }
+    .padding(24)
   }
 
   private func guideRow(_ icon: String, _ title: String, _ body: String) -> some View {
