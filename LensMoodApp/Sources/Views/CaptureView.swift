@@ -249,6 +249,11 @@ struct CaptureView: View {
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
       .padding(.trailing, 14)
 
+      // hardware present but access declined: never let the shutter develop
+      // the bundled plate as if it were the user's photograph — explain and
+      // point at Settings instead
+      if cameraAccessDenied { permissionOverlay }
+
       // command wheel — bottom-aligned; empty area above stays tappable (focus)
       VStack(spacing: 4) {
         Text(activeDialLabel)
@@ -667,6 +672,41 @@ struct CaptureView: View {
     .presentationDetents([.medium, .large])
   }
 
+  /// hardware exists but the photographer declined (or is restricted from)
+  /// camera access — distinct from the Simulator/no-hardware path, which never
+  /// prompts and leaves authorization at .notDetermined. Guarding on the
+  /// authorization status (not the target) keeps the CI plate fallback intact.
+  private var cameraAccessDenied: Bool {
+    camera.authorization == .denied || camera.authorization == .restricted
+  }
+
+  /// the viewfinder's access-off state: a plain explanation and one route to
+  /// Settings, over the plate. The shutter is inert while this shows.
+  private var permissionOverlay: some View {
+    ZStack {
+      Color.black.opacity(0.72)
+      VStack(spacing: 12) {
+        Image(systemName: "lock.slash")
+          .font(.system(size: 30)).foregroundStyle(CameraTheme.dim)
+        Text("Camera access is off")
+          .font(.spaceMono(14, bold: true)).foregroundStyle(CameraTheme.text)
+        Text("Turn on camera access to shoot with LensMood.")
+          .font(.spaceMono(10)).foregroundStyle(CameraTheme.dim)
+          .multilineTextAlignment(.center)
+          .fixedSize(horizontal: false, vertical: true)
+        Button("Open Settings") {
+          if let url = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(url)
+          }
+        }
+        .buttonStyle(InstrumentButtonStyle(kind: .primary))
+        .frame(maxWidth: 220)
+      }
+      .padding(28)
+    }
+    .accessibilityElement(children: .contain)
+  }
+
   private var developingOverlay: some View {
     ZStack {
       Color.black.opacity(0.6).ignoresSafeArea()
@@ -860,6 +900,14 @@ struct CaptureView: View {
     // a double-fired shutter tap must not spend two frames for one shot —
     // .disabled() only lands on the next render pass (the save() precedent)
     guard !camera.isCapturing, !isDeveloping else { return }
+    // access declined on a real device: the shutter is inert — developing the
+    // bundled plate into the user's Roll (or spending a loaded exposure on it)
+    // is never the answer. The overlay's Open Settings is the way forward.
+    if cameraAccessDenied {
+      UIImpactFeedbackGenerator(style: .light).impactOccurred()
+      showModeHint("Camera access is off — open Settings to shoot.")
+      return
+    }
     // The film door, at the shutter (the same ExposureRoll every develop
     // obeys — DevelopView documents the design). .open for every camera
     // while Store.everythingFreeForNow.
