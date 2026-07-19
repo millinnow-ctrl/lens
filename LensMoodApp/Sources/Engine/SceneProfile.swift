@@ -1,4 +1,5 @@
 import CoreGraphics
+import Foundation // CGRect's Codable conformance (FaceProfile) lives in the Foundation overlay
 
 /// A face/subject focal reading — mirrors `Focal` in the frozen reference
 /// (lensmood-native/src/engine/types.ts).
