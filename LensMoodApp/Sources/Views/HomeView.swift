@@ -703,6 +703,7 @@ private struct LoopingVideoView: UIViewRepresentable {
 final class LoopingPlayerUIView: UIView {
   private var looper: AVPlayerLooper?
   private var player: AVQueuePlayer?
+  private var resumeObserver: NSObjectProtocol?
 
   override class var layerClass: AnyClass { AVPlayerLayer.self }
 
@@ -721,6 +722,20 @@ final class LoopingPlayerUIView: UIView {
     playerLayer.videoGravity = .resizeAspectFill
     queue.play()
     player = queue
+    // The system pauses video playback whenever the app resigns active
+    // (backgrounding, a phone call, the app switcher) and never resumes an
+    // ambient loop by itself — so the "living hero" froze on its current
+    // frame after the first round-trip. play() on an already-playing player
+    // is a no-op, so the broad became-active signal is safe.
+    resumeObserver = NotificationCenter.default.addObserver(
+      forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main
+    ) { [weak self] _ in
+      self?.player?.play()
+    }
+  }
+
+  deinit {
+    if let resumeObserver { NotificationCenter.default.removeObserver(resumeObserver) }
   }
 }
 
