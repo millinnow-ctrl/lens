@@ -80,13 +80,13 @@ struct CamcorderView: View {
         Button("OK", role: .cancel) { strandedOriginal = nil }
       } message: {
         Text(strandedOriginal != nil
-          ? "The tape look couldn't be applied. You can still save your original recording to Photos."
+          ? "The tape look couldn't be applied. Save your original instead."
           : (errorMessage ?? "Try another clip."))
       }
       .alert("Camera unavailable", isPresented: $cameraUnavailable) {
         Button("OK", role: .cancel) {}
       } message: {
-        Text("Recording is not available on this device. You can load an existing clip instead.")
+        Text("Recording isn't available on this device. Load a clip instead.")
       }
     }
   }

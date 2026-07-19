@@ -598,9 +598,9 @@ struct DevelopView: View {
     case .open:
       return ""
     case .loaded:
-      return "This camera came loaded with \(ExposureRoll.loadedExposures) exposures. Developing spends one — the photograph is yours to keep, full resolution, on your Roll. Plus loads every camera for good."
+      return "\(ExposureRoll.loadedExposures) exposures loaded. Developing spends one — the frame is yours, full resolution, on your Roll."
     case .spent:
-      return "The \(ExposureRoll.loadedExposures) exposures this camera came loaded with are spent — what you developed is yours, on your Roll. Plus loads every camera for good."
+      return "All \(ExposureRoll.loadedExposures) exposures spent. What you developed is yours."
     }
   }
 
@@ -642,10 +642,10 @@ struct DevelopView: View {
       return nil   // Plus arrived mid-session — the counter retires
     case .loaded(let remaining):
       return remaining == 1
-        ? "1 exposure left in this camera."
-        : "\(remaining) exposures left in this camera."
+        ? "1 exposure left."
+        : "\(remaining) exposures left."
     case .spent:
-      return "That was the last exposure in this camera."
+      return "Last exposure spent."
     }
   }
 

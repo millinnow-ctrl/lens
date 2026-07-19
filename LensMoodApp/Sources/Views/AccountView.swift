@@ -89,7 +89,7 @@ struct AccountView: View {
       }
     } footer: {
       if Store.allGatesOpen {
-        Text("Everything in LensMood is free while it's being built. Pricing gets decided at the end — nothing is locked today.")
+        Text("Everything's free while LensMood is being built. Pricing is decided at the end.")
       }
     }
     .listRowBackground(Theme.surface)
