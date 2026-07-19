@@ -68,11 +68,12 @@ final class ProfitEngineTests: XCTestCase {
     XCTAssertTrue(Store.everythingFreeForNow)
   }
 
-  // MARK: - The keep gate (simulated flip — the live flag stays untouched)
+  // MARK: - The film door (simulated flip — the live flag stays untouched)
 
-  /// The gate the keep moment stands on: a Plus camera is locked for a free
-  /// entitlement and open for Plus, with the flag simulated off.
-  func testKeepGatePlusStockLockedForFreeUnlockedForPlus() {
+  /// The lock the film door stands on: a Plus camera is locked for a free
+  /// entitlement and open for Plus, with the flag simulated off. (The roll
+  /// mechanics on top of this lock are covered in ExposureRollTests.)
+  func testFilmDoorPlusStockLockedForFreeUnlockedForPlus() {
     let plusID = PlusCatalog.plusStockIDs(allStockIDs: allIDs).sorted().first!
     XCTAssertFalse(
       PlusCatalog.isStockUnlocked(plusID, entitlement: .free, everythingFree: false),

@@ -14,10 +14,11 @@
 import StoreKit
 import SwiftUI
 
-/// Where the offer is standing when it appears: over the user's own developed
-/// frame at the keep moment, or browsed cold (AccountView's design preview).
+/// Where the offer is standing when it appears: at a locked camera's film
+/// door (carrying the frames the user already kept on that camera), or
+/// browsed cold (AccountView's design preview / account offer row).
 enum PaywallContext {
-  case keep(preview: UIImage, stock: Stock)
+  case reload(stock: Stock, kept: [UIImage])
   case browse
 }
 
@@ -34,13 +35,13 @@ struct PaywallView: View {
     Stock.all.filter { PlusCatalog.freeForeverStockIDs.contains($0.id) }
   }
 
-  private var isKeepContext: Bool {
-    if case .keep = context { return true }
+  private var isReloadContext: Bool {
+    if case .reload = context { return true }
     return false
   }
 
   private var surfaceName: String {
-    isKeepContext ? "develop-keep" : "account"
+    isReloadContext ? "develop-reload" : "account"
   }
 
   var body: some View {
@@ -49,8 +50,8 @@ struct PaywallView: View {
         if Store.allGatesOpen {
           previewBanner
         }
-        if case .keep(let preview, let stock) = context {
-          keepContextSection(preview: preview, stock: stock)
+        if case .reload(let stock, let kept) = context {
+          reloadSection(stock: stock, kept: kept)
         }
         header
         offerRow
@@ -91,32 +92,70 @@ struct PaywallView: View {
     .background(Theme.accent.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
   }
 
-  /// the keep context leads with the user's own frame — the offer stands
-  /// over the photograph it is about, never over stock art
-  private func keepContextSection(preview: UIImage, stock: Stock) -> some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Color.clear
-        .aspectRatio(4.0 / 5.0, contentMode: .fit)
-        .overlay(
-          Image(uiImage: preview)
-            .resizable()
-            .scaledToFill()
-        )
-        .frame(maxWidth: .infinity)
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-      Text("Your photograph, developed on \(stock.name).")
-        .font(.footnote)   // 13pt at the default size
-        .foregroundStyle(Theme.inkSoft)
+  /// the film-door context leads with the camera being bought and the
+  /// frames the user already kept on it — the offer stands on the user's
+  /// own photographs, never on stock art
+  private func reloadSection(stock: Stock, kept: [UIImage]) -> some View {
+    VStack(alignment: .leading, spacing: 10) {
+      HStack {
+        TechnicalLabel(text: "Out of film")
+        Spacer()
+        Text("0 OF \(ExposureRoll.loadedExposures) EXP")
+          .scaledFont(size: 11, weight: .bold, design: .monospaced, relativeTo: .caption2)
+          .tracking(0.8)
+          .foregroundStyle(Theme.fog)
+      }
+      HStack(spacing: 12) {
+        RoundedRectangle(cornerRadius: 12, style: .continuous)
+          .fill(
+            LinearGradient(
+              colors: [Color(hex: stock.g0), Color(hex: stock.g1)],
+              startPoint: .topLeading, endPoint: .bottomTrailing
+            )
+          )
+          .frame(width: 44, height: 44)
+        VStack(alignment: .leading, spacing: 2) {
+          Text(stock.name)
+            .font(.body.weight(.bold))   // 17pt at the default size
+            .foregroundStyle(Theme.ink)
+          Text(stock.tagline)
+            .font(.footnote)   // 13pt at the default size
+            .foregroundStyle(Theme.inkSoft)
+        }
+        Spacer(minLength: 0)
+      }
+      if !kept.isEmpty {
+        HStack(spacing: 8) {
+          ForEach(Array(kept.prefix(3).enumerated()), id: \.offset) { _, frame in
+            Image(uiImage: frame)
+              .resizable()
+              .scaledToFill()
+              .frame(width: 64, height: 80)
+              .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+          }
+        }
+        Text("The \(ExposureRoll.loadedExposures) exposures \(stock.name) came loaded with are spent — what you developed is yours, on your Roll.")
+          .font(.footnote)   // 13pt at the default size
+          .foregroundStyle(Theme.inkSoft)
+          .fixedSize(horizontal: false, vertical: true)
+      }
     }
+    .padding(14)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(Theme.surface, in: RoundedRectangle(cornerRadius: 18))
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel(
+      "\(stock.name), out of film. The \(ExposureRoll.loadedExposures) loaded exposures are spent; what you developed is yours."
+    )
   }
 
   private var header: some View {
     VStack(alignment: .leading, spacing: 6) {
-      Text(isKeepContext ? "Keep the darkroom open" : "Twelve more cameras")
+      Text(isReloadContext ? "Load every camera for good" : "Twelve more cameras")
         .font(.title.weight(.heavy))   // 28pt at the default size
         .foregroundStyle(Theme.ink)
-      Text(isKeepContext
-        ? "Six cameras are yours free forever, full resolution. Plus opens the other twelve — including this one — and every camera we add later."
+      Text(isReloadContext
+        ? "Six cameras are yours free forever, full resolution. Plus loads this camera — and the other eleven — for good, plus every camera we add later."
         : "Six cameras are yours free, forever, at full resolution. Plus opens the other twelve — and every camera we add later.")
         .font(.subheadline)   // 15pt at the default size
         .foregroundStyle(Theme.inkSoft)
@@ -180,6 +219,7 @@ struct PaywallView: View {
         .font(.subheadline.weight(.bold))   // 15pt at the default size
         .foregroundStyle(Theme.ink)
       bullet("Six full cameras: \(freeStocks.map(\.name).joined(separator: ", "))")
+      bullet("Every locked camera comes loaded with \(ExposureRoll.loadedExposures) real exposures — full-resolution develops you keep")
       bullet("Full-resolution export of every photo and tape")
       bullet("Importing, saving, and sharing — never gated")
       Divider()
@@ -353,11 +393,11 @@ private struct OfferCard: View {
   }
 }
 
-#Preview("Keep context") {
+#Preview("Film-door context") {
   NavigationStack {
-    PaywallView(context: .keep(
-      preview: BundleMedia.image("style-polaroid") ?? UIImage(),
-      stock: Stock.all[8]
+    PaywallView(context: .reload(
+      stock: Stock.find("tintype"),
+      kept: [BundleMedia.image("style-tintype") ?? UIImage()]
     ))
   }
 }

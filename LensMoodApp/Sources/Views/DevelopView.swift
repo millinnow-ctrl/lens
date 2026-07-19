@@ -70,13 +70,18 @@ struct DevelopView: View {
   /// share (carrying its composited frame) or the membership offer — one
   /// presentation seat, so the two can never collide on this view
   @State private var activeSheet: DevelopSheet?
-  /// the keep action the paywall interrupted; completed on dismiss if the
-  /// entitlement now covers the camera
-  private enum PendingKeep { case save, share, shareCard }
-  @State private var pendingKeep: PendingKeep?
-  /// the composited frame the keep-context paywall shows — the user's own
-  /// photograph on the locked camera, built from the bounded preview render
-  @State private var paywallPreview: UIImage?
+  /// the film-door gate state (see ExposureRoll.swift): observed so spend
+  /// counters re-render the rail chips and door the moment film is spent
+  @ObservedObject private var store = Store.shared
+  /// exposures spent on THIS photograph this session: camera id → the Roll
+  /// entry the spend created. A spent frame is the user's photograph — it is
+  /// never session-replaced, and re-rendering the same camera never
+  /// double-spends. Reset when a new photograph loads.
+  @State private var sessionExposureAssets: [String: UUID] = [:]
+  /// set between the spend and its develop landing, so applyDeveloped knows
+  /// this render was bought with film and must land on the Roll (and so an
+  /// abandoned or failed render can give the frame back)
+  @State private var pendingExposureSpend: String?
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   var body: some View {
@@ -92,6 +97,9 @@ struct DevelopView: View {
           developingState
         } else if sourceImage == nil {
           photoPicker(title: "Choose a photograph")
+        } else if let door = filmDoor {
+          filmDoorPanel(door)
+          photoPicker(title: "New photograph")
         } else {
           actions
           if !decisions.isEmpty { decisionPanel }
@@ -134,11 +142,7 @@ struct DevelopView: View {
       case .share(let image):
         ActivitySheet(items: [image])
       case .paywall:
-        if let paywallPreview {
-          PaywallView(context: .keep(preview: paywallPreview, stock: currentStock))
-        } else {
-          PaywallView()
-        }
+        PaywallView(context: paywallContext)
       }
     }
     .alert("Saved to Photos", isPresented: $saveConfirmation) {
@@ -232,10 +236,23 @@ struct DevelopView: View {
               .stroke(active ? Theme.accent : Theme.hairline, lineWidth: active ? 2.5 : 1)
           }
           .overlay(alignment: .bottomTrailing) {
-            // membership gate marker — invisible while every gate is open
-            if !Store.shared.isUnlocked(item) {
-              // fixed on purpose: a badge glyph pinned to the fixed 40pt
-              // swatch — scaling it would swallow the artwork
+            // the camera's frame counter — invisible while every gate is
+            // open. A loaded locked camera wears its remaining exposures; a
+            // spent one wears the lock. Fixed sizes on purpose: badge glyphs
+            // pinned to the fixed 40pt swatch — scaling would swallow the
+            // artwork.
+            switch store.developAccess(for: item) {
+            case .open:
+              EmptyView()
+            case .loaded(let remaining):
+              Text("\(remaining)")
+                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 4.5)
+                .padding(.vertical, 2.5)
+                .background(Capsule().fill(Theme.ink.opacity(0.72)))
+                .offset(x: 4, y: 4)
+            case .spent:
               Image(systemName: "lock.fill")
                 .font(.system(size: 9, weight: .bold))
                 .foregroundStyle(.white)
@@ -254,8 +271,20 @@ struct DevelopView: View {
     }
     .buttonStyle(.plain)
     .id(item.id)
-    .accessibilityLabel("Develop with \(item.name)")
+    .accessibilityLabel(chipAccessibilityLabel(item))
     .accessibilityAddTraits(active ? .isSelected : [])
+  }
+
+  /// VoiceOver hears the film state the counter shows sighted users
+  private func chipAccessibilityLabel(_ item: Stock) -> String {
+    switch store.developAccess(for: item) {
+    case .open:
+      return "Develop with \(item.name)"
+    case .loaded(let remaining):
+      return "Develop with \(item.name), \(remaining) exposure\(remaining == 1 ? "" : "s") loaded"
+    case .spent:
+      return "\(item.name), out of film — in Plus"
+    }
   }
 
   private var cameraIdentity: some View {
@@ -470,11 +499,111 @@ struct DevelopView: View {
       ? ceremonySteps[ceremonyActiveIndex] : "Developing")
   }
 
-  /// a locked camera's Save is the keep offer in plain words; the tap still
-  /// routes through save(), whose gate presents the paywall
+  // MARK: The film door (see ExposureRoll.swift — the gate sits at the
+  // develop, never at the keep: whatever renders on the stage is the user's)
+
+  /// What stands between the loaded camera and this photograph. nil when the
+  /// camera develops freely: open cameras always (everything, while
+  /// Store.everythingFreeForNow), and a locked camera whose exposure was
+  /// already spent on this photograph (its re-renders ride the same spend).
+  private var filmDoor: ExposureRoll.Access? {
+    guard sourceImage != nil else { return nil }
+    guard sessionExposureAssets[currentStock.id] == nil else { return nil }
+    let access = store.developAccess(for: currentStock)
+    return access == .open ? nil : access
+  }
+
+  /// The locked camera's box-end tab: the honest count and one deliberate
+  /// action. Loaded, developing costs a stated exposure the user keeps —
+  /// never spent by a rail flick. Spent, the camera is simply out of film
+  /// and the way forward is buying the camera.
+  private func filmDoorPanel(_ door: ExposureRoll.Access) -> some View {
+    InstrumentPanel {
+      VStack(alignment: .leading, spacing: 12) {
+        HStack {
+          TechnicalLabel(text: door == .spent ? "Out of film" : "Loaded")
+          Spacer()
+          Text(counterReadout(door))
+            .scaledFont(size: 11, weight: .bold, design: .monospaced, relativeTo: .caption2)
+            .tracking(0.8)
+            .foregroundStyle(door == .spent ? Theme.fog : Theme.accent)
+        }
+        Text(doorMessage(door))
+          .scaledFont(size: 14, relativeTo: .footnote)
+          .foregroundStyle(Theme.inkSoft)
+          .fixedSize(horizontal: false, vertical: true)
+        if case .loaded = door {
+          Button("Develop — spends one exposure") { spendAndDevelop() }
+            .buttonStyle(InstrumentButtonStyle(kind: .primary))
+        } else {
+          Button("See LensMood Plus") { activeSheet = .paywall }
+            .buttonStyle(InstrumentButtonStyle(kind: .secondary))
+        }
+      }
+      .padding(16)
+      .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel("\(currentStock.name). \(doorMessage(door))")
+  }
+
+  private func counterReadout(_ door: ExposureRoll.Access) -> String {
+    switch door {
+    case .open: return ""
+    case .loaded(let remaining): return "\(remaining) OF \(ExposureRoll.loadedExposures) EXP"
+    case .spent: return "0 OF \(ExposureRoll.loadedExposures) EXP"
+    }
+  }
+
+  private func doorMessage(_ door: ExposureRoll.Access) -> String {
+    switch door {
+    case .open:
+      return ""
+    case .loaded:
+      return "This camera came loaded with \(ExposureRoll.loadedExposures) exposures. Developing spends one — the photograph is yours to keep, full resolution, on your Roll."
+    case .spent:
+      return "The \(ExposureRoll.loadedExposures) exposures this camera came loaded with are spent — what you developed is yours, on your Roll. Plus loads every camera for good."
+    }
+  }
+
+  /// the deliberate spend: film advances, the develop runs, the photograph
+  /// lands on the Roll as the user's own (applyDeveloped)
+  private func spendAndDevelop() {
+    guard let sourceImage else { return }
+    guard store.spendExposure(on: currentStock) else { return }
+    pendingExposureSpend = currentStock.id
+    UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+    develop(sourceImage, spendingExposure: true)
+  }
+
+  /// the offer's context: a locked camera's door leads with the frames the
+  /// user already kept on it — their own photographs, never stock art
+  private var paywallContext: PaywallContext {
+    guard store.developAccess(for: currentStock) != .open else { return .browse }
+    let kept = model.library
+      .filter { $0.stock.id == currentStock.id }
+      .prefix(3)
+      .map(\.thumbnail)
+    return .reload(stock: currentStock, kept: Array(kept))
+  }
+
+  /// the counter line under a film-bought develop — a fact, not a nudge
+  private var spentExposureLine: String? {
+    guard sessionExposureAssets[currentStock.id] != nil else { return nil }
+    switch store.developAccess(for: currentStock) {
+    case .open:
+      return nil   // Plus arrived mid-session — the counter retires
+    case .loaded(let remaining):
+      return remaining == 1
+        ? "1 exposure left in this camera."
+        : "\(remaining) exposures left in this camera."
+    case .spent:
+      return "That was the last exposure in this camera."
+    }
+  }
+
   private var saveButtonTitle: String {
-    guard Store.shared.isUnlocked(currentStock) else { return "Keep this photo — get Plus" }
-    return isSaving ? "Preparing full resolution" : "Save"
+    isSaving ? "Preparing full resolution" : "Save"
   }
 
   private var actions: some View {
@@ -486,30 +615,19 @@ struct DevelopView: View {
           .disabled(developedImage == nil || isSaving)
       }
       Button("Share developed photograph") {
-        guard Store.shared.isUnlocked(currentStock) else {
-          pendingKeep = .share
-          presentPaywall()
-          return
-        }
         presentShareSheet()
       }
       .buttonStyle(InstrumentButtonStyle(kind: .secondary))
       .disabled(developedImage == nil)
       Button("Share as camera card") {
         // the card is a format the user chooses — the bare share above stays
-        // unmarked. Locked cameras route through the keep gate like Save and
-        // Share (a no-op while Store.everythingFreeForNow keeps all 18 open).
-        guard Store.shared.isUnlocked(currentStock) else {
-          pendingKeep = .shareCard
-          presentPaywall()
-          return
-        }
+        // unmarked
         presentCardShareSheet()
       }
       .buttonStyle(InstrumentButtonStyle(kind: .secondary))
       .disabled(developedImage == nil)
-      if !Store.shared.isUnlocked(currentStock), developedImage != nil {
-        Text("This develop stays until you leave — keeping it is what Plus is for.")
+      if let spentExposureLine {
+        Text(spentExposureLine)
           .font(.footnote)   // 13pt at the default size
           .foregroundStyle(Theme.inkSoft)
           .frame(maxWidth: .infinity, alignment: .center)
@@ -519,8 +637,7 @@ struct DevelopView: View {
   }
 
   /// the camera-card share path — the same composite as the bare share,
-  /// framed by LightTestCard; called by the card button and by
-  /// handleSheetDismiss when a purchase completes a card share
+  /// framed by LightTestCard
   private func presentCardShareSheet() {
     guard let developedImage, let sourceImage else { return }
     let stock = currentStock
@@ -536,8 +653,7 @@ struct DevelopView: View {
     }
   }
 
-  /// the Share sheet's composite-and-present path — called by the Share
-  /// button and by handleSheetDismiss when a purchase completes a share
+  /// the Share sheet's composite-and-present path
   private func presentShareSheet() {
     // composite off-main; presenting inside the sheet's body re-ran the
     // full-frame blend on every view evaluation
@@ -552,36 +668,13 @@ struct DevelopView: View {
     }
   }
 
-  /// composite the keep-context frame (the user's own photograph on this
-  /// camera, at the current strength) and present the offer over it
-  private func presentPaywall() {
-    guard let developedImage, let sourceImage else {
-      activeSheet = .paywall
-      return
-    }
-    let strength = intensity
-    Task.detached(priority: .userInitiated) {
-      let composed = blended(developed: developedImage, over: sourceImage, intensity: strength)
-      await MainActor.run {
-        paywallPreview = composed
-        activeSheet = .paywall
-      }
-    }
-  }
-
-  /// after the paywall closes: if the purchase now covers the camera, land
-  /// the develop in the Library and finish the keep the user asked for
+  /// after the offer closes: if Plus now covers the camera, the develop the
+  /// user was standing in front of simply happens — full ceremony, straight
+  /// onto the Roll, like any owned camera
   private func handleSheetDismiss() {
-    paywallPreview = nil
-    guard let action = pendingKeep else { return }
-    pendingKeep = nil
-    guard Store.shared.isUnlocked(currentStock) else { return }
-    commitSessionToLibrary()
-    switch action {
-    case .save: save()
-    case .share: presentShareSheet()
-    case .shareCard: presentCardShareSheet()
-    }
+    guard let sourceImage, developedImage == nil, !isDeveloping,
+      store.developAccess(for: currentStock) == .open else { return }
+    develop(sourceImage)
   }
 
   private func photoPicker(title: String) -> some View {
@@ -632,6 +725,7 @@ struct DevelopView: View {
         Conductor.shared.forget(key: photoKey)
         photoKey = UUID()      // new photo ⇒ fresh preview-cache + reading scope
         matches = nil          // rail returns to catalog order until the read lands
+        sessionExposureAssets = [:]   // spends belong to the photograph they developed
         develop(image)
       } catch {
         isDeveloping = false
@@ -640,9 +734,25 @@ struct DevelopView: View {
     }
   }
 
-  private func develop(_ image: UIImage) {
-    // Every camera develops — the transformation is never gated. The gate
-    // sits at the keep moment (save/share) instead; see save().
+  private func develop(_ image: UIImage, spendingExposure: Bool = false) {
+    // An in-flight film-bought develop that never landed gives its frame
+    // back before anything else starts (render failures refund in the catch;
+    // this covers abandonment — a camera switch or a new photograph).
+    if !spendingExposure, let abandoned = pendingExposureSpend {
+      pendingExposureSpend = nil
+      store.refundExposure(on: Stock.find(abandoned))
+    }
+    // THE gate: a locked camera only fires on a spent exposure. The film
+    // door (body) offers the spend while film remains; a spent roll renders
+    // nothing at all. Every camera is .open while
+    // Store.everythingFreeForNow — this path never runs.
+    if !spendingExposure, sessionExposureAssets[currentStock.id] == nil,
+      store.developAccess(for: currentStock) != .open {
+      isDeveloping = false
+      developedImage = nil
+      decisions = []
+      return
+    }
     Analytics.log(.developStarted(lookID: currentStock.id))
     let request = UUID()
     renderID = request
@@ -710,6 +820,12 @@ struct DevelopView: View {
         applyDeveloped(image: render.image, decisions: render.decisions, source: image)
       } catch {
         guard renderID == request else { return }
+        // a film-bought render that failed gives its frame back — the
+        // camera never eats an exposure it didn't deliver
+        if pendingExposureSpend == currentStock.id {
+          pendingExposureSpend = nil
+          store.refundExposure(on: currentStock)
+        }
         isDeveloping = false
         errorMessage = error.localizedDescription
       }
@@ -735,26 +851,38 @@ struct DevelopView: View {
     developedImage = developed
     decisions = newDecisions
     previewMode = harnessPreviewMode ?? .developed
-    // the roll keeps what you keep: a locked camera's develop lives on the
-    // stage only, and enters the Library via commitSessionToLibrary() once
-    // the entitlement covers it. A no-op while Store.everythingFreeForNow —
-    // every develop lands exactly as before.
-    if Store.shared.isUnlocked(currentStock) {
+    // Every develop that renders is kept — an open camera's lands with the
+    // session-replace behavior, a film-bought one lands permanently. (While
+    // Store.everythingFreeForNow every camera is open: unchanged behavior.)
+    if store.isUnlocked(currentStock) {
       storeInLibrary(developed: developed, decisions: newDecisions, source: source)
+    } else if pendingExposureSpend == currentStock.id {
+      pendingExposureSpend = nil
+      storeSpentExposureInLibrary(developed: developed, decisions: newDecisions, source: source)
     }
     UIImpactFeedbackGenerator(style: .light).impactOccurred()
   }
 
-  /// land the on-stage develop in the Library after a purchase unlocked its
-  /// camera — the same landing a free camera's develop takes immediately
-  private func commitSessionToLibrary() {
-    guard let developedImage, let sourceImage,
-      Store.shared.isUnlocked(currentStock) else { return }
-    storeInLibrary(developed: developedImage, decisions: decisions, source: sourceImage)
+  /// land a film-bought develop on the Roll for good: a spent exposure is
+  /// the user's photograph — it is never session-replaced by a later camera
+  /// switch, and its id remembers the spend so this photograph re-develops
+  /// on this camera without spending again
+  private func storeSpentExposureInLibrary(developed: UIImage, decisions newDecisions: [String], source: UIImage) {
+    if librarySource == nil {
+      librarySource = boundedLibraryCopy(of: source)
+    }
+    let asset = DevelopedAsset(
+      image: developed,
+      source: librarySource ?? source,
+      stock: currentStock,
+      decisions: newDecisions
+    )
+    model.add(asset)
+    sessionExposureAssets[currentStock.id] = asset.id
   }
 
   /// the one Library landing (shared by applyDeveloped and
-  /// commitSessionToLibrary): bounded original copy, favorite-preserving
+  /// the open-camera landing (session-scoped): bounded original copy, favorite-preserving
   /// session replace, model.add
   private func storeInLibrary(developed: UIImage, decisions newDecisions: [String], source: UIImage) {
     // the Library keeps a bounded copy of the original, built once per photo —
@@ -797,13 +925,9 @@ struct DevelopView: View {
 
   private func save() {
     guard let sourceImage else { return }
-    // THE gate site: keeping a locked camera's develop is what Plus sells.
-    // A no-op while Store.everythingFreeForNow.
-    guard Store.shared.isUnlocked(currentStock) else {
-      pendingKeep = .save
-      presentPaywall()
-      return
-    }
+    // No gate here by design: whatever rendered on the stage is the user's —
+    // an open camera's develop freely, a locked camera's because a loaded
+    // exposure was spent to make it. The film door gates the develop itself.
     isSaving = true
     let recipe = currentStock.recipe
     let seed = Double(currentStock.id.unicodeScalars.reduce(17) { ($0 * 31 + Int($1.value)) % 100_000 })
