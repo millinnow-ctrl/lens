@@ -33,7 +33,7 @@ extension Stock {
     Stock(id: "pastel-cinema", name: "Pastel Cinema", tagline: "Powdery color, flat light", bestFor: "Soft compositions", exif: "F/4 · ISO 100 · SYM", g0: "#E7BEC6", g1: "#A7CEC1", symbol: "cloud.sun.fill"),
     Stock(id: "tokyo-neon", name: "Neon Night", tagline: "Neon bloom, wet streets", bestFor: "Colored city light", exif: "F/1.4 · ISO 1600", g0: "#2998A8", g1: "#AA59A5", symbol: "lightswitch.on.fill"),
     Stock(id: "photobooth", name: "Photobooth", tagline: "Hard flash, true black and white", bestFor: "Close faces", exif: "STRIP · 4 FRAMES · B&W", g0: "#E8E7E2", g1: "#393936", symbol: "person.2.fill"),
-    Stock(id: "tintype", name: "Wet Plate", tagline: "Sepia plate, deep vignette", bestFor: "Still portraits", exif: "WET PLATE · 5S", g0: "#AA8650", g1: "#493420", symbol: "person.crop.artframe"),
+    Stock(id: "tintype", name: "Wet Plate", tagline: "Cool silver plate, deep vignette", bestFor: "Still portraits", exif: "WET PLATE · 5S", g0: "#B3BBBA", g1: "#2E3639", symbol: "person.crop.artframe"),
   ]
 
   static func find(_ id: String) -> Stock {
