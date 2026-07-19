@@ -145,9 +145,7 @@ struct DevelopView: View {
         PaywallView(context: paywallContext)
       }
     }
-    .alert("Saved to Photos", isPresented: $saveConfirmation) {
-      Button("OK", role: .cancel) {}
-    }
+    .savedTick(isPresented: $saveConfirmation)
     .alert("Could not develop this photograph", isPresented: Binding(
       get: { errorMessage != nil },
       set: { if !$0 { errorMessage = nil } }

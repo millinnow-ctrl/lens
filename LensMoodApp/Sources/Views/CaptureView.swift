@@ -73,7 +73,7 @@ struct CaptureView: View {
     .overlay { if guideShown { guideOverlay } }
     .sheet(isPresented: $mountPickerShown) { mountPicker }
     .sheet(isPresented: $libraryShown) { librarySheet }
-    .alert("Saved to Photos", isPresented: $saveConfirmation) { Button("OK", role: .cancel) {} }
+    .savedTick(isPresented: $saveConfirmation)
     .alert("Could not complete that", isPresented: Binding(
       get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } }
     )) { Button("OK", role: .cancel) {} } message: { Text(errorMessage ?? "Try again.") }

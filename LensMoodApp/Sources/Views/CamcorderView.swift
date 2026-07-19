@@ -60,9 +60,7 @@ struct CamcorderView: View {
         importMovie(item)
       }
       .onAppear { sweepOrphanedTapes() }
-      .alert("Tape saved", isPresented: $saved) {
-        Button("OK", role: .cancel) {}
-      }
+      .savedTick(isPresented: $saved, text: "Tape saved to Photos")
       .alert("Tape could not be developed", isPresented: Binding(
         get: { errorMessage != nil },
         set: { if !$0 { errorMessage = nil } }

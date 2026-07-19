@@ -123,9 +123,7 @@ struct PrintRoomView: View {
       // tab switch lands (onAppear) — the pendingStock idiom, for prints
       .onAppear { consumePendingPrint() }
       .onChange(of: model.pendingPrintAsset?.id) { _ in consumePendingPrint() }
-      .alert("Print saved", isPresented: $saved) {
-        Button("OK", role: .cancel) {}
-      }
+      .savedTick(isPresented: $saved, text: "Print saved to Photos")
       .alert("Could not save this print", isPresented: Binding(
         get: { errorMessage != nil },
         set: { if !$0 { errorMessage = nil } }

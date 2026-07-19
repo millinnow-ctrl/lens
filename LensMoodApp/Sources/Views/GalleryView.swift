@@ -305,9 +305,7 @@ private struct GalleryDetailView: View {
       .sheet(item: $shareItem) { item in
         ActivitySheet(items: [item.image])
       }
-      .alert("Saved to Photos", isPresented: $saveConfirmation) {
-        Button("OK", role: .cancel) {}
-      }
+      .savedTick(isPresented: $saveConfirmation)
       .alert("Could not save this photograph", isPresented: Binding(
         get: { errorMessage != nil },
         set: { if !$0 { errorMessage = nil } }
