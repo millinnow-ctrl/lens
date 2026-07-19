@@ -1,4 +1,5 @@
 import CoreGraphics
+import Foundation // CGRect's Codable conformance (FaceProfile) lives in the Foundation overlay
 
 /// A face/subject focal reading — mirrors `Focal` in the frozen reference
 /// (lensmood-native/src/engine/types.ts).
@@ -12,7 +13,10 @@ struct Focal: Equatable {
 
 /// Mirrors `LightSource` in the frozen reference
 /// (lensmood-native/src/engine/types.ts).
-struct LightSource: Equatable {
+///
+/// Codable so a whole `SceneProfile` can be frozen into a reading sidecar
+/// (see PersistedReading) and replayed byte-for-byte on a later develop.
+struct LightSource: Equatable, Codable {
   /// normalized center, 0..1 of frame
   let x: Double
   let y: Double
@@ -25,7 +29,7 @@ struct LightSource: Equatable {
   let tint: [Double]
 }
 
-struct SceneProfile: Equatable {
+struct SceneProfile: Equatable, Codable {
   // MARK: - Reference meter fields
   // NEW: verbatim port of `SceneProfile` in the frozen reference
   // (lensmood-native/src/engine/types.ts), produced by the ported meter in
@@ -102,7 +106,7 @@ struct SceneProfile: Equatable {
   )
 }
 
-struct FaceProfile: Equatable, Identifiable {
+struct FaceProfile: Equatable, Identifiable, Codable {
   let id: Int
   let bounds: CGRect
   let confidence: Float

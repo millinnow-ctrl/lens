@@ -76,6 +76,18 @@ final class Conductor: ObservableObject {
     }
   }
 
+  /// Seed the cache with a reading recovered from disk (a persisted reading
+  /// for a photograph about to be re-developed), so the develop replays that
+  /// exact reading instead of a drifted re-read. It never overrides a live
+  /// reading: an already-cached reading is the one the active session is using,
+  /// and an in-flight read will store its own result — adopting must not race
+  /// or clobber either. When neither exists, the persisted reading enters the
+  /// normal LRU exactly as a fresh read would (evictable at the cap).
+  func adopt(_ reading: SceneReading, key: UUID) {
+    guard readings[key] == nil, inFlight[key] == nil else { return }
+    store(reading, key: key)
+  }
+
   private func store(_ reading: SceneReading, key: UUID) {
     readings[key] = reading
     order.removeAll { $0 == key }

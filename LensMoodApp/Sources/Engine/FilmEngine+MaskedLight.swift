@@ -59,21 +59,38 @@ extension FilmEngine {
     let skinBytes = FilmEngine.buildSkinMask(raster, subjectMatte: matteBytes)
     let skyBytes = FilmEngine.buildSkyMask(raster, subjectMatte: matteBytes)
     func materialize(_ bytes: [UInt8]?) -> CIImage? {
-      guard let bytes else { return nil }
-      return CIImage(
-        bitmapData: Data(bytes),
-        bytesPerRow: raster.width,
-        size: CGSize(width: raster.width, height: raster.height),
-        format: .L8,
-        colorSpace: nil
-      )
+      FilmEngine.materializeMask(bytes, width: raster.width, height: raster.height)
     }
     return SubjectAnalysis(
       faces: base.faces,
       personMask: base.personMask,
       subjectMatte: materialize(matteBytes),
       skinMask: materialize(skinBytes),
-      skyMask: materialize(skyBytes)
+      skyMask: materialize(skyBytes),
+      // the same bytes, kept raw so this reading can be frozen to disk and
+      // replayed later without a (drifting) second subject pass
+      maskRaster: SubjectMaskRaster(
+        width: raster.width,
+        height: raster.height,
+        subjectMatte: matteBytes,
+        skinMask: skinBytes,
+        skyMask: skyBytes
+      )
+    )
+  }
+
+  /// Wrap single-channel L8 bytes as a CIImage at their native grid — the one
+  /// construction used both when a mask is first built (`attachLightMasks`)
+  /// and when a persisted reading is rebuilt (`PersistedReading`). Sharing it
+  /// guarantees a reconstructed mask is bit-for-bit the mask the passes saw.
+  static func materializeMask(_ bytes: [UInt8]?, width: Int, height: Int) -> CIImage? {
+    guard let bytes, width > 0, height > 0, bytes.count == width * height else { return nil }
+    return CIImage(
+      bitmapData: Data(bytes),
+      bytesPerRow: width,
+      size: CGSize(width: width, height: height),
+      format: .L8,
+      colorSpace: nil
     )
   }
 
