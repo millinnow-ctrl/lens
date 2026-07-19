@@ -1099,27 +1099,35 @@ private struct CommandWheel: View {
   private let spacing: CGFloat = 13
 
   var body: some View {
-    ZStack {
-      HStack(spacing: spacing - 1) {
-        ForEach(0..<40, id: \.self) { i in
+    GeometryReader { geo in
+      // draw a window of ticks CENTERED on the current index instead of a
+      // fixed 40-tick strip offset left: the old strip (508pt) ran out from
+      // under the gold index at high dial positions — and, being wider than the
+      // screen, forced the whole wheel row to overflow. The window fills the
+      // visible strip at every position and never exceeds it.
+      let half = Int((geo.size.width / spacing / 2).rounded(.up)) + 2
+      ZStack {
+        ForEach(index - half...index + half, id: \.self) { i in
           Rectangle().fill(Color.white.opacity(i % 5 == 0 ? 0.5 : 0.22))
             .frame(width: 1, height: i % 5 == 0 ? 20 : 12)
+            // tall ticks stay pinned to absolute multiples of 5 as you scrub
+            .offset(x: CGFloat(i - index) * spacing)
         }
+        Rectangle().fill(CameraTheme.gold).frame(width: 2, height: 26)
       }
-      .offset(x: -CGFloat(index) * spacing)
-      .mask(Rectangle())
-      Rectangle().fill(CameraTheme.gold).frame(width: 2, height: 26)
+      .frame(width: geo.size.width, height: geo.size.height)
+      .clipped()
+      .contentShape(Rectangle())
+      .gesture(
+        DragGesture()
+          .onChanged { value in
+            if dragBase == nil { dragBase = index }
+            let delta = Int((-value.translation.width / spacing).rounded())
+            onChange((dragBase ?? index) + delta)
+          }
+          .onEnded { _ in dragBase = nil }
+      )
     }
-    .contentShape(Rectangle())
-    .gesture(
-      DragGesture()
-        .onChanged { value in
-          if dragBase == nil { dragBase = index }
-          let delta = Int((-value.translation.width / spacing).rounded())
-          onChange((dragBase ?? index) + delta)
-        }
-        .onEnded { _ in dragBase = nil }
-    )
   }
 }
 
