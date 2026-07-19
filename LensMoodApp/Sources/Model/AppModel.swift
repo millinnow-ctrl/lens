@@ -214,6 +214,12 @@ final class AppModel: ObservableObject {
       // relaunch (load decodes only grid-tier thumbnails — the 2048 px frames
       // stay on disk until a detail view asks for one)
       library = LibraryStore.load()
+      // crash-safe film: a spend recorded just before a jetsam/force-quit,
+      // whose develop never landed, is refunded now — its frame is not on the
+      // Roll that survived to disk. A frame that DID land is left untouched.
+      ExposureLedger.shared.reconcilePendingSpends(
+        deliveredAssetIDs: Set(library.map(\.id))
+      )
       Analytics.log(.appOpened)
     }
   }

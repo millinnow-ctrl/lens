@@ -17,6 +17,10 @@ struct CaptureView: View {
   /// the camera id whose exposure the in-flight shot spent, so a failed
   /// develop can give the frame back
   @State private var pendingShotSpend: String?
+  /// the id the shot's frame will carry on the Roll — reserved at the spend so
+  /// a crash-safe pending marker (ExposureLedger) refunds the exposure at
+  /// launch only if the frame never landed
+  @State private var pendingShotAssetID: UUID?
   @State private var activeDial: ActiveDial = .aperture
   @State private var showGrid = true
   @State private var mountPickerShown = false
@@ -838,7 +842,12 @@ struct CaptureView: View {
       // shooting spends a loaded exposure; the shot is the user's — it
       // lands on the Roll and exports exactly like any other
       guard store.spendExposure(on: loadedStock) else { return }
+      let assetID = UUID()
       pendingShotSpend = loadedStock.id
+      pendingShotAssetID = assetID
+      // park a crash-safe marker: force-quit before the develop lands and
+      // launch reconciliation gives the exposure back
+      ExposureLedger.shared.recordPendingSpend(assetID: assetID, on: loadedStock.id)
     case .spent:
       // out of film: the shutter goes slack — a fact, not a scold. The
       // offer lives behind the film bar, never over the viewfinder.
@@ -869,7 +878,14 @@ struct CaptureView: View {
         switch result {
         case .success(let render):
           pendingShotSpend = nil   // the spent frame delivered — it's kept
-          let asset = DevelopedAsset(image: render.image, source: image, stock: stock, decisions: render.decisions)
+          // land under the id reserved at the spend so launch reconciliation
+          // recognizes this exposure as delivered (the marker is retired at
+          // that cross-check, never refunded)
+          let asset = DevelopedAsset(
+            id: pendingShotAssetID ?? UUID(),
+            image: render.image, source: image, stock: stock, decisions: render.decisions
+          )
+          pendingShotAssetID = nil
           model.add(asset)
           withAnimation { review = asset }
           UINotificationFeedbackGenerator().notificationOccurred(.success)
@@ -878,6 +894,10 @@ struct CaptureView: View {
           // back — the camera never eats an exposure it didn't deliver
           if pendingShotSpend == stock.id {
             pendingShotSpend = nil
+            if let id = pendingShotAssetID {
+              ExposureLedger.shared.clearPendingSpend(assetID: id)
+              pendingShotAssetID = nil
+            }
             store.refundExposure(on: stock)
           }
           errorMessage = error.localizedDescription

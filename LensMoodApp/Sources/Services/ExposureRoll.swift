@@ -88,4 +88,59 @@ final class ExposureLedger {
     table[stockID] = max(0, spent(on: stockID) - 1)
     defaults.set(table, forKey: Self.key)
   }
+
+  // MARK: Pending spends (crash-safe reconciliation)
+  //
+  // A spend is written to the ledger the instant the shutter (or film door)
+  // fires, but the frame it buys lands seconds later — a full read + render.
+  // If the process dies in that window the in-memory refund paths never run
+  // and the exposure is eaten with nothing delivered. So every spend also
+  // parks a pending marker keyed by the id the delivered frame WILL carry;
+  // an in-session refund drops the marker, and at the next launch any marker
+  // whose frame is not on the Roll is refunded. The delivered-marker check is
+  // the reader's job (reconcile), so a frame that did land is never re-minted.
+
+  private static let pendingKey = "exposures.pendingSpends"
+
+  /// The outstanding spends, `frame id → camera id`.
+  var pendingSpends: [UUID: String] {
+    let table = (defaults.dictionary(forKey: Self.pendingKey) as? [String: String]) ?? [:]
+    return Dictionary(uniqueKeysWithValues: table.compactMap { key, value in
+      UUID(uuidString: key).map { ($0, value) }
+    })
+  }
+
+  /// Park a spend as outstanding, keyed by the id its delivered frame will use.
+  func recordPendingSpend(assetID: UUID, on stockID: String) {
+    var table = (defaults.dictionary(forKey: Self.pendingKey) as? [String: String]) ?? [:]
+    table[assetID.uuidString] = stockID
+    defaults.set(table, forKey: Self.pendingKey)
+  }
+
+  /// Drop a pending marker whose spend was already reconciled in-session
+  /// (a render failure or an abandonment refunded it) so launch cannot refund
+  /// the same spend twice.
+  func clearPendingSpend(assetID: UUID) {
+    var table = (defaults.dictionary(forKey: Self.pendingKey) as? [String: String]) ?? [:]
+    guard table[assetID.uuidString] != nil else { return }
+    table[assetID.uuidString] = nil
+    defaults.set(table, forKey: Self.pendingKey)
+  }
+
+  /// Reconcile every outstanding spend at launch: one whose frame is not among
+  /// `deliveredAssetIDs` (the Roll that survived to disk) never delivered —
+  /// give that exposure back. Delivered ones are simply retired. Clears the
+  /// pending store. Returns the camera ids refunded (for tests).
+  @discardableResult
+  func reconcilePendingSpends(deliveredAssetIDs: Set<UUID>) -> [String] {
+    let pending = pendingSpends
+    guard !pending.isEmpty else { return [] }
+    var refunded: [String] = []
+    for (assetID, stockID) in pending where !deliveredAssetIDs.contains(assetID) {
+      refundSpend(on: stockID)
+      refunded.append(stockID)
+    }
+    defaults.removeObject(forKey: Self.pendingKey)
+    return refunded
+  }
 }

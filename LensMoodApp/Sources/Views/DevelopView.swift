@@ -82,6 +82,10 @@ struct DevelopView: View {
   /// this render was bought with film and must land on the Roll (and so an
   /// abandoned or failed render can give the frame back)
   @State private var pendingExposureSpend: String?
+  /// the id the film-bought frame will carry on the Roll — reserved at the
+  /// spend so a crash-safe pending marker (ExposureLedger) can be matched
+  /// against the delivered frame at launch and refunded only if it never landed
+  @State private var pendingExposureAssetID: UUID?
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   var body: some View {
@@ -596,7 +600,13 @@ struct DevelopView: View {
     // door leaves the tree on the next render pass, not on the first tap)
     guard !isDeveloping else { return }
     guard store.spendExposure(on: currentStock) else { return }
+    let assetID = UUID()
     pendingExposureSpend = currentStock.id
+    pendingExposureAssetID = assetID
+    // park a crash-safe marker: if the process dies before this develop lands,
+    // launch reconciliation gives the exposure back (the frame never reached
+    // the Roll under this id)
+    ExposureLedger.shared.recordPendingSpend(assetID: assetID, on: currentStock.id)
     UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
     develop(sourceImage, spendingExposure: true)
   }
@@ -765,6 +775,10 @@ struct DevelopView: View {
     // this covers abandonment — a camera switch or a new photograph).
     if !spendingExposure, let abandoned = pendingExposureSpend {
       pendingExposureSpend = nil
+      if let id = pendingExposureAssetID {
+        ExposureLedger.shared.clearPendingSpend(assetID: id)
+        pendingExposureAssetID = nil
+      }
       store.refundExposure(on: Stock.find(abandoned))
     }
     // THE gate: a locked camera only fires on a spent exposure. The film
@@ -855,6 +869,10 @@ struct DevelopView: View {
         // camera never eats an exposure it didn't deliver
         if pendingExposureSpend == currentStock.id {
           pendingExposureSpend = nil
+          if let id = pendingExposureAssetID {
+            ExposureLedger.shared.clearPendingSpend(assetID: id)
+            pendingExposureAssetID = nil
+          }
           store.refundExposure(on: currentStock)
         }
         isDeveloping = false
@@ -902,7 +920,13 @@ struct DevelopView: View {
     if librarySource == nil {
       librarySource = boundedLibraryCopy(of: source)
     }
+    // the frame lands under the id reserved at the spend, so launch
+    // reconciliation recognizes this exposure as delivered and never refunds
+    // it. The pending marker is retired at that launch check, not here — a
+    // crash between the disk write and a here-and-now clear would otherwise
+    // strand it; the delivered-id cross-check handles both orderings.
     let asset = DevelopedAsset(
+      id: pendingExposureAssetID ?? UUID(),
       image: developed,
       source: librarySource ?? source,
       stock: currentStock,
@@ -910,6 +934,7 @@ struct DevelopView: View {
     )
     model.add(asset)
     sessionExposureAssets[currentStock.id] = asset.id
+    pendingExposureAssetID = nil
   }
 
   /// the one Library landing (shared by applyDeveloped and

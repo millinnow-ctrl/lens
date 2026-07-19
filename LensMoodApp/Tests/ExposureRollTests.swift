@@ -172,6 +172,83 @@ final class ExposureRollTests: XCTestCase {
     )
   }
 
+  // MARK: - Pending spends (crash-safe reconciliation)
+
+  func testPendingSpendRecordsAndClears() {
+    let (ledger, _) = freshLedger()
+    let id = UUID()
+    XCTAssertTrue(ledger.pendingSpends.isEmpty)
+    ledger.recordPendingSpend(assetID: id, on: "tintype")
+    XCTAssertEqual(ledger.pendingSpends[id], "tintype")
+    ledger.clearPendingSpend(assetID: id)
+    XCTAssertNil(ledger.pendingSpends[id], "a cleared marker is gone")
+  }
+
+  func testPendingSpendsSurviveANewLedgerInstance() {
+    let suite = "test.exposures.pending.persistence"
+    let defaults = UserDefaults(suiteName: suite)!
+    defaults.removePersistentDomain(forName: suite)
+    let id = UUID()
+    ExposureLedger(defaults: defaults).recordPendingSpend(assetID: id, on: "super-8")
+    XCTAssertEqual(
+      ExposureLedger(defaults: defaults).pendingSpends[id], "super-8",
+      "a pending marker outlives the process that wrote it — that is the point"
+    )
+    defaults.removePersistentDomain(forName: suite)
+  }
+
+  /// The core §7 guarantee this feature exists for: a spend recorded, its
+  /// frame never delivered (process death), is refunded at the next launch.
+  func testReconcileRefundsAnUndeliveredSpend() {
+    let (ledger, _) = freshLedger()
+    let orphan = UUID()
+    ledger.recordSpend(on: "tintype")             // the spend hit the ledger
+    ledger.recordPendingSpend(assetID: orphan, on: "tintype")
+    XCTAssertEqual(ledger.spent(on: "tintype"), 1)
+
+    let refunded = ledger.reconcilePendingSpends(deliveredAssetIDs: [])  // nothing landed
+    XCTAssertEqual(refunded, ["tintype"])
+    XCTAssertEqual(ledger.spent(on: "tintype"), 0, "an undelivered spend is given back")
+    XCTAssertTrue(ledger.pendingSpends.isEmpty, "reconciliation clears the store")
+  }
+
+  /// The equally important other half: a spend whose frame DID land on the
+  /// Roll is never re-minted — reconciliation must not refund a delivered frame.
+  func testReconcileKeepsADeliveredSpend() {
+    let (ledger, _) = freshLedger()
+    let delivered = UUID()
+    ledger.recordSpend(on: "lomo")
+    ledger.recordPendingSpend(assetID: delivered, on: "lomo")
+
+    let refunded = ledger.reconcilePendingSpends(deliveredAssetIDs: [delivered])
+    XCTAssertTrue(refunded.isEmpty, "a delivered frame is not refunded")
+    XCTAssertEqual(ledger.spent(on: "lomo"), 1, "the exposure stays spent — the frame is kept")
+    XCTAssertTrue(ledger.pendingSpends.isEmpty, "the marker is retired either way")
+  }
+
+  /// A launch with two markers — one landed, one lost — reconciles each on its
+  /// own merits, refunding exactly the orphan.
+  func testReconcileMixedBatch() {
+    let (ledger, _) = freshLedger()
+    let landed = UUID(), lost = UUID()
+    ledger.recordSpend(on: "kodachrome")
+    ledger.recordSpend(on: "tintype")
+    ledger.recordPendingSpend(assetID: landed, on: "kodachrome")
+    ledger.recordPendingSpend(assetID: lost, on: "tintype")
+
+    let refunded = ledger.reconcilePendingSpends(deliveredAssetIDs: [landed])
+    XCTAssertEqual(refunded, ["tintype"])
+    XCTAssertEqual(ledger.spent(on: "kodachrome"), 1, "the delivered frame keeps its spend")
+    XCTAssertEqual(ledger.spent(on: "tintype"), 0, "the lost frame is refunded")
+  }
+
+  func testReconcileWithNoPendingIsANoOp() {
+    let (ledger, _) = freshLedger()
+    ledger.recordSpend(on: "tintype")
+    XCTAssertEqual(ledger.reconcilePendingSpends(deliveredAssetIDs: []), [])
+    XCTAssertEqual(ledger.spent(on: "tintype"), 1, "a spend with no marker is untouched")
+  }
+
   func testLedgerPersistsAcrossInstances() {
     let suite = "test.exposures.persistence"
     let defaults = UserDefaults(suiteName: suite)!
