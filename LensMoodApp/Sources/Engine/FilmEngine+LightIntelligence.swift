@@ -396,6 +396,23 @@ extension FilmEngine {
     ]).cropped(to: image.extent)
   }
 
+  /// R84 (item 2): the shadow toe a flash-wash stock floats on daylight. The low
+  /// input band is pulled toward true black (a stock committing its blacks) while
+  /// the upper half stays identity — so the daylight tabletop/shadows reach black
+  /// again instead of sitting grey. `amount` (the graded daylight guard) scales
+  /// it; 0 is a no-op, so the dark-scene look is untouched.
+  func applyDaylightBlackPoint(_ image: CIImage, amount: Double) -> CIImage {
+    guard amount > 0.001 else { return image }
+    let a = min(1, amount)
+    return image.applyingFilter("CIToneCurve", parameters: [
+      "inputPoint0": CIVector(x: 0, y: 0),
+      "inputPoint1": CIVector(x: 0.10, y: max(0, 0.10 - 0.075 * a)),
+      "inputPoint2": CIVector(x: 0.30, y: 0.30 - 0.03 * a),
+      "inputPoint3": CIVector(x: 0.60, y: 0.60),
+      "inputPoint4": CIVector(x: 1.0, y: 1.0),
+    ]).cropped(to: image.extent)
+  }
+
   /// CCD charge-overflow blooming / tube comet-tails: clipped highlights smear
   /// VERTICALLY down the sensor column, carrying the highlight's own color.
   /// `onlyInDark` models tube cameras whose smear shows at night gain; CCD

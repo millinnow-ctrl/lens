@@ -70,6 +70,16 @@ final class FilmEngine {
   static let grainOctaveAmplitude = 0.55
   static let grainResponseFloor = 0.15
 
+  /// R84 (item 2): flash stocks tuned on dark party scenes that WASH daylight —
+  /// the whole frame lifts (the adaptive median chase) and the blacks never
+  /// reach black. On a bright scene these stocks commit their blacks
+  /// (`applyDaylightBlackPoint`) AND have their positive adaptive lift backed
+  /// off, both scaled by the same scene-keyed `brightGuardWeight` as the
+  /// highlight guard, so the dark-scene look renders byte-identically. (The
+  /// identity SPLIT of the flash trio — divergent WB/clip character — is Wave 2;
+  /// this only stops the daylight wash.)
+  static let daylightBlackPointStocks: Set<String> = ["iphone-flash", "point-shoot"]
+
   init() {
     let sRGB = CGColorSpace(name: CGColorSpace.sRGB)!
     context = CIContext(options: [
@@ -442,6 +452,13 @@ final class FilmEngine {
       if dayGuard > 0.001 {
         image = applyDaylightHighlightRolloff(image, amount: dayGuard)
       }
+      // R84 (item 2): a flash-wash stock also floats its blacks on daylight —
+      // commit them with a scene-keyed shadow toe (no-op on the dark scenes it
+      // was tuned for, and only for the stocks whose daylight identity is a
+      // committed black; y2k keeps its glossy floated blacks — not in the set).
+      if dayGuard > 0.001, FilmEngine.daylightBlackPointStocks.contains(recipe.id) {
+        image = applyDaylightBlackPoint(image, amount: dayGuard)
+      }
     }
     // R66 masked-light, immediately after the color core so both passes see
     // (and can answer) exactly what the emulsion just did: the skin mask holds
@@ -596,12 +613,21 @@ final class FilmEngine {
       // Keyed on the SCENE's highlights (p99), not the original face luminance
       // (the flashed face reads dark in the meter, e.g. 0.245 on friends, yet
       // clips after develop). Off (headroom 0) for the color flash family.
-      if recipe.flashHighlightHeadroom > 0.001 {
+      // R78 headroom (unconditional, photobooth) OR the R84 daylight guard on a
+      // black-point flash-wash stock (scene-keyed): both back the positive lift
+      // off so the flashed skin isn't chased to paper-white AND the whole bright
+      // frame isn't lifted off its blacks. y2k is NOT a black-point stock, so its
+      // median chase is unchanged (restraint stays 0 → block skipped for it).
+      let dayRestraint = FilmEngine.daylightBlackPointStocks.contains(recipe.id)
+        ? recipe.daylightHighlightGuard * FilmEngine.brightGuardWeight(scene)
+        : 0
+      let restraint = max(recipe.flashHighlightHeadroom, dayRestraint)
+      if restraint > 0.001 {
         let hiT = max(0, min(1, (scene.p99 - 0.70) / 0.22))
         let hiHot = hiT * hiT * (3 - 2 * hiT)
         let faceHot = scene.faceLum.map { max(0, min(1, ($0 - 0.55) / 0.30)) } ?? 0
         let hot = max(faceHot, hiHot)
-        correction *= 1 - recipe.flashHighlightHeadroom * hot
+        correction *= 1 - restraint * hot
       }
     }
     return correction * recipe.adaptiveExposure

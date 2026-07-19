@@ -279,6 +279,98 @@ final class LensFixEvidenceTests: XCTestCase {
     }
   }
 
+  // MARK: - Direct Flash / Pocket Compact daylight wash (R84 item 2)
+
+  /// The hard-flash family (iphone-flash, point-shoot) was tuned on dark party
+  /// frames; on a bright daylight café the same face-lift + median chase just
+  /// over-exposes — the whole frame lifts, the blacks never reach black (grey
+  /// tabletop), skin goes waxy, the background verges on blown (critic A #4/#5).
+  /// The scene-keyed guard rolls the highlights off and (as black-point stocks)
+  /// commits the blacks + caps the adaptive lift. Pinned on a wash-prone bright
+  /// scene (median below the exposure target, so the lift engages) where the
+  /// defect reproduces: the guard must reclaim the shadow point and hold the
+  /// highlights. Night byte-identity pinned on friends (guard weight 0).
+  func testFlashWashDaylightGuardEvidence() throws {
+    let engine = FilmEngine()
+    let dir = try outDir()
+    let bright = washProneImage()
+    let scene = washProneScene()
+    let weight = FilmEngine.brightGuardWeight(scene)
+    XCTAssertGreaterThan(weight, 0.9, "the guard must fully engage on the bright wash scene")
+    let reading = SceneReading(scene: scene, subject: SubjectAnalysis(faces: [], personMask: nil))
+    // the shadow surface that floats grey (the "tabletop") and the bright band.
+    let shadow = CGRect(x: 0.1, y: 0.80, width: 0.8, height: 0.17)
+    let highlight = CGRect(x: 0, y: 0.02, width: 1, height: 0.33)
+
+    for id in ["iphone-flash", "point-shoot"] {
+      let recipe = CameraRecipe.recipe(for: id)
+      XCTAssertGreaterThan(recipe.daylightHighlightGuard, 0, "\(id) must carry the daylight guard")
+      XCTAssertTrue(FilmEngine.daylightBlackPointStocks.contains(id), "\(id) must be a black-point stock")
+
+      let after = try engine.develop(bright, with: recipe, seed: 1, reading: reading)
+      let before = try engine.develop(bright, with: withoutDaylightGuard(recipe), seed: 1, reading: reading)
+      try XCTUnwrap(before.image.pngData()).write(to: dir.appendingPathComponent("\(id)-daylight-before.png"))
+      try XCTUnwrap(after.image.pngData()).write(to: dir.appendingPathComponent("\(id)-daylight-after.png"))
+
+      guard let beforeR = ImageMetrics.raster(before.image),
+            let afterR = ImageMetrics.raster(after.image) else { return XCTFail("raster failed \(id)") }
+      let beforeShadow = meanLuma(beforeR, in: shadow)
+      let afterShadow = meanLuma(afterR, in: shadow)
+      let beforeHi = meanLuma(beforeR, in: highlight)
+      let afterHi = meanLuma(afterR, in: highlight)
+      print("\(id) daylight: shadow before \(beforeShadow) after \(afterShadow); hi before \(beforeHi) after \(afterHi)")
+      // black-point commitment: the floating shadow point is reclaimed to black.
+      XCTAssertLessThan(afterShadow, beforeShadow - 5, "\(id): the daylight guard must reclaim the floating black")
+      XCTAssertLessThan(afterShadow, 22, "\(id): daylight blacks must reach near-true-black")
+      // and the near-blown background is held back.
+      XCTAssertLessThan(afterHi, beforeHi, "\(id): the daylight guard must hold the highlights back")
+
+      // Night byte-identity: guard weight 0 on the dark party frame.
+      if let friends = source("sample-friends.jpg") {
+        let nightReading = try engine.read(friends)
+        let nAfter = try engine.develop(friends, with: recipe, maxPixelSize: 512, seed: 1, reading: nightReading)
+        let nBefore = try engine.develop(friends, with: withoutDaylightGuard(recipe), maxPixelSize: 512, seed: 1, reading: nightReading)
+        XCTAssertEqual(
+          try XCTUnwrap(nAfter.image.pngData()), try XCTUnwrap(nBefore.image.pngData()),
+          "\(id) night must be byte-identical — the daylight guard is a no-op in the dark"
+        )
+      }
+    }
+  }
+
+  /// A bright daylight raster that WASHES for a flash stock: a bright background
+  /// (top 40%) at 0.88, a mid face band at 0.55, and a shadow surface (bottom
+  /// 22%) at 0.15 — the "tabletop" that should reach black but floats grey.
+  private func washProneImage(side: CGFloat = 160) -> UIImage {
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = 1
+    return UIGraphicsImageRenderer(size: CGSize(width: side, height: side), format: format).image { ctx in
+      let g = ctx.cgContext
+      g.setFillColor(UIColor(white: 0.35, alpha: 1).cgColor)
+      g.fill(CGRect(x: 0, y: 0, width: side, height: side))
+      g.setFillColor(UIColor(white: 0.88, alpha: 1).cgColor)          // bright background
+      g.fill(CGRect(x: 0, y: 0, width: side, height: side * 0.40))
+      g.setFillColor(UIColor(white: 0.55, alpha: 1).cgColor)          // mid face band
+      g.fill(CGRect(x: side * 0.2, y: side * 0.46, width: side * 0.6, height: side * 0.16))
+      g.setFillColor(UIColor(white: 0.15, alpha: 1).cgColor)          // shadow "tabletop"
+      g.fill(CGRect(x: 0, y: side * 0.78, width: side, height: side * 0.22))
+    }
+  }
+
+  /// The scene a wash-prone bright café meters as: bright (key 0.44 → full guard
+  /// weight) but with a median BELOW the exposure target (0.42 < 0.50), so the
+  /// adaptive median chase lifts the whole frame — the exact wash condition.
+  private func washProneScene() -> SceneProfile {
+    SceneProfile(
+      analyzed: true, key: 0.44, p01: 0.05, p50: 0.42, p99: 0.90,
+      illum: [1, 1, 1], sat: 0.22, lights: [], auxLights: [], faceLum: 0.50,
+      meanLuminance: 0.46, medianLuminance: 0.42, shadowFraction: 0.22,
+      highlightFraction: 0.40, dynamicRange: 0.7, averageRed: 0.46,
+      averageGreen: 0.46, averageBlue: 0.46, saturation: 0.22, warmth: 0,
+      isLowKey: false, isHighKey: false, isBacklit: false
+    )
+  }
+
   /// Owner-like bright daylight raster whose highlights sit AT clip: the top 45%
   /// (shirts / background) at 0.98, a mid face band at 0.72, darker ground 0.40.
   private func photoboothBrightImage(side: CGFloat = 160) -> UIImage {
