@@ -468,6 +468,29 @@ struct DevelopView: View {
       }
       .buttonStyle(InstrumentButtonStyle(kind: .secondary))
       .disabled(developedImage == nil)
+      Button("Share as camera card") {
+        // the card is a format the user chooses — the bare share above stays
+        // unmarked. Same gate as develop(): locked cameras never emit cards
+        // (a no-op while Store.everythingFreeForNow keeps all 18 open).
+        guard Store.shared.isUnlocked(currentStock) else {
+          activeSheet = .paywall
+          return
+        }
+        guard let developedImage, let sourceImage else { return }
+        let stock = currentStock
+        let decision = decisions.first
+        let strength = intensity
+        Task.detached(priority: .userInitiated) {
+          let composed = blended(developed: developedImage, over: sourceImage, intensity: strength)
+          let card = LightTestCard.single(photo: composed, stock: stock, decision: decision)
+          await MainActor.run {
+            Analytics.log(.photoShared)
+            activeSheet = .share(card)
+          }
+        }
+      }
+      .buttonStyle(InstrumentButtonStyle(kind: .secondary))
+      .disabled(developedImage == nil)
     }
   }
 
