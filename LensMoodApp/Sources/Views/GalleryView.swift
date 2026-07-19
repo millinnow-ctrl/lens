@@ -154,7 +154,7 @@ struct GalleryView: View {
         .scaledFont(size: 36, weight: .ultraLight, relativeTo: .largeTitle)
       Text("No developed frames")
         .scaledFont(size: 25, weight: .heavy, relativeTo: .title)
-      Text("Photographs you develop are kept here, in monthly rolls.")
+      Text("Developed photographs are kept here, in monthly rolls.")
         .scaledFont(size: 14, relativeTo: .footnote)
         .foregroundStyle(Theme.inkSoft)
         .multilineTextAlignment(.center)
@@ -283,7 +283,7 @@ private struct GalleryDetailView: View {
             }
             Button("Cancel", role: .cancel) {}
           } message: {
-            Text("It leaves your roll for good. Anything already saved to Photos stays saved.")
+            Text("Leaves your roll for good. Saved copies stay in Photos.")
           }
         }
         .padding(Theme.pagePadding)
