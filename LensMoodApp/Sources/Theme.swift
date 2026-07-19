@@ -158,6 +158,10 @@ struct InstrumentButtonStyle: ButtonStyle {
   }
 
   let kind: Kind
+  // custom ButtonStyles get no automatic disabled dimming — read it and quiet
+  // the control ourselves, so a disabled Save/Share reads as unavailable
+  // instead of full-vibrancy-but-dead (the app's quiet visual language)
+  @Environment(\.isEnabled) private var isEnabled
 
   func makeBody(configuration: Configuration) -> some View {
     configuration.label
@@ -174,7 +178,7 @@ struct InstrumentButtonStyle: ButtonStyle {
         }
       }
       .contentShape(Capsule())
-      .opacity(configuration.isPressed ? 0.92 : 1)
+      .opacity(isEnabled ? (configuration.isPressed ? 0.92 : 1) : 0.5)
       .scaleEffect(configuration.isPressed ? 0.985 : 1)
       .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
   }
