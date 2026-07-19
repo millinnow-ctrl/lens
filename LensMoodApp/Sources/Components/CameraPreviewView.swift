@@ -2,10 +2,6 @@ import AVFoundation
 import SwiftUI
 import UIKit
 
-/// The live viewfinder feed. On a real device it shows the AVCaptureSession via
-/// an AVCaptureVideoPreviewLayer. When there is no camera (Simulator / CI /
-/// permission denied) it shows the loaded camera's signature plate, letterboxed,
-/// so the whole pro-camera chrome still reads as a photographic frame.
 /// Bridges tap-to-focus into AVFoundation's coordinate system.
 /// `focusPointOfInterest` does NOT take view coordinates — its space is the
 /// unrotated sensor's (landscape, home button right), so feeding it the
@@ -25,6 +21,10 @@ final class CaptureDevicePointConverter {
   }
 }
 
+/// The live viewfinder feed. On a real device it shows the AVCaptureSession via
+/// an AVCaptureVideoPreviewLayer. When there is no camera (Simulator / CI /
+/// permission denied) it shows the loaded camera's signature plate, letterboxed,
+/// so the whole pro-camera chrome still reads as a photographic frame.
 struct CameraPreviewView: UIViewRepresentable {
   let session: AVCaptureSession
   let isAvailable: Bool
