@@ -127,12 +127,58 @@ enum LibraryStore {
     ioQueue.sync {}
   }
 
+  /// Enqueue one write under a background-task assertion. Without it, a user
+  /// who develops and immediately backgrounds the app races the utility-QoS
+  /// queue against suspension — if suspension wins and the process is later
+  /// terminated, the queued JPEG + index write never lands and the kept frame
+  /// silently vanishes from the next launch. Enqueueing stays synchronous at
+  /// the call site, so the store's serial ordering guarantees are unchanged.
+  private static func protectedAsync(_ work: @escaping () -> Void) {
+    let assertion = WriteAssertion()
+    ioQueue.async {
+      work()
+      assertion.end()
+    }
+  }
+
+  /// A short-lived UIApplication background task around one queued write.
+  /// All state lives on the main actor (where UIApplication is isolated);
+  /// an `end` that lands before the begin simply prevents it.
+  private final class WriteAssertion: @unchecked Sendable {
+    private var taskID = UIBackgroundTaskIdentifier.invalid
+    private var ended = false
+
+    init() {
+      Task { @MainActor in
+        guard !self.ended else { return }
+        self.taskID = UIApplication.shared.beginBackgroundTask(
+          withName: "app.lensmood.library-write"
+        ) { [weak self] in
+          // expiration runs on the main thread; hop onto the actor to settle
+          Task { @MainActor in self?.endOnMain() }
+        }
+      }
+    }
+
+    func end() {
+      Task { @MainActor in self.endOnMain() }
+    }
+
+    @MainActor
+    private func endOnMain() {
+      ended = true
+      guard taskID != .invalid else { return }
+      UIApplication.shared.endBackgroundTask(taskID)
+      taskID = .invalid
+    }
+  }
+
   /// Write one asset's developed frame + index entry (idempotent per id).
   /// Only session assets carry the full frame; a loaded/demoted asset's frame
   /// of record is already this store's JPEG, so persisting it is a no-op.
   static func persist(_ asset: DevelopedAsset) {
     guard let frame = asset.image else { return }
-    ioQueue.async {
+    protectedAsync {
       if let data = downscaled(frame).jpegData(compressionQuality: jpegQuality) {
         try? data.write(to: imageURL(asset.id), options: .atomic)
       }
@@ -150,7 +196,7 @@ enum LibraryStore {
 
   /// Flip a stored asset's favorite flag in place (no image rewrite).
   static func setFavorite(id: UUID, favorite: Bool) {
-    ioQueue.async {
+    protectedAsync {
       let updated = loadIndex().map { entry -> StoredAsset in
         guard entry.id == id else { return entry }
         return StoredAsset(
@@ -163,7 +209,7 @@ enum LibraryStore {
   }
 
   static func delete(id: UUID) {
-    ioQueue.async {
+    protectedAsync {
       try? FileManager.default.removeItem(at: imageURL(id))
       writeIndex(loadIndex().filter { $0.id != id })
     }
@@ -172,7 +218,7 @@ enum LibraryStore {
   /// Drop any on-disk frames whose ids are no longer kept in memory (the roll
   /// is capped, so trimmed frames should not linger on disk).
   static func prune(keeping ids: [UUID]) {
-    ioQueue.async {
+    protectedAsync {
       let keep = Set(ids)
       for entry in loadIndex() where !keep.contains(entry.id) {
         try? FileManager.default.removeItem(at: imageURL(entry.id))
