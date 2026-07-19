@@ -123,15 +123,17 @@ jobs:
             xcrun simctl launch "$DEVICE_ID" app.lensmood.ios
           sleep 9
           xcrun simctl io "$DEVICE_ID" screenshot ui-artifacts/develop-screens/rehearsal-film-door.png
-          # the same neon develop in Original and Compare preview modes — the
-          # ad's compare-slider moment wipes between genuine app states
-          for mode in original compare; do
-            xcrun simctl terminate "$DEVICE_ID" app.lensmood.ios || true
-            SIMCTL_CHILD_LENSMOOD_TAB=cameras SIMCTL_CHILD_LENSMOOD_AD=1 SIMCTL_CHILD_LENSMOOD_AD_STOCK=kodachrome \
-              SIMCTL_CHILD_LENSMOOD_AD_MODE=$mode SIMCTL_CHILD_LENSMOOD_AD_PHOTO=style-owner-4391 \
-              xcrun simctl launch "$DEVICE_ID" app.lensmood.ios
-            sleep 9
-            xcrun simctl io "$DEVICE_ID" screenshot ui-artifacts/develop-screens/kodachrome-$mode.png
+          # Original and Compare (half-original / half-developed) preview modes
+          # on the two candidate cameras — the deck uses whichever reads better
+          for pairstock in disposable y2k-digicam; do
+            for mode in original compare; do
+              xcrun simctl terminate "$DEVICE_ID" app.lensmood.ios || true
+              SIMCTL_CHILD_LENSMOOD_TAB=cameras SIMCTL_CHILD_LENSMOOD_AD=1 SIMCTL_CHILD_LENSMOOD_AD_STOCK=$pairstock \
+                SIMCTL_CHILD_LENSMOOD_AD_MODE=$mode SIMCTL_CHILD_LENSMOOD_AD_PHOTO=style-owner-4391 \
+                xcrun simctl launch "$DEVICE_ID" app.lensmood.ios
+              sleep 9
+              xcrun simctl io "$DEVICE_ID" screenshot ui-artifacts/develop-screens/$pairstock-$mode.png
+            done
           done
 
       - name: Upload simulator capture
