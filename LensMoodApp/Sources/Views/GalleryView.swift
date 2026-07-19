@@ -188,6 +188,9 @@ private struct GalleryDetailView: View {
   @EnvironmentObject private var model: AppModel
   @Environment(\.dismiss) private var dismiss
   @State private var shareItem: ShareItem?
+  /// guards the detached camera-card compose so a double-tap can't race two
+  /// renders into the one share seat
+  @State private var isComposingCard = false
   @State private var isSaving = false
   /// monotonic save counter driving the SavedTick (see SavedTick.swift)
   @State private var saveTick = 0
@@ -252,6 +255,7 @@ private struct GalleryDetailView: View {
             shareCard()
           }
           .buttonStyle(InstrumentButtonStyle(kind: .secondary))
+          .disabled(isComposingCard)
 
           Button("Print this frame") {
             printThisFrame()
@@ -418,6 +422,8 @@ private struct GalleryDetailView: View {
   /// kept develop, its camera, and its first decision note. The Library keeps
   /// parity: any kept frame can leave the app in the identifiable format.
   private func shareCard() {
+    guard !isComposingCard, shareItem == nil else { return }
+    isComposingCard = true
     let asset = asset
     let resident = fullImage ?? asset.image
     Task { @MainActor in
@@ -428,6 +434,7 @@ private struct GalleryDetailView: View {
       }.value
       Analytics.log(.photoShared)
       shareItem = ShareItem(image: card)
+      isComposingCard = false
     }
   }
 
