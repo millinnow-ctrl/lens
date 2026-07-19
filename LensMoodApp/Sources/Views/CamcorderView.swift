@@ -29,6 +29,13 @@ struct CamcorderView: View {
   @State private var saveTick = 0
   @State private var cameraUnavailable = false
   @State private var isSaving = false
+  /// true when the working input came from the in-app recorder (not a library
+  /// pick) — such a recording exists only in tmp, so if its develop fails it
+  /// must not be lost
+  @State private var inputFromCamera = false
+  /// a just-recorded clip whose develop failed: its only copy, offered for
+  /// save-to-Photos on the failure alert
+  @State private var strandedOriginal: URL?
 
   var body: some View {
     NavigationStack {
@@ -53,6 +60,7 @@ struct CamcorderView: View {
       .navigationBarTitleDisplayMode(.inline)
       .sheet(isPresented: $cameraPresented) {
         VideoCameraPicker { url in
+          inputFromCamera = true
           adopt(input: url)
         }
         .ignoresSafeArea()
@@ -66,9 +74,14 @@ struct CamcorderView: View {
         get: { errorMessage != nil },
         set: { if !$0 { errorMessage = nil } }
       )) {
-        Button("OK", role: .cancel) {}
+        if let original = strandedOriginal {
+          Button("Save original to Photos") { saveOriginal(original) }
+        }
+        Button("OK", role: .cancel) { strandedOriginal = nil }
       } message: {
-        Text(errorMessage ?? "Try another clip.")
+        Text(strandedOriginal != nil
+          ? "The tape look couldn't be applied. You can still save your original recording to Photos."
+          : (errorMessage ?? "Try another clip."))
       }
       .alert("Camera unavailable", isPresented: $cameraUnavailable) {
         Button("OK", role: .cancel) {}
@@ -194,6 +207,7 @@ struct CamcorderView: View {
         guard let movie = try await item.loadTransferable(type: ImportedMovie.self) else {
           throw VhsError.badInput("The selected clip could not be opened.")
         }
+        inputFromCamera = false   // a library pick has its own copy in Photos
         adopt(input: movie.url)
       } catch {
         isExporting = false
@@ -206,6 +220,7 @@ struct CamcorderView: View {
   private func adopt(input url: URL) {
     discardTemp(inputURL)
     discardTemp(outputURL)
+    strandedOriginal = nil   // a new clip supersedes any earlier stranded one
     inputURL = url
     developTape(url)
   }
@@ -257,6 +272,24 @@ struct CamcorderView: View {
         UINotificationFeedbackGenerator().notificationOccurred(.success)
       } catch {
         isExporting = false
+        // a just-recorded clip lives only in tmp — offer to save the original
+        // so a develop failure never loses a unique 60-second recording
+        if inputFromCamera { strandedOriginal = url }
+        errorMessage = error.localizedDescription
+      }
+    }
+  }
+
+  /// last-resort rescue: the develop failed, but the raw recording is still in
+  /// tmp — write it to Photos so the moment isn't lost
+  private func saveOriginal(_ url: URL) {
+    Task { @MainActor in
+      do {
+        try await PhotoLibraryWriter.save(videoAt: url)
+        strandedOriginal = nil
+        saveTick += 1
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+      } catch {
         errorMessage = error.localizedDescription
       }
     }
