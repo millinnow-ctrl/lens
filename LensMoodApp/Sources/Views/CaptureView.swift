@@ -28,6 +28,9 @@ struct CaptureView: View {
 
   @State private var isDeveloping = false
   @State private var review: DevelopedAsset?
+  /// confirm before an archived Roll frame opened for review is destroyed —
+  /// "Retake" only makes sense for the just-taken shot
+  @State private var reviewDeleteRequested = false
   /// full frame for a Roll pick under review, keyed by asset id so a stale
   /// decode can never show under a different frame (two-tier: persisted
   /// assets only carry a thumbnail in memory; fresh shots hold their frame)
@@ -783,9 +786,33 @@ struct CaptureView: View {
         .padding(.horizontal, 20)
 
         HStack(spacing: 12) {
-          Button("Retake") { model.remove(asset); review = nil }
-            .buttonStyle(InstrumentButtonStyle(kind: .secondary))
+          if asset.image != nil {
+            // the fresh shot: retaking discards a frame just taken — no confirm
+            Button("Retake") { model.remove(asset); review = nil }
+              .buttonStyle(InstrumentButtonStyle(kind: .secondary))
+              .disabled(isSavingShot)
+          } else {
+            // an archived Roll frame: destroying a kept photograph must confirm
+            // and name the consequence, the Library's delete-confirm idiom
+            Button(role: .destructive) {
+              reviewDeleteRequested = true
+            } label: {
+              Text("Delete")
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: Theme.controlHeight)
+            }
             .disabled(isSavingShot)
+            .confirmationDialog(
+              "Delete this frame?",
+              isPresented: $reviewDeleteRequested,
+              titleVisibility: .visible
+            ) {
+              Button("Delete Frame", role: .destructive) { model.remove(asset); review = nil }
+              Button("Cancel", role: .cancel) {}
+            } message: {
+              Text("It leaves your roll for good. Anything already saved to Photos stays saved.")
+            }
+          }
           Button(isSavingShot ? "Saving…" : "Save to Photos") { save(asset) }
             .buttonStyle(InstrumentButtonStyle(kind: .primary))
             .disabled(isSavingShot)
