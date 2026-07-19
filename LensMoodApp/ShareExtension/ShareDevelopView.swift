@@ -107,6 +107,9 @@ struct ShareDevelopView: View {
           .contentShape(Rectangle())
       }
       .accessibilityLabel("Close")
+      // completeRequest tears the extension process down — never mid-save, or
+      // the PHPhotoLibrary write lands nondeterministically with no confirmation
+      .disabled(isSaving)
     }
   }
 
@@ -249,6 +252,8 @@ struct ShareDevelopView: View {
       finish()
     }
     .buttonStyle(InstrumentButtonStyle(kind: .secondary))
+    // don't complete the request while a save is writing (see the header X)
+    .disabled(isSaving)
   }
 
   private var saveButton: some View {
