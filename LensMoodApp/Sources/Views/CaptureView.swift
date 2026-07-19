@@ -177,6 +177,8 @@ struct CaptureView: View {
       }
       .frame(minWidth: 46)
     }.buttonStyle(.plain)
+    // VoiceOver hears which readout the wheel is currently driving
+    .accessibilityAddTraits(on ? .isSelected : [])
   }
 
   private var flashReadout: some View {
@@ -193,6 +195,8 @@ struct CaptureView: View {
           .lineLimit(1).minimumScaleFactor(0.8).tracking(1).foregroundStyle(CameraTheme.faint)
       }.frame(minWidth: 44)
     }.buttonStyle(.plain)
+    // the glyph alone reads as "bolt" — name the control and its state
+    .accessibilityLabel("Flash \(flashLabel.capitalized)")
   }
 
   // MARK: viewfinder
@@ -254,6 +258,18 @@ struct CaptureView: View {
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
       .padding(.bottom, 16)
+      // the wheel is a drag-only instrument — expose it to VoiceOver as one
+      // adjustable element (swipe up/down steps the active parameter)
+      .accessibilityElement(children: .ignore)
+      .accessibilityLabel("\(spokenDialName) dial")
+      .accessibilityValue(activeDialLabel)
+      .accessibilityAdjustableAction { direction in
+        switch direction {
+        case .increment: setActiveDial(to: activeIndex + 1)
+        case .decrement: setActiveDial(to: activeIndex - 1)
+        @unknown default: break
+        }
+      }
     }
     .frame(width: size.width, height: size.height * 0.62)
     .clipped()
@@ -390,6 +406,10 @@ struct CaptureView: View {
           .foregroundStyle(on ? CameraTheme.gold : CameraTheme.dim)
           .frame(maxWidth: .infinity)
         }.buttonStyle(.plain)
+        // spell the mode name (the all-caps label may read letter-by-letter)
+        // and let VoiceOver hear which mode the camera is in
+        .accessibilityLabel(mode.rawValue)
+        .accessibilityAddTraits(on ? .isSelected : [])
       }
     }
     .padding(.horizontal, 12).padding(.top, 16).padding(.bottom, 4)
@@ -611,6 +631,9 @@ struct CaptureView: View {
                 Image(uiImage: asset.thumbnail).resizable().scaledToFill()
                   .frame(height: 140).clipped().clipShape(RoundedRectangle(cornerRadius: 10))
               }.buttonStyle(.plain)
+              // an unlabeled image button reads as nothing — name the frame
+              .accessibilityLabel("\(asset.stock.name) photograph")
+              .accessibilityHint("Opens this frame for review")
             }
           }.padding(12)
         }
@@ -699,6 +722,7 @@ struct CaptureView: View {
           Text("REVIEW").scaledFont(size: 11, weight: .bold, design: .monospaced, relativeTo: .caption2).tracking(2).foregroundStyle(CameraTheme.dim)
           Spacer()
           Button { review = nil } label: { Image(systemName: "xmark").foregroundStyle(.white) }
+            .accessibilityLabel("Close review")   // the bare glyph reads as "xmark"
         }.padding(.horizontal, 20)
 
         Image(uiImage: reviewFrame(for: asset))
@@ -911,6 +935,16 @@ struct CaptureView: View {
     case .shutter: return "SHUTTER"
     case .iso: return "ISO"
     case .ev: return "EXPOSURE"
+    }
+  }
+  /// mixed-case for VoiceOver — the engraved all-caps labels can be spelled
+  /// out letter by letter
+  private var spokenDialName: String {
+    switch activeDial {
+    case .aperture: return "Aperture"
+    case .shutter: return "Shutter"
+    case .iso: return "ISO"
+    case .ev: return "Exposure"
     }
   }
 
