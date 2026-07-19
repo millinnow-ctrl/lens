@@ -290,3 +290,89 @@ data exists yet]:
   week 4, the stage-resolution-only preview mitigation returns to the
   table (locked previews develop at stage resolution rather than full).
   Never a watermark, never a degraded render — the never-list holds.
+
+---
+
+## 7. Gate ruling, 2026-07-19: the loaded roll (supersedes §6's keep-gate)
+
+Juror ruling, R76 tournament (four designs, one winner with amendments).
+Owner-directed origin: the §6 keep-gate leaked — unlimited full-quality
+locked develops on the stage meant a screenshot captured the whole visual
+value, every time. The gate now sits at the develop, before any unowned
+render exists. Wired, and fully inert while `everythingFreeForNow` is
+true (`testShippedConfigurationKeepsTheRollInert` pins it).
+
+- **Every locked camera comes loaded with 3 exposures, per camera, never
+  shared** (`ExposureRoll.loadedExposures`; ledger in `ExposureLedger`,
+  UserDefaults with an injectable suite). Per-camera because each of the
+  12 Plus cameras must prove its own personality on the user's
+  photographs; worst-case giveaway is bounded at 36 develops spread
+  across 12 distinct personalities.
+- **The roll is finite. It NEVER replenishes.** Film does not regrow —
+  a one-glance rule with no reset state to explain. A monthly reset
+  would be a permanent partial Plus undercutting the $49.99 permanence
+  promise, and a scheduled refill is a countdown to free stuff —
+  urgency's mirror image.
+- **A spend is a deliberate confirmed act**: the film door states the
+  count and the cost ("Develop — spends one exposure") before the one
+  primary action. Rail flicks never spend. One spend per (photograph,
+  camera): re-renders of the same photograph on the same camera
+  (strength slider, rail round-trip, preview-cache hit) never
+  double-spend; a new photograph is a new spend.
+- **What a spend buys is a complete keep**: full ceremony, full
+  resolution, a permanent Roll entry outside the session-replace path
+  (`storeSpentExposureInLibrary`), free Save/Share/card forever. Kept
+  frames are never confiscated. While film remains, every locked render
+  on screen is already the user's — a screenshot is strictly worse than
+  what they own.
+- **Refund rules:** a failed render refunds its frame; an abandoned
+  in-flight film-bought develop (camera switch / new photograph before
+  landing) refunds its frame; refunds floor at zero; an open camera can
+  never spend or be refunded. Identical on the capture path.
+- **Spent, the camera stops firing.** No develop, no staged render, ever
+  again on that camera — the leaked object is abolished, not narrowed.
+  The spent door states facts in the instrument's voice ("Out of film"),
+  shows what was kept, and carries one pull-only button to the offer.
+- **Capture shoots on the same roll** (the CaptureView bypass is
+  closed): the shutter of a spent camera goes slack with a plain
+  mode-line fact, and the mount picker's spent cell routes to the same
+  pull-only offer — the user tapping a locked object, never a proactive
+  push. That mount-picker door is a ratified third paywall route beside
+  the develop door and Account.
+- **Disclosure:** numeric remaining-count pills on rail chips and mount
+  cells while loaded (3/2/1), lock glyph only when spent; a counter line
+  after each spend; film bar reads "·2 EXP" / "EMPTY". Remaining-count
+  framing, consistent across chip, door, and film bar. VoiceOver speaks
+  every film state.
+- **The paywall context is `.reload(stock:kept:)`** — it leads with the
+  camera being bought and the frames the user already kept on it (their
+  own photographs, never stock art, never a hostage frame), "Load every
+  camera for good", lifetime visually primary, restore present, all
+  surfaces pull-only. The loaded film door also names Plus in one
+  passive closing sentence ("Plus loads every camera for good.") —
+  82% of trial starts happen install day.
+- **Seasonal-drop cameras arrive loaded with their own 3 exposures** —
+  inherent in the per-camera ledger (a new stock ID has zero spends);
+  the gift rhythm lands without any refill mechanic.
+- **The Share extension lists only unlocked cameras** (Store +
+  ExposureRoll now compile into `LensMoodShare`; StoreKit entitlements
+  are per Apple ID, no App Group). The film door stays an in-app
+  ceremony; the extension simply doesn't list what isn't open.
+- **Accepted, documented risk:** reinstall resets the ledger
+  (UserDefaults, no iCloud/App Group). At N=3 a re-loaded roll is a
+  grace, not an exploit; the payer path is unaffected. If durability is
+  ever wanted, ubiquitous key-value store is a small follow-up.
+- **Watch trigger, revised:** if App Store Connect conversion sits below
+  ~1.5% at week 4, the replacement lever on the table is the
+  **monthly-reload contingency** — a fresh roll per calendar month
+  (implementability proven in the tournament), an owner pricing-adjacent
+  decision. §6's stage-resolution-only preview mitigation is dead: it
+  degrades the render, and the ruled gate never shows an unowned render
+  at all. Never a watermark, never a degraded render — the never-list
+  holds.
+- §2's "credit meters on developing — rejected" is narrowed, not
+  contradicted: the free tier stays "six cameras, unlimited, full-res."
+  Only locked cameras carry the loaded roll, and it meters nothing the
+  user already owns.
+- N=3 and the flip remain owner decisions (§5); nothing here changes
+  pricing placeholders or `Store.everythingFreeForNow`.
