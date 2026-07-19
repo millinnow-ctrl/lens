@@ -98,6 +98,27 @@ final class Store: ObservableObject {
   /// mirroring EVERYTHING_FREE_FOR_NOW in the reference store.
   static let everythingFreeForNow = true
 
+  /// DEBUG-only gate rehearsal: launching with LENSMOOD_REHEARSAL=gate-on
+  /// renders the app exactly as it will behave after the owner flips the
+  /// gate — for design review and screenshot evidence only ("done means
+  /// seen": the gate work is otherwise invisible while inert). Follows the
+  /// precedent of AccountView's DEBUG-only paywall preview and the
+  /// LENSMOOD_AD_MODE harness. Compiled out of release builds entirely; the
+  /// shipped flag above is never touched.
+  static let gateRehearsal: Bool = {
+    #if DEBUG
+      return ProcessInfo.processInfo.environment["LENSMOOD_REHEARSAL"] == "gate-on"
+    #else
+      return false
+    #endif
+  }()
+
+  /// The effective openness every gate check reads: the shipped flag, minus
+  /// the DEBUG rehearsal. Identical to `everythingFreeForNow` in release.
+  static var allGatesOpen: Bool {
+    everythingFreeForNow && !gateRehearsal
+  }
+
   /// Loaded App Store products, cheapest first. Empty until
   /// App Store Connect products exist and load — the paywall then falls
   /// back to PlusCatalog.PlaceholderPrice.
@@ -129,15 +150,45 @@ final class Store: ObservableObject {
   // MARK: Gate checks (every lock in the app goes through these)
 
   var isPlus: Bool {
-    Self.everythingFreeForNow || entitlement == .plus
+    Self.allGatesOpen || entitlement == .plus
   }
 
   func isUnlocked(_ stock: Stock) -> Bool {
     PlusCatalog.isStockUnlocked(
       stock.id,
       entitlement: entitlement,
-      everythingFree: Self.everythingFreeForNow
+      everythingFree: Self.allGatesOpen
     )
+  }
+
+  // MARK: The loaded roll (film-door checks — see ExposureRoll.swift)
+
+  /// What stands between this camera and a develop right now. `.open` for
+  /// every camera while Store.everythingFreeForNow.
+  func developAccess(for stock: Stock) -> ExposureRoll.Access {
+    ExposureRoll.access(
+      stockID: stock.id,
+      entitlement: entitlement,
+      everythingFree: Self.allGatesOpen,
+      spentExposures: ExposureLedger.shared.spent(on: stock.id)
+    )
+  }
+
+  /// Spend one loaded exposure on a locked camera. Returns false when the
+  /// roll is spent — and when the camera is open, because an open camera
+  /// never spends film.
+  func spendExposure(on stock: Stock) -> Bool {
+    guard case .loaded = developAccess(for: stock) else { return false }
+    ExposureLedger.shared.recordSpend(on: stock.id)
+    objectWillChange.send()
+    return true
+  }
+
+  /// Give a spent exposure back when its develop never landed — the camera
+  /// never eats a frame it didn't deliver.
+  func refundExposure(on stock: Stock) {
+    ExposureLedger.shared.refundSpend(on: stock.id)
+    objectWillChange.send()
   }
 
   // MARK: Products

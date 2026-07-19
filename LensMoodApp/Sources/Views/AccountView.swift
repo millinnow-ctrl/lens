@@ -63,7 +63,7 @@ struct AccountView: View {
           .scaledFont(size: 14, weight: .semibold, relativeTo: .footnote)
           .foregroundStyle(Theme.inkSoft)
       }
-      if Store.everythingFreeForNow {
+      if Store.allGatesOpen {
         // Design-review doorway: the paywall is otherwise unreachable
         // while every gate is open. Hidden in release builds until real
         // products load, so App Review never sees placeholder prices.
@@ -88,7 +88,7 @@ struct AccountView: View {
         }
       }
     } footer: {
-      if Store.everythingFreeForNow {
+      if Store.allGatesOpen {
         Text("Everything in LensMood is free while it's being built. Pricing gets decided at the end — nothing is locked today.")
       }
     }
@@ -124,7 +124,7 @@ struct AccountView: View {
   }
 
   private var membershipLabel: String {
-    if Store.everythingFreeForNow { return "Everything free for now" }
+    if Store.allGatesOpen { return "Everything free for now" }
     return store.isPlus ? "Plus" : "Free"
   }
 }

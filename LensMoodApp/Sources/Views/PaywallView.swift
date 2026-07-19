@@ -46,7 +46,7 @@ struct PaywallView: View {
   var body: some View {
     ScrollView {
       VStack(alignment: .leading, spacing: 20) {
-        if Store.everythingFreeForNow {
+        if Store.allGatesOpen {
           previewBanner
         }
         if case .keep(let preview, let stock) = context {
