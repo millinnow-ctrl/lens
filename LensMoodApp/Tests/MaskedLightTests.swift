@@ -417,6 +417,61 @@ final class MaskedLightTests: XCTestCase {
     XCTAssertNil(FilmEngine.buildSkinMask(raster, subjectMatte: nil))
   }
 
+  /// The scene-conditioned luma floor (bug fix): a fixed 0.28 floor dropped
+  /// dark skin in dim scenes. Dark skin at RGB (70, 42, 30) sits in-box on
+  /// chroma (Cb ≈ 117, Cr ≈ 143) but at luma ≈ 0.19 — under v3's floor.
+  func testSkinMaskLumaFloorRelaxesInDimScenes() throws {
+    let w = 100, h = 100
+    let fullMatte = [UInt8](repeating: 255, count: w * h)
+    // dark skin block on a dark background: raster mean luma ≈ 0.16, so the
+    // floor relaxes to ≈ 0.17 and the luma-0.19 skin must enter the mask
+    let dim = analysisRaster(width: w, height: h) { x, y in
+      (x >= 30 && x < 70 && y >= 30 && y < 70) ? (70, 42, 30) : (40, 40, 40)
+    }
+    let mask = try XCTUnwrap(
+      FilmEngine.buildSkinMask(dim, subjectMatte: fullMatte),
+      "dim scene: dark skin must produce a mask (was nil under the fixed floor)"
+    )
+    var sum = 0.0
+    var count = 0.0
+    for y in 40..<60 {
+      for x in 40..<60 {
+        sum += Double(mask[y * w + x])
+        count += 1
+      }
+    }
+    XCTAssertGreaterThan(
+      sum / count, 100,
+      "the dark-skin block must be substantially masked in a dim scene"
+    )
+  }
+
+  func testSkinMaskLumaFloorHoldsInBrightScenes() {
+    let w = 100, h = 100
+    let fullMatte = [UInt8](repeating: 255, count: w * h)
+    // the SAME luma-0.19 skin block, but on a bright background (raster mean
+    // luma ≈ 0.69): the floor stays at the ratified 0.28 and those pixels
+    // must NOT enter the mask — byte-identical to v3, which also refused
+    let bright = analysisRaster(width: w, height: h) { x, y in
+      (x >= 30 && x < 70 && y >= 30 && y < 70) ? (70, 42, 30) : (200, 200, 200)
+    }
+    XCTAssertNil(
+      FilmEngine.buildSkinMask(bright, subjectMatte: fullMatte),
+      "bright scene: the floor holds at 0.28, so luma-0.19 pixels stay outside the mask"
+    )
+  }
+
+  func testSkinMaskConditionedFloorIsDeterministic() throws {
+    let w = 100, h = 100
+    let fullMatte = [UInt8](repeating: 255, count: w * h)
+    let dim = analysisRaster(width: w, height: h) { x, y in
+      (x >= 30 && x < 70 && y >= 30 && y < 70) ? (70, 42, 30) : (40, 40, 40)
+    }
+    let first = try XCTUnwrap(FilmEngine.buildSkinMask(dim, subjectMatte: fullMatte))
+    let second = try XCTUnwrap(FilmEngine.buildSkinMask(dim, subjectMatte: fullMatte))
+    XCTAssertEqual(first, second, "same raster in → same mask bytes out")
+  }
+
   func testSubjectMatteCleanupFillsHolesAndDropsSpecks() throws {
     let w = 100, h = 100
     var person = [Float](repeating: 0, count: w * h)

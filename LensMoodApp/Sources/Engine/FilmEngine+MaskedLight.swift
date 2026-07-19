@@ -160,15 +160,30 @@ extension FilmEngine {
   }
 
   /// Skin mask v3 (ratified): person matte ∩ tight skin chroma
-  /// (Cb 95…122, Cr 138…173) ∩ luma window 0.28…0.96, opened (speckles die)
+  /// (Cb 95…122, Cr 138…173) ∩ luma window floor…0.96, opened (speckles die)
   /// then closed (pores and specular pinholes heal), feathered ≈4px at the
   /// prototype's 900px scale. nil when nothing plausibly skin survives.
+  /// v3 used a fixed 0.28 luma floor; the floor is now conditioned on the
+  /// raster's mean luma (bug fix below) — bright scenes keep the ratified
+  /// 0.28 exactly, dim scenes relax it so dark skin is not dropped.
   static func buildSkinMask(_ raster: AnalysisRaster, subjectMatte: [UInt8]?) -> [UInt8]? {
     guard let matte = subjectMatte else { return nil }
     let w = raster.width
     let h = raster.height
     let n = w * h
     let px = raster.pixels
+    // Scene-conditioned luma floor (bug fix): the fixed 0.28 floor dropped
+    // dark skin in dim scenes. Dim rasters relax the floor toward 0.10;
+    // bright rasters keep the ratified 0.28 exactly.
+    var lumaSum = 0.0
+    for i in 0..<n {
+      let r = Double(px[i * 4]); let g = Double(px[i * 4 + 1]); let b = Double(px[i * 4 + 2])
+      lumaSum += (0.299 * r + 0.587 * g + 0.114 * b) / 255
+    }
+    let meanLuma = lumaSum / Double(n)
+    let lumaFloor = meanLuma < 0.35
+      ? max(0.10, 0.28 - (0.35 - meanLuma) * 0.6)
+      : 0.28
     var candidate = [Bool](repeating: false, count: n)
     var any = false
     for i in 0..<n where matte[i] > 0 {
@@ -178,7 +193,7 @@ extension FilmEngine {
       let cb = 128 - 0.168736 * r - 0.331264 * g + 0.5 * b
       let cr = 128 + 0.5 * r - 0.418688 * g - 0.081312 * b
       let luma = (0.299 * r + 0.587 * g + 0.114 * b) / 255
-      if cb >= 95, cb <= 122, cr >= 138, cr <= 173, luma >= 0.28, luma <= 0.96 {
+      if cb >= 95, cb <= 122, cr >= 138, cr <= 173, luma >= lumaFloor, luma <= 0.96 {
         candidate[i] = true
         any = true
       }

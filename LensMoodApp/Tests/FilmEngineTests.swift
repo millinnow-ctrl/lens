@@ -1,3 +1,4 @@
+import CoreImage
 import XCTest
 import UIKit
 @testable import LensMood
@@ -16,6 +17,78 @@ final class FilmEngineTests: XCTestCase {
     let first = try FilmEngine().develop(source, with: recipe, seed: 42).image
     let second = try FilmEngine().develop(source, with: recipe, seed: 42).image
     XCTAssertEqual(pixelBytes(first), pixelBytes(second))
+  }
+
+  // MARK: grain stage 1 (multi-scale, luminance-responsive)
+
+  func testGainDrivenGrainDevelopIsDeterministicForASeed() throws {
+    // camcorder-90s: the heaviest develop-path grain user (gain-driven), so
+    // the stage-1 texture is pinned byte-identical at the develop level
+    let source = testImage()
+    let recipe = CameraRecipe.recipe(for: "camcorder-90s")
+    let first = try FilmEngine().develop(source, with: recipe, seed: 11).image
+    let second = try FilmEngine().develop(source, with: recipe, seed: 11).image
+    XCTAssertEqual(pixelBytes(first), pixelBytes(second))
+  }
+
+  func testGrainTextureIsDeterministicForASeed() throws {
+    let engine = FilmEngine()
+    let field = grainField(level: 0.5)
+    let first = grainBytes(engine, engine.applyGrain(field, amount: 0.3, size: 1.0, seed: 3))
+    let second = grainBytes(engine, engine.applyGrain(field, amount: 0.3, size: 1.0, seed: 3))
+    XCTAssertFalse(first.isEmpty)
+    XCTAssertEqual(first, second, "same inputs → same grain bytes")
+    let reseeded = grainBytes(engine, engine.applyGrain(field, amount: 0.3, size: 1.0, seed: 4))
+    XCTAssertNotEqual(first, reseeded, "a different seed must lay different grain")
+  }
+
+  func testGrainPeaksInMidtonesAndFallsAtTheExtremes() throws {
+    // the stage-1 luminance response: midtones carry the grain; deep shadows
+    // and near-highlights fall to the response floor instead of staying flat
+    let mid = grainDeviation(level: 0.5)
+    let shadow = grainDeviation(level: 0.02)
+    let highlight = grainDeviation(level: 0.93)
+    XCTAssertGreaterThan(mid, 6, "midtone grain must be plainly visible at amount 0.3")
+    XCTAssertGreaterThan(mid, shadow * 2, "deep shadows must carry far less grain than midtones")
+    XCTAssertGreaterThan(mid, highlight * 2, "highlights must carry far less grain than midtones")
+    XCTAssertGreaterThan(shadow, 0.3, "the response floor keeps shadows alive, not sterile")
+  }
+
+  private func grainField(level: CGFloat) -> CIImage {
+    CIImage(color: CIColor(red: level, green: level, blue: level))
+      .cropped(to: CGRect(x: 0, y: 0, width: 64, height: 64))
+  }
+
+  private func grainBytes(_ engine: FilmEngine, _ image: CIImage) -> [UInt8] {
+    guard let cg = engine.context.createCGImage(
+      image,
+      from: image.extent,
+      format: .RGBA8,
+      colorSpace: CGColorSpace(name: CGColorSpace.sRGB)
+    ) else { return [] }
+    return rgbaBytes(cg)
+  }
+
+  /// Mean absolute deviation (0…255) of the red channel from its own mean
+  /// after graining a flat field — the visible grain strength at that level.
+  private func grainDeviation(level: CGFloat) -> Double {
+    let engine = FilmEngine()
+    let px = grainBytes(engine, engine.applyGrain(
+      grainField(level: level), amount: 0.3, size: 1.0, seed: 3
+    ))
+    guard !px.isEmpty else { return -1 }
+    var mean = 0.0
+    var n = 0.0
+    for i in stride(from: 0, to: px.count, by: 4) {
+      mean += Double(px[i])
+      n += 1
+    }
+    mean /= n
+    var deviation = 0.0
+    for i in stride(from: 0, to: px.count, by: 4) {
+      deviation += abs(Double(px[i]) - mean)
+    }
+    return deviation / n
   }
 
   func testFilmNoirRecipeEnforcesMonochrome() {
