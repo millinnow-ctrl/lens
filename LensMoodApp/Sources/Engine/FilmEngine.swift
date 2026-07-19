@@ -639,7 +639,7 @@ final class FilmEngine {
       // off so the flashed skin isn't chased to paper-white AND the whole bright
       // frame isn't lifted off its blacks. y2k is NOT a black-point stock, so its
       // median chase is unchanged (restraint stays 0 → block skipped for it).
-      let dayRestraint = FilmEngine.daylightBlackPointStocks.contains(recipe.id)
+      let dayRestraint: Double = FilmEngine.daylightBlackPointStocks.contains(recipe.id)
         ? recipe.daylightHighlightGuard * FilmEngine.brightGuardWeight(scene)
         : 0
       let restraint = max(recipe.flashHighlightHeadroom, dayRestraint)
