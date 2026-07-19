@@ -184,15 +184,19 @@ final class CameraController: NSObject, ObservableObject, AVCapturePhotoCaptureD
     }
   }
 
-  func focus(at point: CGPoint) {
+  /// `point` is the tap in normalized view space (top-left origin) — the
+  /// engine's depth-of-field plane keeps that space. `devicePoint` is the
+  /// same tap converted by the preview layer into AVFoundation's
+  /// point-of-interest space (unrotated-sensor coordinates); only that
+  /// converted point may ever reach the hardware.
+  func focus(at point: CGPoint, devicePoint: CGPoint?) {
     settings.focusPoint = point
     // MF: the tap places the focal plane for the developer's depth of field
     // only — the lens stays where the photographer left it
-    guard isAvailable, !settings.manualFocus else { return }
+    guard isAvailable, !settings.manualFocus, let poi = devicePoint else { return }
     sessionQueue.async { [weak self] in
       guard let self, let device = self.device else { return }
       guard (try? device.lockForConfiguration()) != nil else { return }
-      let poi = CGPoint(x: point.x, y: point.y)
       if device.isFocusPointOfInterestSupported {
         device.focusPointOfInterest = poi
         if device.isFocusModeSupported(.autoFocus) { device.focusMode = .autoFocus }

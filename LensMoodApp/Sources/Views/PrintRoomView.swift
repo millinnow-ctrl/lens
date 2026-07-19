@@ -60,6 +60,8 @@ struct PrintRoomView: View {
   @State private var isSaving = false
   @State private var errorMessage: String?
   @State private var printReveal: CGFloat = 1
+  /// identifies the develop-in run whose delayed settle haptic may still fire
+  @State private var settleToken = UUID()
   /// the selected frame's stored 2048 px decode, keyed by asset id so a
   /// stale decode can never print under a newer selection (two-tier: a
   /// persisted asset only carries its thumbnail in memory)
@@ -228,10 +230,15 @@ struct PrintRoomView: View {
   private func developIn() {
     let duration: Double = reduceMotion ? 0.35 : 2.2
     printReveal = 0
+    let token = UUID()
+    settleToken = token
     // a soft tap as the print starts developing, a gentle success as it settles
     UIImpactFeedbackGenerator(style: .soft).impactOccurred()
     withAnimation(.easeOut(duration: duration)) { printReveal = 1 }
     DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
+      // token-guarded like the capture screen's delayed hints: swapping the
+      // printed frame mid-develop must not fire the old print's settle haptic
+      guard settleToken == token else { return }
       UINotificationFeedbackGenerator().notificationOccurred(.success)
     }
   }

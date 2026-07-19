@@ -92,7 +92,9 @@ struct CamcorderView: View {
         .aspectRatio(3.0 / 4.0, contentMode: .fit)
 
       if let url = outputURL ?? inputURL {
-        VideoPlayer(player: AVPlayer(url: url))
+        // .id(url): a NEW tape gets a fresh player; state churn does not
+        TapePlayerView(url: url)
+          .id(url)
       } else if let cover = BundleMedia.image("tape-idle") ?? BundleMedia.image("camcorder-cover") {
         // idle deck: a purpose-made 3:4 camcorder frame fills the window
         // (falls back to the 16:9 cover if the portrait asset is missing)
@@ -212,13 +214,29 @@ struct CamcorderView: View {
   /// clear temp tapes left behind by earlier sessions (they otherwise
   /// accumulate for the app's lifetime)
   private func sweepOrphanedTapes() {
-    let fm = FileManager.default
-    let tmp = fm.temporaryDirectory
+    // Never while a develop runs: the export's lensmood-tape file exists on
+    // disk before outputURL is published, so a tab round-trip mid-develop
+    // would see it as an orphan and delete it out from under the exporter.
+    guard !isExporting else { return }
     let keep = Set([inputURL, outputURL].compactMap { $0?.lastPathComponent })
-    guard let names = try? fm.contentsOfDirectory(atPath: tmp.path) else { return }
-    for name in names
-    where (name.hasPrefix("lensmood-input-") || name.hasPrefix("lensmood-tape-")) && !keep.contains(name) {
-      try? fm.removeItem(at: tmp.appendingPathComponent(name))
+    // directory listing + deletes are file I/O — keep them off the main
+    // thread; this runs on every arrival at the Tape tab
+    Task.detached(priority: .utility) {
+      let fm = FileManager.default
+      let tmp = fm.temporaryDirectory
+      guard let names = try? fm.contentsOfDirectory(atPath: tmp.path) else { return }
+      for name in CamcorderView.orphanedTapeNames(names, keeping: keep) {
+        try? fm.removeItem(at: tmp.appendingPathComponent(name))
+      }
+    }
+  }
+
+  /// Which temp files are LensMood's own AND orphaned — pure, pinned by
+  /// TapeHygieneTests because this list feeds deletions: only the two
+  /// lensmood tape prefixes qualify, and the working pair is always kept.
+  static func orphanedTapeNames(_ names: [String], keeping keep: Set<String>) -> [String] {
+    names.filter {
+      ($0.hasPrefix("lensmood-input-") || $0.hasPrefix("lensmood-tape-")) && !keep.contains($0)
     }
   }
 
@@ -253,5 +271,25 @@ struct CamcorderView: View {
         errorMessage = error.localizedDescription
       }
     }
+  }
+}
+
+/// The tape window's stable player. `VideoPlayer(player: AVPlayer(url:))`
+/// built inline in `body` constructed a brand-new AVPlayer on every view
+/// update, so any state change (Save toggling `isSaving`, the saved tick
+/// dismissing itself) silently reset a playing tape to the start. One player
+/// per tape URL — `.id(url)` at the call site swaps it when a new tape lands —
+/// and paused on disappear so a playing tape never keeps sounding under
+/// another tab.
+private struct TapePlayerView: View {
+  let url: URL
+  @State private var player: AVPlayer?
+
+  var body: some View {
+    VideoPlayer(player: player)
+      .onAppear {
+        if player == nil { player = AVPlayer(url: url) }
+      }
+      .onDisappear { player?.pause() }
   }
 }
