@@ -794,7 +794,13 @@ struct CaptureView: View {
         HStack {
           Text(asset.stock.name.uppercased())
           Spacer()
-          Text("\(camera.settings.captureMode.rawValue.uppercased()) · ƒ/\(fmtF(camera.settings.aperture)) · ISO \(Int(camera.settings.iso))")
+          // the dial readout is the CURRENT camera state — a true receipt only
+          // for the just-taken shot. An archived Roll frame was shot on other
+          // settings (possibly another mode); showing live values under it is
+          // fabricated metadata, so the row is dropped for archived frames.
+          if asset.image != nil {
+            Text("\(camera.settings.captureMode.rawValue.uppercased()) · ƒ/\(fmtF(camera.settings.aperture)) · ISO \(Int(camera.settings.iso))")
+          }
         }
         .scaledFont(size: 10, weight: .semibold, design: .monospaced, relativeTo: .caption2)
         .lineLimit(1).minimumScaleFactor(0.8)
