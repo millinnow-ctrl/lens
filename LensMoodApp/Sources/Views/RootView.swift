@@ -66,6 +66,13 @@ private struct OceanDock: View {
     .padding(.horizontal, 14)
     .padding(.top, 4)
     .padding(.bottom, 4)
+    // Five slots plus the capture pill cannot host accessibility-size text on
+    // one row (labels fell to unreadable truncation at AX5, and the scaled
+    // pill crowded the slots off small screens). Like UIKit's tab bar, the
+    // dock's own chrome stops growing at the largest regular size — each slot
+    // instead offers the system large-content viewer (press and hold) with
+    // its full-size icon and name.
+    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     .accessibilityElement(children: .contain)
   }
 
@@ -90,6 +97,9 @@ private struct OceanDock: View {
     }
     .buttonStyle(.plain)
     .frame(maxWidth: .infinity)
+    .accessibilityShowsLargeContentViewer {
+      Label("Capture", systemImage: "camera.fill")
+    }
     .accessibilityLabel("Capture")
     .accessibilityAddTraits(on ? .isSelected : [])
   }
@@ -119,6 +129,9 @@ private struct OceanDock: View {
       .contentShape(Capsule())
     }
     .buttonStyle(.plain)
+    .accessibilityShowsLargeContentViewer {
+      Label(label, systemImage: icon)
+    }
     .accessibilityLabel(label)
     .accessibilityAddTraits(on ? .isSelected : [])
   }
