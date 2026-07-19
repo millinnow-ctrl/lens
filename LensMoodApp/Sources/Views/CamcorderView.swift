@@ -92,7 +92,9 @@ struct CamcorderView: View {
         .aspectRatio(3.0 / 4.0, contentMode: .fit)
 
       if let url = outputURL ?? inputURL {
-        VideoPlayer(player: AVPlayer(url: url))
+        // .id(url): a NEW tape gets a fresh player; state churn does not
+        TapePlayerView(url: url)
+          .id(url)
       } else if let cover = BundleMedia.image("tape-idle") ?? BundleMedia.image("camcorder-cover") {
         // idle deck: a purpose-made 3:4 camcorder frame fills the window
         // (falls back to the 16:9 cover if the portrait asset is missing)
@@ -253,5 +255,25 @@ struct CamcorderView: View {
         errorMessage = error.localizedDescription
       }
     }
+  }
+}
+
+/// The tape window's stable player. `VideoPlayer(player: AVPlayer(url:))`
+/// built inline in `body` constructed a brand-new AVPlayer on every view
+/// update, so any state change (Save toggling `isSaving`, the saved tick
+/// dismissing itself) silently reset a playing tape to the start. One player
+/// per tape URL — `.id(url)` at the call site swaps it when a new tape lands —
+/// and paused on disappear so a playing tape never keeps sounding under
+/// another tab.
+private struct TapePlayerView: View {
+  let url: URL
+  @State private var player: AVPlayer?
+
+  var body: some View {
+    VideoPlayer(player: player)
+      .onAppear {
+        if player == nil { player = AVPlayer(url: url) }
+      }
+      .onDisappear { player?.pause() }
   }
 }
