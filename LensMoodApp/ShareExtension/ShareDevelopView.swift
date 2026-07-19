@@ -137,7 +137,7 @@ struct ShareDevelopView: View {
           Image(systemName: "photo")
             .scaledFont(size: 26, relativeTo: .title)
             .foregroundStyle(.white.opacity(0.5))
-          Text("No photograph arrived. Close and share an image again.")
+          Text("No photograph arrived. Share an image again.")
             .font(.footnote)   // 13pt at the default size
             .foregroundStyle(.white.opacity(0.7))
             .multilineTextAlignment(.center)
