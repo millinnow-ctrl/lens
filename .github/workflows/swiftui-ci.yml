@@ -63,6 +63,13 @@ jobs:
             -resultBundlePath ui-artifacts/LensMoodTests.xcresult \
             CODE_SIGNING_ALLOWED=NO | tee xcodetest.log | tail -120
 
+      - name: Show failing tests
+        # the test step tails only 120 lines, which can scroll failures out of
+        # the job log entirely — surface every failing case + assertion here
+        if: failure()
+        working-directory: LensMoodApp
+        run: grep -E "error:|Test Case .*failed" xcodetest.log | tail -80 || true
+
       - name: Capture simulator product surfaces
         # success() only; booting the simulator after a failed build/test
         # burns 10x-billed macOS minutes with nothing to capture
