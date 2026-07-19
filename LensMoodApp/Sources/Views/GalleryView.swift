@@ -9,12 +9,16 @@ import UIKit
 struct GalleryView: View {
   @EnvironmentObject private var model: AppModel
   @State private var selected: DevelopedAsset?
+  @Environment(\.dynamicTypeSize) private var typeSize
 
-  private let columns = [
-    GridItem(.flexible(), spacing: 10),
-    GridItem(.flexible(), spacing: 10),
-    GridItem(.flexible(), spacing: 10),
-  ]
+  /// three mounts across at regular sizes; two at accessibility sizes, where
+  /// a third-width mount reduces the mono caption to a couple of glyphs
+  private var columns: [GridItem] {
+    Array(
+      repeating: GridItem(.flexible(), spacing: 10),
+      count: typeSize.isAccessibilitySize ? 2 : 3
+    )
+  }
 
   var body: some View {
     NavigationStack {
@@ -215,6 +219,8 @@ private struct GalleryDetailView: View {
             .scaledToFit()
             .frame(maxWidth: .infinity)
             .background(Theme.viewfinder)
+            // the unlabeled photograph was silent to VoiceOver
+            .accessibilityLabel("Photograph developed on \(asset.stock.name)")
 
           TechnicalLabel(text: "Developed \(Self.developedAt.string(from: asset.createdAt))")
 
