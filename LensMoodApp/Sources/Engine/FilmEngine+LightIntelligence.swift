@@ -396,19 +396,21 @@ extension FilmEngine {
     ]).cropped(to: image.extent)
   }
 
-  /// R84 (item 2): the shadow toe a flash-wash stock floats on daylight. The low
-  /// input band is pulled toward true black (a stock committing its blacks) while
-  /// the upper half stays identity — so the daylight tabletop/shadows reach black
-  /// again instead of sitting grey. `amount` (the graded daylight guard) scales
-  /// it; 0 is a no-op, so the dark-scene look is untouched.
+  /// R84 (item 2): the shadow toe a flash-wash stock floats on daylight. The
+  /// exposureBias + adaptive lift + the tone pass's shadow amount push the
+  /// would-be blacks up to a grey ~0.40 (CI-measured), so the toe must REACH that
+  /// lifted low-mid band, not just the sub-0.30 shadows, to bring the daylight
+  /// tabletop/shadows back to black. The upper half stays identity so real
+  /// midtones/skin survive. `amount` (the graded daylight guard) scales it; 0 is
+  /// a no-op, so the dark-scene look is untouched.
   func applyDaylightBlackPoint(_ image: CIImage, amount: Double) -> CIImage {
     guard amount > 0.001 else { return image }
     let a = min(1, amount)
     return image.applyingFilter("CIToneCurve", parameters: [
       "inputPoint0": CIVector(x: 0, y: 0),
-      "inputPoint1": CIVector(x: 0.10, y: max(0, 0.10 - 0.075 * a)),
-      "inputPoint2": CIVector(x: 0.30, y: 0.30 - 0.03 * a),
-      "inputPoint3": CIVector(x: 0.60, y: 0.60),
+      "inputPoint1": CIVector(x: 0.16, y: max(0, 0.16 - 0.14 * a)),
+      "inputPoint2": CIVector(x: 0.42, y: max(0, 0.42 - 0.34 * a)),
+      "inputPoint3": CIVector(x: 0.66, y: 0.66),
       "inputPoint4": CIVector(x: 1.0, y: 1.0),
     ]).cropped(to: image.extent)
   }
