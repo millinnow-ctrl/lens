@@ -208,12 +208,14 @@ struct ShareDevelopView: View {
           .scaledFont(size: 12, weight: .semibold, design: .monospaced, relativeTo: .caption)
           .foregroundStyle(Theme.inkSoft)
       }
+      // the readout row repeats what the slider speaks — combining the whole
+      // control into one element muted the slider's adjustable gesture, so
+      // the slider itself carries the name and stays adjustable
+      .accessibilityHidden(true)
       Slider(value: $intensity, in: 0...1)
         .tint(Theme.accent)
+        .accessibilityLabel("Intensity")
     }
-    .accessibilityElement(children: .combine)
-    .accessibilityLabel("Intensity")
-    .accessibilityValue("\(Int((intensity * 100).rounded())) percent")
   }
 
   private var actions: some View {
