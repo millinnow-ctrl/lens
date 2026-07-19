@@ -68,6 +68,51 @@ final class ProfitEngineTests: XCTestCase {
     XCTAssertTrue(Store.everythingFreeForNow)
   }
 
+  // MARK: - The keep gate (simulated flip — the live flag stays untouched)
+
+  /// The gate the keep moment stands on: a Plus camera is locked for a free
+  /// entitlement and open for Plus, with the flag simulated off.
+  func testKeepGatePlusStockLockedForFreeUnlockedForPlus() {
+    let plusID = PlusCatalog.plusStockIDs(allStockIDs: allIDs).sorted().first!
+    XCTAssertFalse(
+      PlusCatalog.isStockUnlocked(plusID, entitlement: .free, everythingFree: false),
+      "\(plusID) must be locked for a free user once the gate flips"
+    )
+    XCTAssertTrue(
+      PlusCatalog.isStockUnlocked(plusID, entitlement: .plus, everythingFree: false),
+      "\(plusID) must open for Plus"
+    )
+  }
+
+  /// Hero-path routing: all unlocked — the ranked first camera wins.
+  func testFirstDevelopStockIDReturnsRankedFirstWhenAllUnlocked() {
+    let ranked = ["tokyo-neon", "kodachrome", "disposable"]
+    XCTAssertEqual(
+      Conductor.firstDevelopStockID(ranked: ranked, isUnlocked: { _ in true }),
+      "tokyo-neon"
+    )
+  }
+
+  /// Hero-path routing under the simulated flip: a locked ranked-first is
+  /// skipped for the first unlocked camera in rank order.
+  func testFirstDevelopStockIDSkipsLockedInRankOrder() {
+    let ranked = ["gq-editorial", "y2k-digicam", "leica-street", "polaroid"]
+    let pick = Conductor.firstDevelopStockID(ranked: ranked) {
+      PlusCatalog.isStockUnlocked($0, entitlement: .free, everythingFree: false)
+    }
+    XCTAssertEqual(pick, "leica-street", "first FREE camera in rank order wins")
+  }
+
+  /// Hero-path routing: nothing unlocked falls back to the catalog's first
+  /// camera — the first develop is still a develop, never a dead end.
+  func testFirstDevelopStockIDFallsBackToCatalogFirstWhenAllLocked() {
+    XCTAssertEqual(
+      Conductor.firstDevelopStockID(
+        ranked: allIDs, isUnlocked: { _ in false }),
+      Stock.all[0].id
+    )
+  }
+
   // MARK: - Catalog integrity
 
   func testProductIDsAreUniqueAndWellFormed() {

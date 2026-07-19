@@ -91,6 +91,17 @@ final class LensCatalogTests: XCTestCase {
     }
   }
 
+  /// Honesty guard: the app has no data source that could make "TRENDING"
+  /// or "featured" true (PrivacyInfo says Data Not Collected), so no camera
+  /// may ship claiming either. The `badge` property stays for the day a real
+  /// drop computes an honest "NEW".
+  func testNoFabricatedBadgesInCatalog() {
+    for stock in Stock.all {
+      XCTAssertNotEqual(stock.badge, "trending", "\(stock.id) claims trending with no data source")
+      XCTAssertNotEqual(stock.badge, "featured", "\(stock.id) claims featured with no data source")
+    }
+  }
+
   func testDeviceAndLatencyTypesOrder() {
     XCTAssertLessThan(DeviceTier.universal, DeviceTier.enhanced)
     XCTAssertLessThan(DeviceTier.enhanced, DeviceTier.highEnd)

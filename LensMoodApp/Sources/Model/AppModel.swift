@@ -162,6 +162,10 @@ final class AppModel: ObservableObject {
   /// a photo chosen on the Home hero ("Choose from Library"), handed to the
   /// next DevelopView so it develops that frame straight away
   @Published var pendingDevelopImage: UIImage?
+  /// the hero path's Conductor reading key, carried alongside
+  /// `pendingDevelopImage` so the develop reuses that same read (one-reading
+  /// law — a second read is not guaranteed bit-stable)
+  @Published var pendingDevelopKey: UUID?
   /// a camera queued from elsewhere in the app — the Library's "Shoot this
   /// film again" sets it, HomeView routes it into a fresh DevelopView with
   /// that stock loaded (same hand-off idiom as `pendingDevelopImage`)
