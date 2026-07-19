@@ -336,6 +336,39 @@ extension FilmEngine {
     return shaped?.cropped(to: extent) ?? image
   }
 
+  /// R84 (item 6) — daylight skin de-amber (kodachrome). Kodachrome's warm bias
+  /// overshoots into an amber wash on daylight that pushes skin toward jaundice
+  /// (its night is excellent and untouched — the caller scene-keys this to 0 in
+  /// the dark). Grade the amber OUT of the skin-masked pixels only: pull the red
+  /// bias down and nudge blue up, easing the yellow toward neutral, then blend
+  /// back through the skin mask so nothing but daylight skin moves. Structural
+  /// no-op without a skin mask (the analyzeSubjects:false golden path is
+  /// byte-identical). `amount` is the graded weight; 0 is a no-op.
+  func applyDaylightSkinDeamber(
+    _ image: CIImage,
+    subject: SubjectAnalysis,
+    amount: Double
+  ) -> CIImage {
+    guard amount > 0.001, let mask = subject.skinMask else { return image }
+    let extent = image.extent
+    let a = min(1, amount)
+    let graded = image
+      .applyingFilter("CIColorMatrix", parameters: [
+        "inputRVector": CIVector(x: 1 - 0.07 * a, y: 0, z: 0, w: 0),
+        "inputGVector": CIVector(x: 0, y: 1 - 0.015 * a, z: 0, w: 0),
+        "inputBVector": CIVector(x: 0, y: 0, z: 1 + 0.05 * a, w: 0),
+        "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 1),
+      ])
+      .applyingFilter("CIColorClamp", parameters: [
+        "inputMinComponents": CIVector(x: 0, y: 0, z: 0, w: 0),
+        "inputMaxComponents": CIVector(x: 1, y: 1, z: 1, w: 1),
+      ])
+    return graded.applyingFilter("CIBlendWithMask", parameters: [
+      kCIInputBackgroundImageKey: image,
+      kCIInputMaskImageKey: maskScaled(mask, to: extent),
+    ]).cropped(to: extent)
+  }
+
   // MARK: - Pass 3: sky-scoped color
 
   /// The deepen family scales with scene key — near-black night skies are left

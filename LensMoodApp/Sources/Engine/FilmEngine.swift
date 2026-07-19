@@ -468,6 +468,17 @@ final class FilmEngine {
     if recipe.skinProtect > 0.001 {
       image = applySkinProtection(image, subject: subject, recipe: recipe, amount: recipe.skinProtect)
     }
+    // R84 (item 6): kodachrome's warm bias overshoots into an amber daylight wash
+    // that pushes skin toward jaundice (critic A #8). De-amber the skin midtones
+    // on bright scenes only — scoped to the skin mask (so the analyzeSubjects:false
+    // golden path is byte-identical) and scaled by brightGuardWeight (so its
+    // EXCELLENT night is byte-identical). Nothing but daylight skin is touched.
+    if recipe.id == "kodachrome" {
+      let deamber = FilmEngine.brightGuardWeight(scene)
+      if deamber > 0.001 {
+        image = applyDaylightSkinDeamber(image, subject: subject, amount: 0.8 * deamber)
+      }
+    }
     if recipe.skyResponse > 0.001 {
       image = applySkyResponse(image, scene: scene, subject: subject, recipe: recipe, amount: recipe.skyResponse)
     }

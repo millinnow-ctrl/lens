@@ -371,6 +371,114 @@ final class LensFixEvidenceTests: XCTestCase {
     )
   }
 
+  // MARK: - Kodachrome daylight skin jaundice (R84 item 6)
+
+  /// Kodachrome's warm bias overshoots into an amber daylight wash that pushes
+  /// skin toward jaundice (critic A #8). Its NIGHT is EXCELLENT and must stay
+  /// byte-identical, and it is a Class-A GOLDEN stock — so the de-amber is scoped
+  /// to the skin mask (a no-op on the analyzeSubjects:false golden path) and
+  /// scene-keyed (a no-op in the dark). CI's simulator Vision returns no mask, so
+  /// this injects a synthetic skin patch + matte to exercise the real pass; the
+  /// key-swap isolates the de-amber (kodachrome is otherwise key-independent with
+  /// no sky mask). Pin: daylight skin amber drops; golden path + night unchanged.
+  func testKodachromeDaylightSkinDeamberEvidence() throws {
+    let engine = FilmEngine()
+    let recipe = CameraRecipe.recipe(for: "kodachrome")
+    let dir = try outDir()
+    let skinUI = skinPatchImage()
+    guard let skinCI = CIImage(image: skinUI),
+          let matteCI = CIImage(image: skinPatchMatte()) else { return XCTFail("synthetic image build failed") }
+    let subject = engine.attachLightMasks(
+      to: SubjectAnalysis(faces: [], personMask: matteCI), image: skinCI.orientedForDisplay
+    )
+    XCTAssertNotNil(subject.skinMask, "the synthetic skin patch must produce a skin mask to exercise the pass")
+
+    func develop(key: Double) throws -> UIImage {
+      try engine.develop(skinUI, with: recipe, seed: 1,
+        reading: SceneReading(scene: skinScene(key: key), subject: subject)).image
+    }
+    let after = try develop(key: 0.55)    // daylight → de-amber engages (weight 1)
+    let before = try develop(key: 0.20)   // weight 0 → de-amber off (pre-fix)
+    let night = try develop(key: 0.13)    // night → de-amber off
+    try XCTUnwrap(before.pngData()).write(to: dir.appendingPathComponent("kodachrome-daylight-before.png"))
+    try XCTUnwrap(after.pngData()).write(to: dir.appendingPathComponent("kodachrome-daylight-after.png"))
+
+    guard let beforeR = ImageMetrics.raster(before), let afterR = ImageMetrics.raster(after)
+    else { return XCTFail("raster failed") }
+    // skin-patch core (well inside the feathered mask).
+    let patch = CGRect(x: 0.40, y: 0.42, width: 0.20, height: 0.16)
+    let beforeC = try XCTUnwrap(ImageMetrics.meanColor(beforeR, in: patch))
+    let afterC = try XCTUnwrap(ImageMetrics.meanColor(afterR, in: patch))
+    let beforeAmber = beforeC.r - beforeC.b
+    let afterAmber = afterC.r - afterC.b
+    print("kodachrome skin amber (R-B): before \(beforeAmber) after \(afterAmber)")
+    // the amber that reads as jaundice is graded down; skin stays warm, not cold.
+    XCTAssertLessThan(afterAmber, beforeAmber - 5, "daylight skin must lose the amber/jaundice cast")
+    XCTAssertGreaterThan(afterAmber, 0, "kodachrome skin must stay warm — de-amber, not neutralize")
+
+    // night byte-identity: at key 0.13 the de-amber weight is 0, so the render is
+    // identical to the (also weight-0) key-0.20 before — kodachrome is otherwise
+    // key-independent here (LUT stock, no sky mask on the synthetic).
+    XCTAssertEqual(
+      try XCTUnwrap(before.pngData()), try XCTUnwrap(night.pngData()),
+      "kodachrome night must be byte-identical — the de-amber is a no-op in the dark"
+    )
+
+    // golden safety: without a skin mask (the analyzeSubjects:false golden path)
+    // the pass no-ops regardless of scene key → byte-identical.
+    let maskless = SubjectAnalysis(faces: [], personMask: nil)
+    let goldenDay = try engine.develop(skinUI, with: recipe, seed: 1,
+      reading: SceneReading(scene: skinScene(key: 0.55), subject: maskless)).image
+    let goldenDim = try engine.develop(skinUI, with: recipe, seed: 1,
+      reading: SceneReading(scene: skinScene(key: 0.20), subject: maskless)).image
+    XCTAssertEqual(
+      try XCTUnwrap(goldenDay.pngData()), try XCTUnwrap(goldenDim.pngData()),
+      "no skin mask (the golden path) → de-amber is a structural no-op, byte-identical"
+    )
+  }
+
+  /// A daylight raster with a skin-tone patch (≈220,170,130 — passes the skin-
+  /// chroma gate) over a neutral surround, for the injected-mask kodachrome pin.
+  private func skinPatchImage(side: CGFloat = 160) -> UIImage {
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = 1
+    return UIGraphicsImageRenderer(size: CGSize(width: side, height: side), format: format).image { ctx in
+      let g = ctx.cgContext
+      g.setFillColor(UIColor(white: 0.5, alpha: 1).cgColor)
+      g.fill(CGRect(x: 0, y: 0, width: side, height: side))
+      g.setFillColor(UIColor(red: 220 / 255, green: 170 / 255, blue: 130 / 255, alpha: 1).cgColor)
+      g.fill(CGRect(x: side * 0.30, y: side * 0.34, width: side * 0.40, height: side * 0.32))
+    }
+  }
+
+  /// A person matte (white over the skin patch, black elsewhere) so the real
+  /// mask builders run on CI's simulator, where Vision returns nothing.
+  private func skinPatchMatte(side: CGFloat = 160) -> UIImage {
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = 1
+    return UIGraphicsImageRenderer(size: CGSize(width: side, height: side), format: format).image { ctx in
+      let g = ctx.cgContext
+      g.setFillColor(UIColor.black.cgColor)
+      g.fill(CGRect(x: 0, y: 0, width: side, height: side))
+      g.setFillColor(UIColor.white.cgColor)
+      g.fill(CGRect(x: side * 0.26, y: side * 0.30, width: side * 0.48, height: side * 0.40))
+    }
+  }
+
+  /// A daylight scene at a chosen key for the kodachrome skin pin — the LUT stock
+  /// ignores exposure, so only brightGuardWeight(key) matters (plus there is no
+  /// sky mask, so skyResponse is inert and the key-swap isolates the de-amber).
+  private func skinScene(key: Double) -> SceneProfile {
+    SceneProfile(
+      analyzed: true, key: key, p01: 0.18, p50: 0.50, p99: 0.80,
+      illum: [1, 1, 1], sat: 0.30, lights: [], auxLights: [], faceLum: 0.60,
+      meanLuminance: 0.50, medianLuminance: 0.50, shadowFraction: 0.10,
+      highlightFraction: 0.15, dynamicRange: 0.6, averageRed: 0.55,
+      averageGreen: 0.50, averageBlue: 0.45, saturation: 0.30, warmth: 0.10,
+      isLowKey: false, isHighKey: false, isBacklit: false
+    )
+  }
+
   // MARK: - Disposable daylight grain (R84 item 5 — the owner's loved lens)
 
   /// Disposable's daylight grain read as a grunge-texture overlay + HDR crunch,
