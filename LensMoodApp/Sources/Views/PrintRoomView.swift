@@ -126,6 +126,16 @@ struct PrintRoomView: View {
       // tab switch lands (onAppear) — the pendingStock idiom, for prints
       .onAppear { consumePendingPrint() }
       .onChange(of: model.pendingPrintAsset?.id) { _ in consumePendingPrint() }
+      // a frame queued from the Library ("Print this frame") that the user then
+      // deletes must not linger here and print as a soft thumbnail — drop it
+      // back to the latest developed frame. Only stored frames (imageURL set)
+      // qualify; a fresh Photos pick holds its own bitmap and is never on the
+      // Library, so it is left alone.
+      .onChange(of: model.library.map(\.id)) { ids in
+        if let picked = pickedAsset, picked.imageURL != nil, !ids.contains(picked.id) {
+          pickedAsset = nil
+        }
+      }
       .savedTick(trigger: saveTick, text: "Print saved to Photos")
       .alert("Could not save this print", isPresented: Binding(
         get: { errorMessage != nil },
@@ -246,13 +256,18 @@ struct PrintRoomView: View {
 
   private func savePrint() {
     guard let selected else { return }
-    isSaving = true
     // the saved print always uses the full stored frame; the synchronous
-    // fallback decode is one bounded (≤2048 px) JPEG inside a user action
-    let photo = selected.image
+    // fallback decode is one bounded (≤2048 px) JPEG inside a user action.
+    // If it's gone (e.g. the queued frame was deleted from the Library), refuse
+    // rather than print the 480 px grid thumbnail as a soft, low-res print.
+    guard let photo = selected.image
       ?? (printPhoto?.id == selected.id ? printPhoto?.image : nil)
       ?? selected.loadFullImage()
-      ?? selected.thumbnail
+    else {
+      errorMessage = "That photograph is no longer available to print."
+      return
+    }
+    isSaving = true
     let composition = InstantPrintComposition(asset: selected, photo: photo, surface: surface)
       .frame(width: 1200, height: 1200)
     let renderer = ImageRenderer(content: composition)
