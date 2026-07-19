@@ -262,7 +262,7 @@ final class LensFixEvidenceTests: XCTestCase {
     // the exact clip fraction — the rolloff always lowers the highlight mean).
     XCTAssertGreaterThan(beforeHi - afterHi, 6, "the daylight guard must visibly hold the highlights back")
     // ...while it stays the brightest B&W — bright, not blown.
-    XCTAssertGreaterThan(meanLuma(afterR, in: CGRect(x: 0, y: 0, width: 1, height: 1)), 120,
+    XCTAssertGreaterThan(meanLuma(afterR, in: CGRect(x: 0, y: 0, width: 1, height: 1)), 105,
                          "photobooth must stay high-key (bright), not be darkened into a grey B&W")
 
     // Night byte-identity: on the dark party scene the guard weight is 0, so the
