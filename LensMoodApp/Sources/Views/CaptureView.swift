@@ -161,7 +161,7 @@ struct CaptureView: View {
       camera.settings.autoRelight.toggle()
       showModeHint(camera.settings.autoRelight
         ? "Auto light on — the next shot is scene-relit"
-        : "Auto light off — the film develops the frame as metered")
+        : "Auto light off — developed as metered")
       tick()
     } label: {
       HStack(spacing: 5) {
@@ -700,7 +700,7 @@ struct CaptureView: View {
           .font(.system(size: 30)).foregroundStyle(CameraTheme.dim)
         Text("Camera access is off")
           .font(.spaceMono(14, bold: true)).foregroundStyle(CameraTheme.text)
-        Text("Turn on camera access to shoot with LensMood.")
+        Text("Turn it on to shoot.")
           .font(.spaceMono(10)).foregroundStyle(CameraTheme.dim)
           .multilineTextAlignment(.center)
           .fixedSize(horizontal: false, vertical: true)
@@ -756,13 +756,13 @@ struct CaptureView: View {
     VStack(alignment: .leading, spacing: 18) {
       Text("YOUR CAMERA").font(.spaceMono(12, bold: true)).tracking(2).foregroundStyle(CameraTheme.gold)
       guideRow("camera.aperture", "Tap the shutter to shoot",
-               "The frame is metered, auto-relit, and developed through the loaded film.")
+               "Metered, relit, developed through the loaded film.")
       guideRow("hand.draw", "Drag the dial to expose",
-               "Tap ISO / Shutter / Aperture / EV up top, then drag the wheel to change it.")
+               "Tap ISO / Shutter / Aperture / EV, then drag to change.")
       guideRow("viewfinder", "Tap the frame to focus",
-               "Sets focus and metering on the spot you touch.")
+               "Focus and metering where you touch.")
       guideRow("photo.on.rectangle", "Where your photos go",
-               "Every shot lands on your in-app Roll. Tap Save to Photos to export it to your iPhone’s camera roll.")
+               "Shots land on your Roll. Save to Photos to export.")
       Button { dismissGuide() } label: { Text("Start shooting").frame(maxWidth: .infinity) }
         .buttonStyle(InstrumentButtonStyle(kind: .primary)).padding(.top, 4)
     }
@@ -834,7 +834,7 @@ struct CaptureView: View {
         // make the photo's destination unmistakable
         HStack(spacing: 6) {
           Image(systemName: "checkmark.circle.fill")
-          Text("On your Roll — Save to Photos to export to your iPhone")
+          Text("On your Roll. Save to Photos to export.")
         }
         .font(.spaceMono(10))
         .foregroundStyle(CameraTheme.gold)
@@ -866,7 +866,7 @@ struct CaptureView: View {
               Button("Delete Frame", role: .destructive) { model.remove(asset); review = nil }
               Button("Cancel", role: .cancel) {}
             } message: {
-              Text("It leaves your roll for good. Anything already saved to Photos stays saved.")
+              Text("Leaves your roll for good. Saved copies stay in Photos.")
             }
           }
           Button(isSavingShot ? "Saving…" : "Save to Photos") { save(asset) }
@@ -944,7 +944,7 @@ struct CaptureView: View {
       // out of film: the shutter goes slack — a fact, not a scold. The
       // offer lives behind the film bar, never over the viewfinder.
       UIImpactFeedbackGenerator(style: .light).impactOccurred()
-      showModeHint("Out of film — \(loadedStock.name) is spent. Load another camera.")
+      showModeHint("Out of film — load another camera.")
       return
     }
     UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
