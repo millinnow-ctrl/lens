@@ -72,7 +72,7 @@ struct DevelopView: View {
   @State private var activeSheet: DevelopSheet?
   /// the keep action the paywall interrupted; completed on dismiss if the
   /// entitlement now covers the camera
-  private enum PendingKeep { case save, share }
+  private enum PendingKeep { case save, share, shareCard }
   @State private var pendingKeep: PendingKeep?
   /// the composited frame the keep-context paywall shows — the user's own
   /// photograph on the locked camera, built from the bounded preview render
@@ -495,12 +495,43 @@ struct DevelopView: View {
       }
       .buttonStyle(InstrumentButtonStyle(kind: .secondary))
       .disabled(developedImage == nil)
+      Button("Share as camera card") {
+        // the card is a format the user chooses — the bare share above stays
+        // unmarked. Locked cameras route through the keep gate like Save and
+        // Share (a no-op while Store.everythingFreeForNow keeps all 18 open).
+        guard Store.shared.isUnlocked(currentStock) else {
+          pendingKeep = .shareCard
+          presentPaywall()
+          return
+        }
+        presentCardShareSheet()
+      }
+      .buttonStyle(InstrumentButtonStyle(kind: .secondary))
+      .disabled(developedImage == nil)
       if !Store.shared.isUnlocked(currentStock), developedImage != nil {
         Text("This develop stays until you leave — keeping it is what Plus is for.")
           .font(.footnote)   // 13pt at the default size
           .foregroundStyle(Theme.inkSoft)
           .frame(maxWidth: .infinity, alignment: .center)
           .multilineTextAlignment(.center)
+      }
+    }
+  }
+
+  /// the camera-card share path — the same composite as the bare share,
+  /// framed by LightTestCard; called by the card button and by
+  /// handleSheetDismiss when a purchase completes a card share
+  private func presentCardShareSheet() {
+    guard let developedImage, let sourceImage else { return }
+    let stock = currentStock
+    let decision = decisions.first
+    let strength = intensity
+    Task.detached(priority: .userInitiated) {
+      let composed = blended(developed: developedImage, over: sourceImage, intensity: strength)
+      let card = LightTestCard.single(photo: composed, stock: stock, decision: decision)
+      await MainActor.run {
+        Analytics.log(.photoShared)
+        activeSheet = .share(card)
       }
     }
   }
@@ -549,6 +580,7 @@ struct DevelopView: View {
     switch action {
     case .save: save()
     case .share: presentShareSheet()
+    case .shareCard: presentCardShareSheet()
     }
   }
 
