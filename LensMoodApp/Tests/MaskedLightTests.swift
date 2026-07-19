@@ -165,7 +165,7 @@ final class MaskedLightTests: XCTestCase {
       "security-cam": (0, 0, 0),
       "point-shoot": (0, 0.30, 0.20),
       "pastel-cinema": (0.20, 0.50, 0.50),
-      "tokyo-neon": (0.80, 0.25, 0),
+      "tokyo-neon": (0.80, 0.25, 0.6),
       "photobooth": (0, 0.25, 0),
       "tintype": (0.30, 0, 0.60),
     ]

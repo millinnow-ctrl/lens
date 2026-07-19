@@ -371,6 +371,99 @@ final class LensFixEvidenceTests: XCTestCase {
     )
   }
 
+  // MARK: - Tokyo Neon daylight cast (R84 item 3)
+
+  /// Tokyo-neon's neon-night grade smears a magenta/lavender cast onto a bright
+  /// daylight sky (critic A #2). It is a Class-A GOLDEN stock (daylight key 0.366,
+  /// guard weight ≈0.55 there) so a GLOBAL de-cast would move the golden — the
+  /// fix is SKY-MASK scoped (a no-op on the analyzeSubjects:false golden) and
+  /// scene-keyed (a no-op at night, its GOOD home). Simulator Vision has no mask,
+  /// so this injects a synthetic blue sky and lets the real sky-mask builder run;
+  /// the key-swap isolates the neutralization (tokyo is otherwise key-independent
+  /// with no emissive lights). Pin: daylight sky magenta drops; golden + night
+  /// unchanged. (The non-sky global cast is golden-locked — see the report.)
+  func testTokyoNeonDaylightSkyEvidence() throws {
+    let engine = FilmEngine()
+    let recipe = CameraRecipe.recipe(for: "tokyo-neon")
+    XCTAssertGreaterThan(recipe.skyResponse, 0, "tokyo-neon must carry the sky response")
+    let dir = try outDir()
+    let skyUI = blueSkyImage()
+    guard let skyCI = CIImage(image: skyUI) else { return XCTFail("synthetic sky build failed") }
+    let subject = engine.attachLightMasks(
+      to: SubjectAnalysis(faces: [], personMask: nil), image: skyCI.orientedForDisplay
+    )
+    XCTAssertNotNil(subject.skyMask, "the synthetic blue sky must produce a sky mask to exercise the pass")
+
+    func develop(key: Double) throws -> UIImage {
+      try engine.develop(skyUI, with: recipe, seed: 1,
+        reading: SceneReading(scene: skyOnlyScene(key: key), subject: subject)).image
+    }
+    let after = try develop(key: 0.55)    // daylight → neutralization engages
+    let before = try develop(key: 0.20)   // weight 0 → cast left (pre-fix)
+    let night = try develop(key: 0.13)    // night → left exactly alone
+    try XCTUnwrap(before.pngData()).write(to: dir.appendingPathComponent("tokyo-neon-daylight-before.png"))
+    try XCTUnwrap(after.pngData()).write(to: dir.appendingPathComponent("tokyo-neon-daylight-after.png"))
+
+    guard let beforeR = ImageMetrics.raster(before), let afterR = ImageMetrics.raster(after)
+    else { return XCTFail("raster failed") }
+    let patch = CGRect(x: 0.2, y: 0.10, width: 0.6, height: 0.25)
+    let beforeC = try XCTUnwrap(ImageMetrics.meanColor(beforeR, in: patch))
+    let afterC = try XCTUnwrap(ImageMetrics.meanColor(afterR, in: patch))
+    let beforeMagenta = beforeC.r - beforeC.b
+    let afterMagenta = afterC.r - afterC.b
+    print("tokyo-neon sky magenta (R-B): before \(beforeMagenta) after \(afterMagenta)")
+    // the magenta/lavender sky is pulled toward tokyo's cool signature.
+    XCTAssertLessThan(afterMagenta, beforeMagenta - 5, "daylight sky must lose the magenta cast")
+
+    // night byte-identity: at key 0.13 the neutralization weight is 0 → identical
+    // to the (also weight-0) key-0.20 before (tokyo is otherwise key-independent
+    // here — LUT stock, no emissive lights).
+    XCTAssertEqual(
+      try XCTUnwrap(before.pngData()), try XCTUnwrap(night.pngData()),
+      "tokyo-neon night must be byte-identical — the sky neutralization is a no-op in the dark"
+    )
+
+    // golden safety: without a sky mask (the analyzeSubjects:false golden path)
+    // the pass no-ops regardless of scene key → byte-identical.
+    let maskless = SubjectAnalysis(faces: [], personMask: nil)
+    let goldenDay = try engine.develop(skyUI, with: recipe, seed: 1,
+      reading: SceneReading(scene: skyOnlyScene(key: 0.55), subject: maskless)).image
+    let goldenDim = try engine.develop(skyUI, with: recipe, seed: 1,
+      reading: SceneReading(scene: skyOnlyScene(key: 0.20), subject: maskless)).image
+    XCTAssertEqual(
+      try XCTUnwrap(goldenDay.pngData()), try XCTUnwrap(goldenDim.pngData()),
+      "no sky mask (the golden path) → sky neutralization is a structural no-op, byte-identical"
+    )
+  }
+
+  /// A daylight raster with a flat blue sky filling the top 55% (blue-dominant,
+  /// hue ≈216°, low texture — passes the sky-mask gate) over neutral ground.
+  private func blueSkyImage(side: CGFloat = 160) -> UIImage {
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = 1
+    return UIGraphicsImageRenderer(size: CGSize(width: side, height: side), format: format).image { ctx in
+      let g = ctx.cgContext
+      g.setFillColor(UIColor(white: 0.40, alpha: 1).cgColor)
+      g.fill(CGRect(x: 0, y: 0, width: side, height: side))
+      g.setFillColor(UIColor(red: 100 / 255, green: 140 / 255, blue: 200 / 255, alpha: 1).cgColor)
+      g.fill(CGRect(x: 0, y: 0, width: side, height: side * 0.55))
+    }
+  }
+
+  /// A daylight scene at a chosen key for the tokyo sky pin — LUT stock (ignores
+  /// exposure), no lights (so sourceBloom's emissive gate is empty at every key),
+  /// so only brightGuardWeight(key) matters and the key-swap isolates the sky pass.
+  private func skyOnlyScene(key: Double) -> SceneProfile {
+    SceneProfile(
+      analyzed: true, key: key, p01: 0.15, p50: 0.48, p99: 0.82,
+      illum: [1, 1, 1], sat: 0.35, lights: [], auxLights: [], faceLum: nil,
+      meanLuminance: 0.50, medianLuminance: 0.48, shadowFraction: 0.12,
+      highlightFraction: 0.20, dynamicRange: 0.65, averageRed: 0.45,
+      averageGreen: 0.50, averageBlue: 0.60, saturation: 0.35, warmth: -0.05,
+      isLowKey: false, isHighKey: false, isBacklit: false
+    )
+  }
+
   // MARK: - Kodachrome daylight skin jaundice (R84 item 6)
 
   /// Kodachrome's warm bias overshoots into an amber daylight wash that pushes
