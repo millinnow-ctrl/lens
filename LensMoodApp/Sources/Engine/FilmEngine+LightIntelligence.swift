@@ -336,9 +336,10 @@ extension FilmEngine {
     guard let mask = maskKernel.apply(
       extent: extent, arguments: [image, t0, t1, strength]
     ) else { return starved }
-    return starved.applyingFilter("CIBlendWithMask", parameters: [
-      kCIInputImageKey: image,               // the original neon survives here
-      kCIInputBackgroundImageKey: starved,   // the starved street everywhere else
+    // foreground (the original neon) where the mask is bright, the starved
+    // street where it is dark — same idiom as applyFaceProtection.
+    return image.applyingFilter("CIBlendWithMask", parameters: [
+      kCIInputBackgroundImageKey: starved,
       kCIInputMaskImageKey: mask,
     ]).cropped(to: extent)
   }
