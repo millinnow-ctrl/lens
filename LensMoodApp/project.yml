@@ -90,6 +90,12 @@ targets:
       - path: Sources/Theme.swift
       - path: Sources/Services/VisionService.swift
       - path: Sources/Services/PhotoLibraryWriter.swift
+      # the develop gate: the extension's rail lists only unlocked cameras
+      # (StoreKit entitlements are per Apple ID, so no App Group is needed;
+      # the film-door exposure metering stays an in-app ceremony). Store
+      # references ExposureRoll/ExposureLedger, so both files compile in.
+      - path: Sources/Services/Store.swift
+      - path: Sources/Services/ExposureRoll.swift
       - path: Resources/luts
         buildPhase: resources
         type: folder

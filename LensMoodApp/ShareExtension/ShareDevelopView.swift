@@ -2,8 +2,9 @@ import Photos
 import SwiftUI
 import UIKit
 
-/// The Share-Sheet develop surface: one photograph in, the 18-camera film
-/// rail, one intensity slider, Save to Photos. A compact cut of the app's
+/// The Share-Sheet develop surface: one photograph in, the film rail (every
+/// camera the user can develop with — all 18 while everything is free),
+/// one intensity slider, Save to Photos. A compact cut of the app's
 /// Develop flow wearing the same ocean identity, budgeted for the extension's
 /// ~120 MB memory ceiling: the working frame is capped at 1500 px, previews
 /// develop at 1024 px, and the subject pass (Vision faces + person mask) is
@@ -31,8 +32,20 @@ struct ShareDevelopView: View {
   @State private var saved = false
   @State private var errorMessage: String?
   @State private var developTask: Task<Void, Never>?
+  /// observed for the entitlement: post-flip the rail lists only unlocked
+  /// cameras — the extension is a compact surface, not a side door around
+  /// the develop gate. Identical to today while everything is free.
+  @ObservedObject private var store = Store.shared
 
   private var selected: Stock { Stock.find(selectedID) }
+
+  /// the cameras this user can develop with here: free-forever plus owned.
+  /// The film door is an in-app ceremony (the exposure meter and its copy
+  /// live in the app's Develop flow); the extension simply doesn't list
+  /// what isn't open. All 18 while Store.everythingFreeForNow is true.
+  private var availableStocks: [Stock] {
+    Stock.all.filter { store.isUnlocked($0) }
+  }
 
   var body: some View {
     VStack(spacing: 12) {
@@ -45,6 +58,12 @@ struct ShareDevelopView: View {
     .padding(14)
     .background(Theme.paper.ignoresSafeArea())
     .task {
+      // ownership first, so the rail and the default camera are right
+      // before the first develop runs (instant while everything is free)
+      await store.refreshEntitlement()
+      if !store.isUnlocked(selected) {
+        selectedID = availableStocks.first?.id ?? Stock.all[0].id
+      }
       let photo = await loadPhoto()
       loading = false
       source = photo
@@ -133,7 +152,7 @@ struct ShareDevelopView: View {
   private var filmRail: some View {
     ScrollView(.horizontal, showsIndicators: false) {
       HStack(spacing: 10) {
-        ForEach(Stock.all) { stock in
+        ForEach(availableStocks) { stock in
           Button {
             select(stock)
           } label: {
