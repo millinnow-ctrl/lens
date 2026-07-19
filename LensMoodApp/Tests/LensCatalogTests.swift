@@ -93,12 +93,14 @@ final class LensCatalogTests: XCTestCase {
 
   /// Honesty guard: the app has no data source that could make "TRENDING"
   /// or "featured" true (PrivacyInfo says Data Not Collected), so no camera
-  /// may ship claiming either. The `badge` property stays for the day a real
-  /// drop computes an honest "NEW".
+  /// may carry any badge except an honest "NEW" for a real drop. The render
+  /// paths only know "new" now — this pins the catalog to the same rule.
   func testNoFabricatedBadgesInCatalog() {
     for stock in Stock.all {
-      XCTAssertNotEqual(stock.badge, "trending", "\(stock.id) claims trending with no data source")
-      XCTAssertNotEqual(stock.badge, "featured", "\(stock.id) claims featured with no data source")
+      XCTAssertTrue(
+        stock.badge == nil || stock.badge == "new",
+        "\(stock.id) carries badge \"\(stock.badge ?? "")\" — the only honest badge is \"new\""
+      )
     }
   }
 

@@ -399,13 +399,12 @@ struct CarouselCard: View {
   let stock: Stock
   let index: Int
 
+  /// The only badge the app can say honestly: "NEW", for a real camera
+  /// drop. The trending/featured vocabulary is gone — the app has no data
+  /// source that could make it true (council ruling: fabricated badges die),
+  /// so the render path must not keep the words on standby.
   private var badgeLabel: String? {
-    switch stock.badge {
-    case "trending": return "TRENDING"
-    case "featured": return "THIS WEEK"
-    case "new": return "NEW"
-    default: return nil
-    }
+    stock.badge == "new" ? "NEW" : nil
   }
 
   var body: some View {
@@ -490,7 +489,8 @@ struct StyleCard: View {
           startPoint: .topLeading,
           endPoint: .bottomTrailing
         )
-        if let badge = stock.badge {
+        // "new" is the only honest badge (see CarouselCard.badgeLabel)
+        if let badge = stock.badge, badge == "new" {
           Text(badge.uppercased())
             .scaledFont(size: 9, weight: .heavy, relativeTo: .caption2)
             .lineLimit(1)
