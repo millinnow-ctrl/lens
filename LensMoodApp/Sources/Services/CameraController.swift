@@ -21,8 +21,10 @@ final class CameraController: NSObject, ObservableObject, AVCapturePhotoCaptureD
   private let photoOutput = AVCapturePhotoOutput()
   private var device: AVCaptureDevice?
   private let sessionQueue = DispatchQueue(label: "app.lensmood.camera.session")
-  private var captureCompletion: ((UIImage) -> Void)?
-  private var fallbackImage: UIImage?
+  // nil result = a real hardware capture failed. Only the no-hardware path
+  // (Simulator/CI) ever completes with the loaded camera's plate; on a device a
+  // failure returns nil so the caller refunds instead of developing the plate.
+  private var captureCompletion: ((UIImage?) -> Void)?
 
   // MARK: lifecycle
 
@@ -210,8 +212,9 @@ final class CameraController: NSObject, ObservableObject, AVCapturePhotoCaptureD
 
   // MARK: shutter
 
-  /// `fallback` is the loaded camera's plate, used when there is no hardware
-  func capture(fallback: UIImage?, completion: @escaping (UIImage) -> Void) {
+  /// `fallback` is the loaded camera's plate, used ONLY when there is no
+  /// hardware (Simulator/CI). On a device, a failed capture completes with nil.
+  func capture(fallback: UIImage?, completion: @escaping (UIImage?) -> Void) {
     isCapturing = true
     guard isAvailable else {
       // Simulator / CI: hand back the plate so develop + review still run —
@@ -222,7 +225,6 @@ final class CameraController: NSObject, ObservableObject, AVCapturePhotoCaptureD
       return
     }
     captureCompletion = completion
-    fallbackImage = fallback
     let photoSettings = AVCapturePhotoSettings()
     photoSettings.flashMode = settings.flashMode == .on ? .on
       : (settings.flashMode == .auto ? .auto : .off)
@@ -240,8 +242,10 @@ final class CameraController: NSObject, ObservableObject, AVCapturePhotoCaptureD
     let image: UIImage? = photo.fileDataRepresentation().flatMap(UIImage.init(data:))
     Task { @MainActor in
       self.isCapturing = false
-      let result = image ?? self.fallbackImage ?? Self.solidPlaceholder()
-      self.captureCompletion?(result)
+      // a real failure (error, or no decodable data) returns nil — the caller
+      // refunds the exposure and shows an error rather than substituting the
+      // loaded camera's plate as if it were the user's photograph
+      self.captureCompletion?(image)
       self.captureCompletion = nil
     }
   }

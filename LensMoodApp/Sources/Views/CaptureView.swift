@@ -494,7 +494,11 @@ struct CaptureView: View {
         Image(systemName: "arrow.triangle.2.circlepath")
           .font(.system(size: 20)).foregroundStyle(CameraTheme.dim)
           .frame(width: 52, height: 52).overlay(Circle().stroke(CameraTheme.line, lineWidth: 1))
-      }.buttonStyle(.plain).accessibilityLabel("Flip camera")
+      }
+      .buttonStyle(.plain).accessibilityLabel("Flip camera")
+      // flipping mid-capture tears out the session inputs and forces the very
+      // capture error this refund path exists for — hold it during a shot
+      .disabled(camera.isCapturing)
     }
     .padding(.horizontal, 30).padding(.top, 6).padding(.bottom, 22)
   }
@@ -948,7 +952,24 @@ struct CaptureView: View {
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.09) {
       withAnimation(.easeIn(duration: 0.12)) { shutterFlash = false }
     }
-    camera.capture(fallback: BundleMedia.image("style-\(loadedStock.id)")) { develop($0) }
+    camera.capture(fallback: BundleMedia.image("style-\(loadedStock.id)")) { image in
+      guard let image else { handleCaptureFailure(); return }
+      develop(image)
+    }
+  }
+
+  /// a real hardware capture returned nothing: never develop the loaded
+  /// camera's plate — give any spent exposure back and surface the error
+  private func handleCaptureFailure() {
+    if let spent = pendingShotSpend {
+      pendingShotSpend = nil
+      if let id = pendingShotAssetID {
+        ExposureLedger.shared.clearPendingSpend(assetID: id)
+        pendingShotAssetID = nil
+      }
+      store.refundExposure(on: Stock.find(spent))
+    }
+    errorMessage = "The camera couldn't take that photo. Try again."
   }
 
   private func develop(_ image: UIImage) {
