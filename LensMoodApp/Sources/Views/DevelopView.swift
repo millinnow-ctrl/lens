@@ -109,6 +109,10 @@ struct DevelopView: View {
 
       }
       .padding(Theme.pagePadding)
+      // clearance for the floating tab dock, like every other scrolling tab
+      // (Home 36 / Tape 80): without it the last panel — the film door's
+      // message on a locked camera — rests against the dock capsule
+      .padding(.bottom, 36)
     }
     .background(Theme.paper)
     .navigationTitle(currentStock.name)
