@@ -140,7 +140,8 @@ final class MaskedLightTests: XCTestCase {
       gainDrivenGrain: r.gainDrivenGrain, nightReciprocity: r.nightReciprocity,
       ccdClip: r.ccdClip, highlightSmear: r.highlightSmear,
       highlightSmearDarkOnly: r.highlightSmearDarkOnly,
-      rimLight: 0, skinProtect: 0, skyResponse: 0
+      rimLight: 0, skinProtect: 0, skyResponse: 0,
+      flashHighlightHeadroom: r.flashHighlightHeadroom
     )
   }
 

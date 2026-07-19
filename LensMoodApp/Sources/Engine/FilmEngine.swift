@@ -457,7 +457,10 @@ final class FilmEngine {
     // R61 light-intelligence: flash physics (speculars + subject falloff) and
     // the noir key-light direction — both read the scene, both recipe-gated.
     if recipe.flashPhysics > 0.001 {
-      image = applyFlashPhysics(image, scene: scene, subject: subject, amount: recipe.flashPhysics)
+      image = applyFlashPhysics(
+        image, scene: scene, subject: subject, amount: recipe.flashPhysics,
+        highlightHeadroom: recipe.flashHighlightHeadroom
+      )
     }
     if recipe.keyShadow > 0.001 {
       image = applyKeyShadow(image, scene: scene, subject: subject, amount: recipe.keyShadow)
@@ -560,8 +563,21 @@ final class FilmEngine {
     // vanishes) so the far field stays dark and the flash-falloff physics
     // reads true. Face protection + the falloff's subject lift still expose
     // the people.
-    if recipe.flashPhysics > 0.001, scene.key < 0.30, correction > 0 {
-      correction *= 0.35
+    if recipe.flashPhysics > 0.001, correction > 0 {
+      if scene.key < 0.30 {
+        correction *= 0.35
+      }
+      // R78 highlight headroom: when the flashed face (or the scene's bright
+      // end) already sits near clip, don't chase the dark median and blow the
+      // subject to paper-white. Scales the positive lift down as it approaches
+      // clip, weighted by the stock's headroom. Off (headroom 0) for the color
+      // flash family, which measured sound at 7–10% face clip.
+      if recipe.flashHighlightHeadroom > 0.001 {
+        let faceHot = scene.faceLum.map { max(0, min(1, ($0 - 0.62) / 0.28)) } ?? 0
+        let hiHot = max(0, min(1, (scene.p99 - 0.85) / 0.15))
+        let hot = max(faceHot, hiHot)
+        correction *= 1 - recipe.flashHighlightHeadroom * hot
+      }
     }
     return correction * recipe.adaptiveExposure
   }

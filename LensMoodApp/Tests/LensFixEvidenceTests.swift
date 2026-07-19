@@ -67,6 +67,8 @@ final class LensFixEvidenceTests: XCTestCase {
     }
     let engine = FilmEngine()
     let scene = try engine.read(source, analyzeSubjects: false).scene
+    XCTAssertFalse(FilmEngine.emissiveLights(in: scene).isEmpty,
+                   "sample-night must meter as an emissive (neon) scene for the carve-out")
     guard let ci = CIImage(image: source, options: [.applyOrientationProperty: true]) else {
       throw XCTSkip("unreadable source")
     }
@@ -93,6 +95,84 @@ final class LensFixEvidenceTests: XCTestCase {
     let meanDelta = meanLuma(afterR) - meanLuma(beforeR)
     XCTAssertLessThan(meanDelta, 12,
                       "only the neon returns — the starve must not become a global lift")
+  }
+
+  // MARK: - Photobooth flashed-face blowout (§17.1)
+
+  /// The identity-breaking fix: the face-first stock erased faces on its own
+  /// scene class (measured 68% / 49% of face-crop pixels ≥ 250 luma). Renders
+  /// photobooth on the friends fixture with the flash headroom OFF (before) and
+  /// ON (after), publishes the pair, and pins the reduction. CI's simulator
+  /// Vision returns no faces, so the primary pin measures the fixed flashed-
+  /// subject region (around the meter's focal probe); a best-effort per-face
+  /// pin runs too when faces are detected (device / future matte harness).
+  func testPhotoboothFaceHeadroomEvidence() throws {
+    guard let source = source("sample-friends.jpg") else {
+      throw XCTSkip("missing sample-friends.jpg")
+    }
+    let engine = FilmEngine()
+    let reading = try engine.read(source)
+    let recipe = CameraRecipe.recipe(for: "photobooth")
+    XCTAssertGreaterThan(recipe.flashHighlightHeadroom, 0, "photobooth must carry the headroom")
+
+    // grid-resolution render (matches the audit measurement condition)
+    let after = try engine.develop(source, with: recipe, maxPixelSize: 1024, seed: 1, reading: reading)
+    let before = try engine.develop(
+      source, with: withoutFlashHeadroom(recipe), maxPixelSize: 1024, seed: 1, reading: reading
+    )
+
+    let dir = try outDir()
+    try XCTUnwrap(before.image.pngData()).write(to: dir.appendingPathComponent("photobooth-before.png"))
+    try XCTUnwrap(after.image.pngData()).write(to: dir.appendingPathComponent("photobooth-after.png"))
+
+    guard let beforeR = ImageMetrics.raster(before.image),
+          let afterR = ImageMetrics.raster(after.image) else {
+      return XCTFail("raster failed")
+    }
+
+    // Primary (Vision-independent): the flashed-subject region the meter's
+    // default focal probe points at (0.5, 0.42) — the faces that blew out.
+    let subject = CGRect(x: 0.25, y: 0.20, width: 0.50, height: 0.45)
+    let beforeClip = ImageMetrics.highlightClipRate(beforeR, in: subject, threshold: 250)
+    let afterClip = ImageMetrics.highlightClipRate(afterR, in: subject, threshold: 250)
+    print("photobooth flashed-subject clip ≥250: before \(beforeClip) after \(afterClip)")
+    XCTAssertLessThan(afterClip, beforeClip - 0.02,
+                      "flash headroom must reduce the flashed-subject blowout")
+    XCTAssertLessThan(afterClip, 0.45,
+                      "the flashed subject must keep structure — not fuse to paper-white")
+
+    // Best-effort per-face (runs when Vision detected faces).
+    for face in after.faces {
+      let b = ImageMetrics.highlightClipRate(beforeR, in: face.bounds, threshold: 250)
+      let a = ImageMetrics.highlightClipRate(afterR, in: face.bounds, threshold: 250)
+      print("photobooth face clip ≥250: before \(b) after \(a)")
+      if b > 0.20 {
+        XCTAssertLessThan(a, b - 0.05, "a blown face must recover structure")
+      }
+    }
+  }
+
+  /// photobooth with the R78 flash headroom disabled — reproduces the pre-fix
+  /// (blown) render for the before pane and the reduction pin.
+  private func withoutFlashHeadroom(_ r: CameraRecipe) -> CameraRecipe {
+    CameraRecipe(
+      id: r.id, engineClass: r.engineClass, lutName: r.lutName,
+      postLUTExposure: r.postLUTExposure, postLUTSaturation: r.postLUTSaturation,
+      postLUTContrast: r.postLUTContrast, postLUTMatrix: r.postLUTMatrix,
+      referenceSpatial: r.referenceSpatial, exposureBias: r.exposureBias,
+      adaptiveExposure: r.adaptiveExposure, warmth: r.warmth, saturation: r.saturation,
+      contrast: r.contrast, shadowLift: r.shadowLift,
+      highlightCompression: r.highlightCompression, vignette: r.vignette,
+      bloom: r.bloom, grain: r.grain, grainSize: r.grainSize,
+      monochrome: r.monochrome, protectsFaces: r.protectsFaces,
+      preservesWarmCast: r.preservesWarmCast, decisionVocabulary: r.decisionVocabulary,
+      flashPhysics: r.flashPhysics, sourceBloom: r.sourceBloom, keyShadow: r.keyShadow,
+      gainDrivenGrain: r.gainDrivenGrain, nightReciprocity: r.nightReciprocity,
+      ccdClip: r.ccdClip, highlightSmear: r.highlightSmear,
+      highlightSmearDarkOnly: r.highlightSmearDarkOnly,
+      rimLight: r.rimLight, skinProtect: r.skinProtect, skyResponse: r.skyResponse,
+      flashHighlightHeadroom: 0
+    )
   }
 
   // MARK: helpers

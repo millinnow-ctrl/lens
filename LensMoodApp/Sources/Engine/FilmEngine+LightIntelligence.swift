@@ -26,7 +26,8 @@ extension FilmEngine {
     _ image: CIImage,
     scene: SceneProfile,
     subject: SubjectAnalysis,
-    amount: Double
+    amount: Double,
+    highlightHeadroom: Double = 0
   ) -> CIImage {
     guard amount > 0.001 else { return image }
     let extent = image.extent
@@ -48,9 +49,15 @@ extension FilmEngine {
 
     // 2 — speculars: bright + desaturated pixels catch the flash and bloom.
     if let kernel = flashSpecularKernel {
-      let lo = scene.p50 + (scene.p99 - scene.p50) * 0.55
+      // R78: on a headroom stock whose flashed faces already sit near clip —
+      // photobooth especially, whose mono conversion defeats the specular's
+      // saturation guard so EVERY bright pixel reads as a mirror — lift the
+      // threshold toward the very top and cut the push, so only genuine glints
+      // (catchlights, glass) pop and the face body keeps its structure.
+      let loFrac = 0.55 + 0.38 * highlightHeadroom
+      let lo = scene.p50 + (scene.p99 - scene.p50) * loFrac
       let hi = max(scene.p99, lo + 0.04) + 0.02
-      let push = 0.5 * amount
+      let push = 0.5 * amount * (1 - 0.6 * highlightHeadroom)
       if let specced = kernel.apply(extent: extent, arguments: [out, lo, hi, push]) {
         out = specced.cropped(to: extent)
       }
