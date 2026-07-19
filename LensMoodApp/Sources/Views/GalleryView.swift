@@ -173,9 +173,17 @@ struct GalleryView: View {
 private struct GalleryDetailView: View {
   let asset: DevelopedAsset
 
+  /// what the share sheet is holding — the bare frame or the camera card.
+  /// One item-typed presentation seat, for the same reason DevelopView has
+  /// one: two boolean sheets on a single view chain can race.
+  private struct ShareItem: Identifiable {
+    let id = UUID()
+    let image: UIImage
+  }
+
   @EnvironmentObject private var model: AppModel
   @Environment(\.dismiss) private var dismiss
-  @State private var sharePresented = false
+  @State private var shareItem: ShareItem?
   @State private var isSaving = false
   @State private var saveConfirmation = false
   @State private var deleteRequested = false
@@ -220,12 +228,6 @@ private struct GalleryDetailView: View {
           .buttonStyle(InstrumentButtonStyle(kind: .primary))
           .accessibilityHint("Opens \(asset.stock.name) to develop a new photograph")
 
-          Button("Print this frame") {
-            printThisFrame()
-          }
-          .buttonStyle(InstrumentButtonStyle(kind: .secondary))
-          .accessibilityHint("Opens the Print Room with this photograph")
-
           Button(isSaving ? "Saving to Photos" : "Save to Photos") {
             save()
           }
@@ -233,9 +235,22 @@ private struct GalleryDetailView: View {
           .disabled(isSaving)
 
           Button("Share") {
-            sharePresented = true
+            // resolvedFrame: by now the decode has landed; the synchronous
+            // fallback is one bounded (≤2048 px) JPEG decode
+            shareItem = ShareItem(image: resolvedFrame())
           }
           .buttonStyle(InstrumentButtonStyle(kind: .secondary))
+
+          Button("Share as camera card") {
+            shareCard()
+          }
+          .buttonStyle(InstrumentButtonStyle(kind: .secondary))
+
+          Button("Print this frame") {
+            printThisFrame()
+          }
+          .buttonStyle(InstrumentButtonStyle(kind: .secondary))
+          .accessibilityHint("Opens the Print Room with this photograph")
 
           // deleting is irreversible (no undo, no trash) — it must confirm
           // and name the consequence before anything is destroyed
@@ -287,10 +302,8 @@ private struct GalleryDetailView: View {
           asset.loadFullImage()
         }.value
       }
-      .sheet(isPresented: $sharePresented) {
-        // resolvedFrame: by presentation time the decode has landed; the
-        // synchronous fallback is one bounded (≤2048 px) JPEG decode
-        ActivitySheet(items: [resolvedFrame()])
+      .sheet(item: $shareItem) { item in
+        ActivitySheet(items: [item.image])
       }
       .alert("Saved to Photos", isPresented: $saveConfirmation) {
         Button("OK", role: .cancel) {}
@@ -394,6 +407,23 @@ private struct GalleryDetailView: View {
   /// file is unreadable) the thumbnail.
   private func resolvedFrame() -> UIImage {
     fullImage ?? asset.image ?? asset.loadFullImage() ?? asset.thumbnail
+  }
+
+  /// the same designed frame DevelopView shares — composed off-main from the
+  /// kept develop, its camera, and its first decision note. The Library keeps
+  /// parity: any kept frame can leave the app in the identifiable format.
+  private func shareCard() {
+    let asset = asset
+    let resident = fullImage ?? asset.image
+    Task { @MainActor in
+      let card = await Task.detached(priority: .userInitiated) { () -> UIImage in
+        let frame = resident ?? asset.loadFullImage() ?? asset.thumbnail
+        return LightTestCard.single(
+          photo: frame, stock: asset.stock, decision: asset.decisions.first)
+      }.value
+      Analytics.log(.photoShared)
+      shareItem = ShareItem(image: card)
+    }
   }
 
   private func save() {
