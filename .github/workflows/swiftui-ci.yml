@@ -106,7 +106,7 @@ jobs:
           # ad material: the real develop screen once per featured camera, so
           # the ad's look-switch cuts are whole genuine screens
           mkdir -p ui-artifacts/develop-screens
-          for stock in disposable tokyo-neon film-noir kodachrome y2k-digicam polaroid super-8 photobooth; do
+          for stock in disposable iphone-flash camcorder-90s leica-street gq-editorial a24-still film-noir y2k-digicam polaroid super-8 lomo kodachrome security-cam point-shoot pastel-cinema tokyo-neon photobooth tintype; do
             xcrun simctl terminate "$DEVICE_ID" app.lensmood.ios || true
             SIMCTL_CHILD_LENSMOOD_TAB=cameras SIMCTL_CHILD_LENSMOOD_AD=1 SIMCTL_CHILD_LENSMOOD_AD_STOCK=$stock \
               xcrun simctl launch "$DEVICE_ID" app.lensmood.ios
