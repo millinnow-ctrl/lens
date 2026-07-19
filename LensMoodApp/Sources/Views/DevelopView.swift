@@ -590,6 +590,9 @@ struct DevelopView: View {
   /// lands on the Roll as the user's own (applyDeveloped)
   private func spendAndDevelop() {
     guard let sourceImage else { return }
+    // a double-fired tap must not spend two frames for one develop (the
+    // door leaves the tree on the next render pass, not on the first tap)
+    guard !isDeveloping else { return }
     guard store.spendExposure(on: currentStock) else { return }
     pendingExposureSpend = currentStock.id
     UIImpactFeedbackGenerator(style: .rigid).impactOccurred()

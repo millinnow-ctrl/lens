@@ -738,6 +738,9 @@ struct CaptureView: View {
   }
 
   private func shoot() {
+    // a double-fired shutter tap must not spend two frames for one shot —
+    // .disabled() only lands on the next render pass (the save() precedent)
+    guard !camera.isCapturing, !isDeveloping else { return }
     // The film door, at the shutter (the same ExposureRoll every develop
     // obeys — DevelopView documents the design). .open for every camera
     // while Store.everythingFreeForNow.
