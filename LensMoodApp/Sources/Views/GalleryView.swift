@@ -178,6 +178,7 @@ private struct GalleryDetailView: View {
   @State private var sharePresented = false
   @State private var isSaving = false
   @State private var saveConfirmation = false
+  @State private var deleteRequested = false
   @State private var errorMessage: String?
   /// the stored 2048 px frame, decoded once on appearance (two-tier: a
   /// persisted asset only carries its thumbnail in memory)
@@ -236,13 +237,27 @@ private struct GalleryDetailView: View {
           }
           .buttonStyle(InstrumentButtonStyle(kind: .secondary))
 
+          // deleting is irreversible (no undo, no trash) — it must confirm
+          // and name the consequence before anything is destroyed
           Button(role: .destructive) {
-            model.remove(asset)
-            dismiss()
+            deleteRequested = true
           } label: {
             Text("Delete")
               .frame(maxWidth: .infinity)
               .frame(minHeight: Theme.controlHeight)
+          }
+          .confirmationDialog(
+            "Delete this frame?",
+            isPresented: $deleteRequested,
+            titleVisibility: .visible
+          ) {
+            Button("Delete Frame", role: .destructive) {
+              model.remove(asset)
+              dismiss()
+            }
+            Button("Cancel", role: .cancel) {}
+          } message: {
+            Text("It leaves your roll for good. Anything already saved to Photos stays saved.")
           }
         }
         .padding(Theme.pagePadding)
