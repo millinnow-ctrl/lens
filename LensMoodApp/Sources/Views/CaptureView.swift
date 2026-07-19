@@ -498,6 +498,14 @@ struct CaptureView: View {
           stock: stock,
           kept: Array(model.library.filter { $0.stock.id == stock.id }.prefix(3).map(\.thumbnail))
         ))
+        // the offer is a paper-light surface: lift the camera instrument's
+        // forced dark scheme, which the mount sheet inherits — otherwise
+        // this pushed screen's system pieces (bar title, back chevron,
+        // Divider) render dark-scheme over Theme.paper. The bar gets the
+        // explicit per-screen scheme, the counterpart of the mount grid's
+        // own .toolbarColorScheme(.dark).
+        .environment(\.colorScheme, .light)
+        .toolbarColorScheme(.light, for: .navigationBar)
       } label: {
         mountCellLabel(stock, access: access)
       }
