@@ -24,6 +24,10 @@ enum PaywallContext {
 
 struct PaywallView: View {
   var context: PaywallContext = .browse
+  /// true when presented as a sheet (the develop doors): the purchase
+  /// surface must name itself and offer an explicit way out — swipe-down
+  /// alone is not a visible dismiss affordance
+  var showsDone = false
 
   @ObservedObject private var store = Store.shared
   @Environment(\.dismiss) private var dismiss
@@ -71,6 +75,16 @@ struct PaywallView: View {
     .background(Theme.paper)
     .navigationTitle("LensMood Plus")
     .navigationBarTitleDisplayMode(.inline)
+    .toolbar {
+      if showsDone {
+        // .navigationBarTrailing (not .topBarTrailing) — iOS 16 floor.
+        ToolbarItem(placement: .navigationBarTrailing) {
+          Button("Done") { dismiss() }
+            .font(.callout.weight(.semibold))   // 16pt at the default size
+            .foregroundStyle(Theme.accent)
+        }
+      }
+    }
     .task {
       Analytics.log(.paywallViewed(surface: surfaceName))
       await store.start()

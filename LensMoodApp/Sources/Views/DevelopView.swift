@@ -142,7 +142,12 @@ struct DevelopView: View {
       case .share(let image):
         ActivitySheet(items: [image])
       case .paywall:
-        PaywallView(context: paywallContext)
+        // the sheet gets navigation chrome so the offer names itself
+        // ("LensMood Plus") and carries a visible Done — swipe-down alone
+        // is not an affordance
+        NavigationStack {
+          PaywallView(context: paywallContext, showsDone: true)
+        }
       }
     }
     .savedTick(isPresented: $saveConfirmation)
