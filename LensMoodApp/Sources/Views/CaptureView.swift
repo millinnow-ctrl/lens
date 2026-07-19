@@ -8,8 +8,15 @@ import UIKit
 struct CaptureView: View {
   @EnvironmentObject private var model: AppModel
   @StateObject private var camera = CameraController()
+  /// film-door state (see ExposureRoll.swift): observed so the mount
+  /// picker's counters and the film bar follow spends live. Inert while
+  /// Store.everythingFreeForNow — every camera is .open.
+  @ObservedObject private var store = Store.shared
 
   @State private var loadedStock = Stock.all[0]
+  /// the camera id whose exposure the in-flight shot spent, so a failed
+  /// develop can give the frame back
+  @State private var pendingShotSpend: String?
   @State private var activeDial: ActiveDial = .aperture
   @State private var showGrid = true
   @State private var mountPickerShown = false
@@ -282,6 +289,7 @@ struct CaptureView: View {
       HStack(spacing: 10) {
         canisterIcon
         Text(loadedStock.name).font(.spaceMono(15, bold: true)).foregroundStyle(CameraTheme.text)
+        filmCounter
         Image(systemName: "chevron.down").scaledFont(size: 11, weight: .semibold, relativeTo: .caption2).foregroundStyle(CameraTheme.dim)
         Spacer()
         Button { showGrid.toggle(); tick() } label: {
@@ -304,6 +312,26 @@ struct CaptureView: View {
     }
     .buttonStyle(.plain)
     .padding(.horizontal, 14).padding(.top, 12)
+  }
+
+  /// the loaded camera's frame counter in the film bar — an engraved fact,
+  /// present only when film is metered at all (never while gates are open)
+  @ViewBuilder
+  private var filmCounter: some View {
+    switch store.developAccess(for: loadedStock) {
+    case .open:
+      EmptyView()
+    case .loaded(let remaining):
+      Text("·\(remaining) EXP")
+        .font(.spaceMono(11, bold: true))
+        .foregroundStyle(CameraTheme.gold)
+        .accessibilityLabel("\(remaining) exposure\(remaining == 1 ? "" : "s") left")
+    case .spent:
+      Text("EMPTY")
+        .font(.spaceMono(11, bold: true)).tracking(1)
+        .foregroundStyle(CameraTheme.dim)
+        .accessibilityLabel("Out of film")
+    }
   }
 
   @ViewBuilder
@@ -445,22 +473,7 @@ struct CaptureView: View {
       ScrollView {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 12)], spacing: 12) {
           ForEach(Stock.all) { stock in
-            Button {
-              loadedStock = stock; camera.load(stock: stock); mountPickerShown = false
-              UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
-            } label: {
-              VStack(spacing: 6) {
-                RoundedRectangle(cornerRadius: 12)
-                  .fill(LinearGradient(colors: [Color(hex: stock.g0), Color(hex: stock.g1)],
-                                       startPoint: .topLeading, endPoint: .bottomTrailing))
-                  .frame(height: 66)
-                  .overlay(RoundedRectangle(cornerRadius: 12).stroke(stock.id == loadedStock.id ? CameraTheme.gold : .clear, lineWidth: 2.5))
-                Text(stock.name).scaledFont(size: 12, weight: .semibold, relativeTo: .caption)
-                  .foregroundStyle(CameraTheme.text).lineLimit(1).minimumScaleFactor(0.8)
-                Text(stock.exif).scaledFont(size: 8, weight: .medium, design: .monospaced, relativeTo: .caption2)
-                  .foregroundStyle(CameraTheme.dim).lineLimit(1).minimumScaleFactor(0.7)
-              }
-            }.buttonStyle(.plain)
+            mountCell(stock)
           }
         }.padding(16)
       }
@@ -469,6 +482,80 @@ struct CaptureView: View {
       .toolbarColorScheme(.dark, for: .navigationBar)
     }
     .presentationDetents([.medium, .large])
+  }
+
+  /// One camera on the mount shelf. Open and loaded cameras mount as ever —
+  /// loading is free, the SHUTTER spends film (shoot()). A spent camera
+  /// can't be mounted: its cell opens the offer instead, in-fiction
+  /// acquisition, not a dead end. All cameras mount freely while
+  /// Store.everythingFreeForNow.
+  @ViewBuilder
+  private func mountCell(_ stock: Stock) -> some View {
+    let access = store.developAccess(for: stock)
+    if case .spent = access {
+      NavigationLink {
+        PaywallView(context: .reload(
+          stock: stock,
+          kept: Array(model.library.filter { $0.stock.id == stock.id }.prefix(3).map(\.thumbnail))
+        ))
+      } label: {
+        mountCellLabel(stock, access: access)
+      }
+      .buttonStyle(.plain)
+      .accessibilityLabel("\(stock.name), out of film — see LensMood Plus")
+    } else {
+      Button {
+        loadedStock = stock; camera.load(stock: stock); mountPickerShown = false
+        UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+      } label: {
+        mountCellLabel(stock, access: access)
+      }
+      .buttonStyle(.plain)
+      .accessibilityLabel(mountAccessibilityLabel(stock, access: access))
+    }
+  }
+
+  private func mountAccessibilityLabel(_ stock: Stock, access: ExposureRoll.Access) -> String {
+    if case .loaded(let remaining) = access {
+      return "Load \(stock.name), \(remaining) exposure\(remaining == 1 ? "" : "s") in it"
+    }
+    return "Load \(stock.name)"
+  }
+
+  private func mountCellLabel(_ stock: Stock, access: ExposureRoll.Access) -> some View {
+    VStack(spacing: 6) {
+      RoundedRectangle(cornerRadius: 12)
+        .fill(LinearGradient(colors: [Color(hex: stock.g0), Color(hex: stock.g1)],
+                             startPoint: .topLeading, endPoint: .bottomTrailing))
+        .frame(height: 66)
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(stock.id == loadedStock.id ? CameraTheme.gold : .clear, lineWidth: 2.5))
+        .overlay(alignment: .bottomTrailing) {
+          // frame counter / lock — the rail-chip idiom, invisible while
+          // every gate is open. Fixed sizes: badges pinned to the swatch.
+          switch access {
+          case .open:
+            EmptyView()
+          case .loaded(let remaining):
+            Text("\(remaining)")
+              .font(.system(size: 10, weight: .bold, design: .monospaced))
+              .foregroundStyle(.white)
+              .padding(.horizontal, 5).padding(.vertical, 3)
+              .background(Capsule().fill(Color.black.opacity(0.55)))
+              .padding(5)
+          case .spent:
+            Image(systemName: "lock.fill")
+              .font(.system(size: 10, weight: .bold))
+              .foregroundStyle(.white)
+              .padding(4)
+              .background(Circle().fill(Color.black.opacity(0.55)))
+              .padding(5)
+          }
+        }
+      Text(stock.name).scaledFont(size: 12, weight: .semibold, relativeTo: .caption)
+        .foregroundStyle(CameraTheme.text).lineLimit(1).minimumScaleFactor(0.8)
+      Text(stock.exif).scaledFont(size: 8, weight: .medium, design: .monospaced, relativeTo: .caption2)
+        .foregroundStyle(CameraTheme.dim).lineLimit(1).minimumScaleFactor(0.7)
+    }
   }
 
   private var librarySheet: some View {
@@ -651,6 +738,24 @@ struct CaptureView: View {
   }
 
   private func shoot() {
+    // The film door, at the shutter (the same ExposureRoll every develop
+    // obeys — DevelopView documents the design). .open for every camera
+    // while Store.everythingFreeForNow.
+    switch store.developAccess(for: loadedStock) {
+    case .open:
+      break
+    case .loaded:
+      // shooting spends a loaded exposure; the shot is the user's — it
+      // lands on the Roll and exports exactly like any other
+      guard store.spendExposure(on: loadedStock) else { return }
+      pendingShotSpend = loadedStock.id
+    case .spent:
+      // out of film: the shutter goes slack — a fact, not a scold. The
+      // offer lives behind the film bar, never over the viewfinder.
+      UIImpactFeedbackGenerator(style: .light).impactOccurred()
+      showModeHint("Out of film — \(loadedStock.name) is spent. Load another camera.")
+      return
+    }
     UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
     withAnimation(.easeOut(duration: 0.08)) { shutterFlash = true }
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.09) {
@@ -673,11 +778,18 @@ struct CaptureView: View {
         isDeveloping = false
         switch result {
         case .success(let render):
+          pendingShotSpend = nil   // the spent frame delivered — it's kept
           let asset = DevelopedAsset(image: render.image, source: image, stock: stock, decisions: render.decisions)
           model.add(asset)
           withAnimation { review = asset }
           UINotificationFeedbackGenerator().notificationOccurred(.success)
         case .failure(let error):
+          // a film-bought shot that failed to develop gives its frame
+          // back — the camera never eats an exposure it didn't deliver
+          if pendingShotSpend == stock.id {
+            pendingShotSpend = nil
+            store.refundExposure(on: stock)
+          }
           errorMessage = error.localizedDescription
         }
       }
