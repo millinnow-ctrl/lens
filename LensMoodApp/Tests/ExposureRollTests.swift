@@ -101,6 +101,27 @@ final class ExposureRollTests: XCTestCase {
     )
   }
 
+  /// Ported from the tournament's sample-film suite: the .plus
+  /// entitlement answers .open whatever the ledger says — a member's spend
+  /// history is history, never a meter.
+  func testPlusEntitlementOpensEveryCameraAtAnySpendCount() {
+    let counts = [
+      0, ExposureRoll.loadedExposures - 1, ExposureRoll.loadedExposures,
+      ExposureRoll.loadedExposures + 9,
+    ]
+    for spent in counts {
+      for id in allIDs {
+        XCTAssertEqual(
+          ExposureRoll.access(
+            stockID: id, entitlement: .plus, everythingFree: false,
+            spentExposures: spent),
+          .open,
+          "\(id) must be open for Plus at \(spent) recorded spends"
+        )
+      }
+    }
+  }
+
   // MARK: - Ledger (isolated suite)
 
   private func freshLedger(_ name: String = #function) -> (ExposureLedger, UserDefaults) {
@@ -130,6 +151,27 @@ final class ExposureRollTests: XCTestCase {
     XCTAssertEqual(ledger.spent(on: "tintype"), 0, "a refund can never mint film")
   }
 
+  /// Ported from the tournament's trial-roll suite: the roll is bounded
+  /// at capacity. The ledger records raw counts on purpose (the truth of
+  /// what happened); the clamp lives at read time — a ledger that recorded
+  /// one spend past the roll still reads .spent, never a negative remaining.
+  func testOverRecordedLedgerStillReadsSpentNeverNegative() {
+    let (ledger, _) = freshLedger()
+    for _ in 0...ExposureRoll.loadedExposures {   // N + 1 recorded spends
+      ledger.recordSpend(on: "tintype")
+    }
+    XCTAssertEqual(
+      ledger.spent(on: "tintype"), ExposureRoll.loadedExposures + 1,
+      "the ledger records raw truth; clamping is the reader's job"
+    )
+    XCTAssertEqual(
+      ExposureRoll.access(
+        stockID: "tintype", entitlement: .free, everythingFree: false,
+        spentExposures: ledger.spent(on: "tintype")),
+      .spent
+    )
+  }
+
   func testLedgerPersistsAcrossInstances() {
     let suite = "test.exposures.persistence"
     let defaults = UserDefaults(suiteName: suite)!
@@ -143,6 +185,35 @@ final class ExposureRollTests: XCTestCase {
   }
 
   // MARK: - The live configuration
+
+  /// Ported from the tournament's test-roll suite: a spend is guarded
+  /// on permission — spendExposure answers false unless the door is
+  /// .loaded. In today's shipped state every camera is .open, so the live
+  /// store must refuse all 18 and leave the shared ledger untouched; the
+  /// same `guard case .loaded` refuses .spent, whose precondition is
+  /// pinned here at policy level (a spent roll never reads as loaded).
+  @MainActor
+  func testSpendExposureRefusesWithoutALoadedRoll() {
+    if !Store.gateRehearsal {   // rehearsal is a DEBUG launch choice, not CI state
+      for stock in Stock.all {
+        let before = ExposureLedger.shared.spent(on: stock.id)
+        XCTAssertFalse(
+          Store.shared.spendExposure(on: stock),
+          "\(stock.id) is open — an open camera never spends film"
+        )
+        XCTAssertEqual(
+          ExposureLedger.shared.spent(on: stock.id), before,
+          "a refused spend must not touch the ledger"
+        )
+      }
+    }
+    if case .loaded = ExposureRoll.access(
+      stockID: aPlusID, entitlement: .free, everythingFree: false,
+      spentExposures: ExposureRoll.loadedExposures)
+    {
+      XCTFail("a spent roll must never read as loaded — the spend guard depends on it")
+    }
+  }
 
   /// This pass ships with every gate open and no rehearsal active: the
   /// effective flag equals the shipped flag, and the live store answers
