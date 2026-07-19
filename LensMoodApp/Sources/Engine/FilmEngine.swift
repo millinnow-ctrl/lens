@@ -580,6 +580,15 @@ final class FilmEngine {
         kCIInputIntensityKey: 1,
       ])
     }
+    // R84 (item 1 root fix): for a mono daylight-guard stock the color-core
+    // rolloff is UNDONE by the mono enforcement that runs after it — the second
+    // CIPhotoEffectMono and this CIColorMonochrome re-blow the highlights (the
+    // y2k lesson: the fix must live past the stage that erases it). Cap the
+    // highlights again as the LAST tonal step so the guarantee survives to the
+    // render. dayGuard is 0 at night → no-op → the night render is byte-identical.
+    if dayGuard > 0.001, recipe.monochrome, recipe.engineClass != .staticLUT {
+      image = applyDaylightHighlightRolloff(image, amount: dayGuard)
+    }
     if recipe.id == "polaroid" {
       image = applyInstantFrame(to: image)
     }
