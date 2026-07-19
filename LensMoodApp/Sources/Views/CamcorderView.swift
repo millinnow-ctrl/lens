@@ -214,13 +214,29 @@ struct CamcorderView: View {
   /// clear temp tapes left behind by earlier sessions (they otherwise
   /// accumulate for the app's lifetime)
   private func sweepOrphanedTapes() {
-    let fm = FileManager.default
-    let tmp = fm.temporaryDirectory
+    // Never while a develop runs: the export's lensmood-tape file exists on
+    // disk before outputURL is published, so a tab round-trip mid-develop
+    // would see it as an orphan and delete it out from under the exporter.
+    guard !isExporting else { return }
     let keep = Set([inputURL, outputURL].compactMap { $0?.lastPathComponent })
-    guard let names = try? fm.contentsOfDirectory(atPath: tmp.path) else { return }
-    for name in names
-    where (name.hasPrefix("lensmood-input-") || name.hasPrefix("lensmood-tape-")) && !keep.contains(name) {
-      try? fm.removeItem(at: tmp.appendingPathComponent(name))
+    // directory listing + deletes are file I/O — keep them off the main
+    // thread; this runs on every arrival at the Tape tab
+    Task.detached(priority: .utility) {
+      let fm = FileManager.default
+      let tmp = fm.temporaryDirectory
+      guard let names = try? fm.contentsOfDirectory(atPath: tmp.path) else { return }
+      for name in CamcorderView.orphanedTapeNames(names, keeping: keep) {
+        try? fm.removeItem(at: tmp.appendingPathComponent(name))
+      }
+    }
+  }
+
+  /// Which temp files are LensMood's own AND orphaned — pure, pinned by
+  /// TapeHygieneTests because this list feeds deletions: only the two
+  /// lensmood tape prefixes qualify, and the working pair is always kept.
+  static func orphanedTapeNames(_ names: [String], keeping keep: Set<String>) -> [String] {
+    names.filter {
+      ($0.hasPrefix("lensmood-input-") || $0.hasPrefix("lensmood-tape-")) && !keep.contains($0)
     }
   }
 
