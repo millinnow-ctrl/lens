@@ -109,6 +109,7 @@ jobs:
           for stock in disposable iphone-flash camcorder-90s leica-street gq-editorial a24-still film-noir y2k-digicam polaroid super-8 lomo kodachrome security-cam point-shoot pastel-cinema tokyo-neon photobooth tintype; do
             xcrun simctl terminate "$DEVICE_ID" app.lensmood.ios || true
             SIMCTL_CHILD_LENSMOOD_TAB=cameras SIMCTL_CHILD_LENSMOOD_AD=1 SIMCTL_CHILD_LENSMOOD_AD_STOCK=$stock \
+              SIMCTL_CHILD_LENSMOOD_AD_PHOTO=style-owner-4391 \
               xcrun simctl launch "$DEVICE_ID" app.lensmood.ios
             sleep 9
             xcrun simctl io "$DEVICE_ID" screenshot ui-artifacts/develop-screens/$stock.png
@@ -126,11 +127,11 @@ jobs:
           # ad's compare-slider moment wipes between genuine app states
           for mode in original compare; do
             xcrun simctl terminate "$DEVICE_ID" app.lensmood.ios || true
-            SIMCTL_CHILD_LENSMOOD_TAB=cameras SIMCTL_CHILD_LENSMOOD_AD=1 SIMCTL_CHILD_LENSMOOD_AD_STOCK=tokyo-neon \
-              SIMCTL_CHILD_LENSMOOD_AD_MODE=$mode \
+            SIMCTL_CHILD_LENSMOOD_TAB=cameras SIMCTL_CHILD_LENSMOOD_AD=1 SIMCTL_CHILD_LENSMOOD_AD_STOCK=kodachrome \
+              SIMCTL_CHILD_LENSMOOD_AD_MODE=$mode SIMCTL_CHILD_LENSMOOD_AD_PHOTO=style-owner-4391 \
               xcrun simctl launch "$DEVICE_ID" app.lensmood.ios
             sleep 9
-            xcrun simctl io "$DEVICE_ID" screenshot ui-artifacts/develop-screens/tokyo-neon-$mode.png
+            xcrun simctl io "$DEVICE_ID" screenshot ui-artifacts/develop-screens/kodachrome-$mode.png
           done
 
       - name: Upload simulator capture

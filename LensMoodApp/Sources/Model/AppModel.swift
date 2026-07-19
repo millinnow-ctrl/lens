@@ -206,7 +206,10 @@ final class AppModel: ObservableObject {
       seedDemoLibrary()
       let stockID = environment["LENSMOOD_AD_STOCK"] ?? "tokyo-neon"
       pendingStock = Stock.find(stockID)
-      pendingDevelopImage = BundleMedia.image("style-tokyo-neon")
+      // LENSMOOD_AD_PHOTO picks which bundled photograph the harness develops,
+      // so marketing captures can feature a specific frame without code edits
+      let photoName = environment["LENSMOOD_AD_PHOTO"] ?? "style-tokyo-neon"
+      pendingDevelopImage = BundleMedia.image(photoName) ?? BundleMedia.image("style-tokyo-neon")
     } else if environment["LENSMOOD_DEMO"] == "1" {
       seedDemoLibrary()
     } else {
