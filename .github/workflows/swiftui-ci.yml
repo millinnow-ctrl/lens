@@ -109,7 +109,6 @@ jobs:
           for stock in disposable iphone-flash camcorder-90s leica-street gq-editorial a24-still film-noir y2k-digicam polaroid super-8 lomo kodachrome security-cam point-shoot pastel-cinema tokyo-neon photobooth tintype; do
             xcrun simctl terminate "$DEVICE_ID" app.lensmood.ios || true
             SIMCTL_CHILD_LENSMOOD_TAB=cameras SIMCTL_CHILD_LENSMOOD_AD=1 SIMCTL_CHILD_LENSMOOD_AD_STOCK=$stock \
-              SIMCTL_CHILD_LENSMOOD_AD_PHOTO=style-owner-4391 \
               xcrun simctl launch "$DEVICE_ID" app.lensmood.ios
             sleep 9
             xcrun simctl io "$DEVICE_ID" screenshot ui-artifacts/develop-screens/$stock.png
@@ -123,17 +122,15 @@ jobs:
             xcrun simctl launch "$DEVICE_ID" app.lensmood.ios
           sleep 9
           xcrun simctl io "$DEVICE_ID" screenshot ui-artifacts/develop-screens/rehearsal-film-door.png
-          # Original and Compare (half-original / half-developed) preview modes
-          # on the two candidate cameras — the deck uses whichever reads better
-          for pairstock in disposable y2k-digicam; do
-            for mode in original compare; do
-              xcrun simctl terminate "$DEVICE_ID" app.lensmood.ios || true
-              SIMCTL_CHILD_LENSMOOD_TAB=cameras SIMCTL_CHILD_LENSMOOD_AD=1 SIMCTL_CHILD_LENSMOOD_AD_STOCK=$pairstock \
-                SIMCTL_CHILD_LENSMOOD_AD_MODE=$mode SIMCTL_CHILD_LENSMOOD_AD_PHOTO=style-owner-4391 \
-                xcrun simctl launch "$DEVICE_ID" app.lensmood.ios
-              sleep 9
-              xcrun simctl io "$DEVICE_ID" screenshot ui-artifacts/develop-screens/$pairstock-$mode.png
-            done
+          # the same neon develop in Original and Compare preview modes — the
+          # ad's compare-slider moment wipes between genuine app states
+          for mode in original compare; do
+            xcrun simctl terminate "$DEVICE_ID" app.lensmood.ios || true
+            SIMCTL_CHILD_LENSMOOD_TAB=cameras SIMCTL_CHILD_LENSMOOD_AD=1 SIMCTL_CHILD_LENSMOOD_AD_STOCK=tokyo-neon \
+              SIMCTL_CHILD_LENSMOOD_AD_MODE=$mode \
+              xcrun simctl launch "$DEVICE_ID" app.lensmood.ios
+            sleep 9
+            xcrun simctl io "$DEVICE_ID" screenshot ui-artifacts/develop-screens/tokyo-neon-$mode.png
           done
 
       - name: Upload simulator capture
