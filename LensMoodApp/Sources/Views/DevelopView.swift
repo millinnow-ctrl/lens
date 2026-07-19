@@ -825,9 +825,14 @@ struct DevelopView: View {
     let cacheKey = PreviewCache.key(photo: photoKey, lens: currentStock.id, edge: edge, intensityPercent: 100)
 
     // Instant path: this lens was already developed for this photo — restore it
-    // without re-running the whole pipeline.
+    // without re-running the whole pipeline. The reading is still the
+    // Conductor's one read for this photo (kept for the view's lifetime), so a
+    // cache-hit landing persists the same reading a fresh render would.
     if let cached = PreviewCache.shared.render(forKey: cacheKey) {
-      applyDeveloped(image: cached.image, decisions: cached.decisions, source: image)
+      applyDeveloped(
+        image: cached.image, decisions: cached.decisions, source: image,
+        reading: Conductor.shared.cachedReading(for: photoKey)
+      )
       return
     }
 
@@ -874,7 +879,7 @@ struct DevelopView: View {
           lookID: stockID,
           ms: Int((CFAbsoluteTimeGetCurrent() - startedAt) * 1000)
         ))
-        applyDeveloped(image: render.image, decisions: render.decisions, source: image)
+        applyDeveloped(image: render.image, decisions: render.decisions, source: image, reading: reading)
       } catch {
         guard renderID == request else { return }
         // a film-bought render that failed gives its frame back — the
@@ -907,7 +912,10 @@ struct DevelopView: View {
   /// Commit a finished develop (from a fresh render or a cache hit) into editor
   /// state — and into the library only when the camera is the user's to keep.
   /// Runs on the main thread.
-  private func applyDeveloped(image developed: UIImage, decisions newDecisions: [String], source: UIImage) {
+  private func applyDeveloped(
+    image developed: UIImage, decisions newDecisions: [String], source: UIImage,
+    reading: SceneReading? = nil
+  ) {
     isDeveloping = false
     developedImage = developed
     decisions = newDecisions
@@ -916,10 +924,10 @@ struct DevelopView: View {
     // session-replace behavior, a film-bought one lands permanently. (While
     // Store.everythingFreeForNow every camera is open: unchanged behavior.)
     if store.isUnlocked(currentStock) {
-      storeInLibrary(developed: developed, decisions: newDecisions, source: source)
+      storeInLibrary(developed: developed, decisions: newDecisions, source: source, reading: reading)
     } else if pendingExposureSpend == currentStock.id {
       pendingExposureSpend = nil
-      storeSpentExposureInLibrary(developed: developed, decisions: newDecisions, source: source)
+      storeSpentExposureInLibrary(developed: developed, decisions: newDecisions, source: source, reading: reading)
     }
     UIImpactFeedbackGenerator(style: .light).impactOccurred()
   }
@@ -928,7 +936,10 @@ struct DevelopView: View {
   /// the user's photograph — it is never session-replaced by a later camera
   /// switch, and its id remembers the spend so this photograph re-develops
   /// on this camera without spending again
-  private func storeSpentExposureInLibrary(developed: UIImage, decisions newDecisions: [String], source: UIImage) {
+  private func storeSpentExposureInLibrary(
+    developed: UIImage, decisions newDecisions: [String], source: UIImage,
+    reading: SceneReading? = nil
+  ) {
     if librarySource == nil {
       librarySource = boundedLibraryCopy(of: source)
     }
@@ -945,6 +956,9 @@ struct DevelopView: View {
       decisions: newDecisions
     )
     model.add(asset)
+    // freeze the reading beside the kept frame so a later re-develop replays
+    // this exact read instead of a drifted one (the one-reading law across time)
+    if let reading { LibraryStore.persistReading(reading, for: asset.id) }
     sessionExposureAssets[currentStock.id] = asset.id
     pendingExposureAssetID = nil
   }
@@ -952,7 +966,10 @@ struct DevelopView: View {
   /// the one Library landing (shared by applyDeveloped and
   /// the open-camera landing (session-scoped): bounded original copy, favorite-preserving
   /// session replace, model.add
-  private func storeInLibrary(developed: UIImage, decisions newDecisions: [String], source: UIImage) {
+  private func storeInLibrary(
+    developed: UIImage, decisions newDecisions: [String], source: UIImage,
+    reading: SceneReading? = nil
+  ) {
     // the Library keeps a bounded copy of the original, built once per photo —
     // retaining 48 full-resolution sources was the session's dominant memory cost
     if librarySource == nil {
@@ -971,6 +988,9 @@ struct DevelopView: View {
     )
     if let previous = sessionAssetID { model.remove(id: previous) }
     model.add(asset)
+    // freeze the reading beside the kept frame so a later re-develop replays
+    // this exact read instead of a drifted one (the one-reading law across time)
+    if let reading { LibraryStore.persistReading(reading, for: asset.id) }
     sessionAssetID = asset.id
   }
 
