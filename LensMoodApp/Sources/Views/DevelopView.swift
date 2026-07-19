@@ -563,7 +563,7 @@ struct DevelopView: View {
     case .open:
       return ""
     case .loaded:
-      return "This camera came loaded with \(ExposureRoll.loadedExposures) exposures. Developing spends one — the photograph is yours to keep, full resolution, on your Roll."
+      return "This camera came loaded with \(ExposureRoll.loadedExposures) exposures. Developing spends one — the photograph is yours to keep, full resolution, on your Roll. Plus loads every camera for good."
     case .spent:
       return "The \(ExposureRoll.loadedExposures) exposures this camera came loaded with are spent — what you developed is yours, on your Roll. Plus loads every camera for good."
     }
