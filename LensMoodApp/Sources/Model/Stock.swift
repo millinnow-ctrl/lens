@@ -17,7 +17,7 @@ struct Stock: Identifiable, Hashable {
 extension Stock {
   static let all: [Stock] = [
     Stock(id: "disposable", name: "Disposable", tagline: "Warm flash, soft grain", bestFor: "Friends after dark", exif: "F/11 · 400 · FLASH", g0: "#E5A94E", g1: "#C95B3E", symbol: "camera.fill"),
-    Stock(id: "iphone-flash", name: "Direct Flash", tagline: "Hard flash, deep shadows", bestFor: "Night portraits", exif: "F/1.8 · ISO 640", g0: "#D7D8DD", g1: "#6D707A", symbol: "bolt.fill"),
+    Stock(id: "iphone-flash", name: "Direct Flash", tagline: "Hard flash, deep shadows", bestFor: "Night portraits", exif: "F/1.8 · ISO 640 · FLASH", g0: "#D7D8DD", g1: "#6D707A", symbol: "bolt.fill"),
     Stock(id: "camcorder-90s", name: "Tape 94", tagline: "Soft tape, muted color", bestFor: "Moving memories", exif: "REC · 30FPS · AUTO", g0: "#6DB69B", g1: "#315B61", symbol: "video.fill"),
     Stock(id: "leica-street", name: "Street 35", tagline: "Clean contrast, quiet grain", bestFor: "Available light", exif: "F/2 · ISO 400 · 35MM", g0: "#30302E", g1: "#A6A39A", symbol: "viewfinder"),
     Stock(id: "gq-editorial", name: "Editorial Strobe", tagline: "Polished light, crisp shadows", bestFor: "Structured portraits", exif: "F/8 · ISO 100 · STROBE", g0: "#C9AA5C", g1: "#76502B", symbol: "person.crop.rectangle"),
