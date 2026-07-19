@@ -219,6 +219,95 @@ final class LensFixEvidenceTests: XCTestCase {
     }
   }
 
+  // MARK: - Photobooth daylight blowout (R84 item 1)
+
+  /// Photobooth's unconditional flashHeadroom fixed NIGHT flashed faces; on a
+  /// bright daylight frame the mono conversion + hard contrast still fused a
+  /// large fraction of the frame to paper-white (critic B measured 21.7% pure
+  /// white on the owner café frame). The daylightHighlightGuard adds the scene-
+  /// keyed highlight rolloff (output capped ≈0.86 on full daylight) and raises
+  /// the subject restraint to full, so the high-key B&W stays bright but OFF
+  /// clip. Pinned on an owner-like bright raster where the blowout reproduces;
+  /// night byte-identity is pinned on the friends fixture (guard weight 0).
+  func testPhotoboothDaylightGuardEvidence() throws {
+    let engine = FilmEngine()
+    let recipe = CameraRecipe.recipe(for: "photobooth")
+    XCTAssertGreaterThan(recipe.daylightHighlightGuard, 0, "photobooth must carry the daylight guard")
+    let dir = try outDir()
+
+    let bright = photoboothBrightImage()
+    let scene = photoboothBrightScene()   // key 0.58, whites near clip
+    let weight = FilmEngine.brightGuardWeight(scene)
+    XCTAssertGreaterThan(weight, 0.9, "the guard must fully engage at the owner's daylight key")
+    let reading = SceneReading(scene: scene, subject: SubjectAnalysis(faces: [], personMask: nil))
+
+    let after = try engine.develop(bright, with: recipe, seed: 1, reading: reading)
+    let before = try engine.develop(bright, with: withoutDaylightGuard(recipe), seed: 1, reading: reading)
+    try XCTUnwrap(before.image.pngData()).write(to: dir.appendingPathComponent("photobooth-daylight-before.png"))
+    try XCTUnwrap(after.image.pngData()).write(to: dir.appendingPathComponent("photobooth-daylight-after.png"))
+
+    guard let beforeR = ImageMetrics.raster(before.image),
+          let afterR = ImageMetrics.raster(after.image) else { return XCTFail("raster failed") }
+    let beforeClip = ImageMetrics.highlightClipRate(beforeR, threshold: 250)
+    let afterClip = ImageMetrics.highlightClipRate(afterR, threshold: 250)
+    // the bright band (top 45% of the frame) — the shirts/background that blew.
+    let hiBand = CGRect(x: 0, y: 0, width: 1, height: 0.45)
+    let beforeHi = meanLuma(beforeR, in: hiBand)
+    let afterHi = meanLuma(afterR, in: hiBand)
+    print("photobooth daylight clip ≥250: before \(beforeClip) after \(afterClip); hi-band mean before \(beforeHi) after \(afterHi)")
+    // Target (item 1): daylight clip < 5%. The rolloff caps highlight output, so
+    // the after render holds off clip regardless of how hard the input clipped.
+    XCTAssertLessThan(afterClip, 0.05, "photobooth must stop blowing daylight to paper-white")
+    // Non-degenerate: the guard measurably pulls the blown band down (robust to
+    // the exact clip fraction — the rolloff always lowers the highlight mean).
+    XCTAssertGreaterThan(beforeHi - afterHi, 6, "the daylight guard must visibly hold the highlights back")
+    // ...while it stays the brightest B&W — bright, not blown.
+    XCTAssertGreaterThan(meanLuma(afterR, in: CGRect(x: 0, y: 0, width: 1, height: 1)), 120,
+                         "photobooth must stay high-key (bright), not be darkened into a grey B&W")
+
+    // Night byte-identity: on the dark party scene the guard weight is 0, so the
+    // full recipe and the guard-off clone must render bit-for-bit identically.
+    if let friends = source("sample-friends.jpg") {
+      let nightReading = try engine.read(friends)
+      XCTAssertEqual(FilmEngine.brightGuardWeight(nightReading.scene), 0, "friends must meter below the guard ramp")
+      let nAfter = try engine.develop(friends, with: recipe, maxPixelSize: 512, seed: 1, reading: nightReading)
+      let nBefore = try engine.develop(friends, with: withoutDaylightGuard(recipe), maxPixelSize: 512, seed: 1, reading: nightReading)
+      XCTAssertEqual(
+        try XCTUnwrap(nAfter.image.pngData()), try XCTUnwrap(nBefore.image.pngData()),
+        "photobooth night must be byte-identical — the daylight guard is a no-op in the dark"
+      )
+    }
+  }
+
+  /// Owner-like bright daylight raster whose highlights sit AT clip: the top 45%
+  /// (shirts / background) at 0.98, a mid face band at 0.72, darker ground 0.40.
+  private func photoboothBrightImage(side: CGFloat = 160) -> UIImage {
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = 1
+    return UIGraphicsImageRenderer(size: CGSize(width: side, height: side), format: format).image { ctx in
+      let g = ctx.cgContext
+      g.setFillColor(UIColor(white: 0.40, alpha: 1).cgColor)
+      g.fill(CGRect(x: 0, y: 0, width: side, height: side))
+      g.setFillColor(UIColor(white: 0.98, alpha: 1).cgColor)          // near-clip whites
+      g.fill(CGRect(x: 0, y: 0, width: side, height: side * 0.45))
+      g.setFillColor(UIColor(white: 0.72, alpha: 1).cgColor)          // mid-tone faces
+      g.fill(CGRect(x: side * 0.2, y: side * 0.50, width: side * 0.6, height: side * 0.18))
+    }
+  }
+
+  /// The scene an owner-like bright daylight photo meters as for photobooth
+  /// (key 0.58, whites near clip): the guard's smoothstep reaches full weight.
+  private func photoboothBrightScene() -> SceneProfile {
+    SceneProfile(
+      analyzed: true, key: 0.58, p01: 0.12, p50: 0.55, p99: 0.97,
+      illum: [1, 1, 1], sat: 0.05, lights: [], auxLights: [], faceLum: 0.72,
+      meanLuminance: 0.58, medianLuminance: 0.55, shadowFraction: 0.08,
+      highlightFraction: 0.45, dynamicRange: 0.7, averageRed: 0.58,
+      averageGreen: 0.58, averageBlue: 0.58, saturation: 0.05, warmth: 0,
+      isLowKey: false, isHighKey: true, isBacklit: false
+    )
+  }
+
   /// A deterministic bright daylight raster with owner-photo-like statistics:
   /// bright whites (sky / shirts / umbrella highlights) at 0.90, a mid-tone face
   /// band at 0.70, darker ground at 0.35.
@@ -295,5 +384,11 @@ final class LensFixEvidenceTests: XCTestCase {
       sum += Double(r.px[i]) * 0.299 + Double(r.px[i + 1]) * 0.587 + Double(r.px[i + 2]) * 0.114
     }
     return sum / Double(r.count)
+  }
+
+  /// Mean Rec.601 luma (0…255) inside a normalized, top-left-origin rect.
+  private func meanLuma(_ r: ImageMetrics.Raster, in rect: CGRect) -> Double {
+    guard let c = ImageMetrics.meanColor(r, in: rect) else { return 0 }
+    return c.r * 0.299 + c.g * 0.587 + c.b * 0.114
   }
 }
