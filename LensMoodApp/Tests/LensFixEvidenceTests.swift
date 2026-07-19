@@ -158,67 +158,95 @@ final class LensFixEvidenceTests: XCTestCase {
   // MARK: - y2k-digicam daylight blowout (owner report, R81)
 
   /// The glossy "Pocket 2002" was tuned on dark party scenes; on a bright, well-
-  /// exposed daylight frame its CCD clip + flash gloss + subject lifts stacked
-  /// past clip and bleached faces and background. Renders y2k on the brightest
-  /// daylight fixture (street) with the daylight guard OFF (before) and ON
-  /// (after), publishes the pair, and pins the reduction. Disposable is the
-  /// owner-ratified reference for how much transformation is right, so its clip
-  /// is printed alongside as the target band. Also prints point-shoot /
-  /// iphone-flash on the same frame (fix only if measured broken — reported).
+  /// exposed daylight frame its CCD clip + double contrast + flash gloss stacked
+  /// past clip and bleached whites and faces. The defect reproduces at the
+  /// owner's key (~0.55): NO committed fixture is that bright (brightest is
+  /// street at 0.404, whose pre-fix y2k pixels top out just under 250, so a ≥250
+  /// metric reads 0 there — the guard still engages, weight 0.837, but there is
+  /// nothing crossing clip to reduce). So the authoritative pin runs the real
+  /// develop path on a deterministic owner-like bright raster + scene (key 0.55,
+  /// whites at 0.90, mid faces at 0.70); street is rendered too, as real-photo
+  /// before/after context. The guard weight is asserted > 0.9 so a silently
+  /// disengaged guard can never pass.
   func testY2KDaylightGuardEvidence() throws {
-    guard let source = source("sample-street.jpg") else {
-      throw XCTSkip("missing sample-street.jpg")
-    }
     let engine = FilmEngine()
-    let reading = try engine.read(source)
-    XCTAssertGreaterThan(reading.scene.key, 0.34,
-                         "street must meter as a bright daylight scene for this guard")
     let recipe = CameraRecipe.recipe(for: "y2k-digicam")
     XCTAssertGreaterThan(recipe.daylightHighlightGuard, 0, "y2k must carry the daylight guard")
-
-    let after = try engine.develop(source, with: recipe, maxPixelSize: 1024, seed: 1, reading: reading)
-    let before = try engine.develop(
-      source, with: withoutDaylightGuard(recipe), maxPixelSize: 1024, seed: 1, reading: reading
-    )
     let dir = try outDir()
+
+    // --- Authoritative: an owner-like bright daylight scene.
+    let bright = brightDaylightImage()
+    let scene = ownerLikeBrightScene()   // key 0.55
+    let weight = FilmEngine.brightGuardWeight(scene)
+    XCTAssertGreaterThan(weight, 0.9, "the guard must fully engage at the owner's daylight key")
+    let reading = SceneReading(scene: scene, subject: SubjectAnalysis(faces: [], personMask: nil))
+
+    let after = try engine.develop(bright, with: recipe, seed: 1, reading: reading)
+    let before = try engine.develop(bright, with: withoutDaylightGuard(recipe), seed: 1, reading: reading)
     try XCTUnwrap(before.image.pngData()).write(to: dir.appendingPathComponent("y2k-daylight-before.png"))
     try XCTUnwrap(after.image.pngData()).write(to: dir.appendingPathComponent("y2k-daylight-after.png"))
 
     guard let beforeR = ImageMetrics.raster(before.image),
-          let afterR = ImageMetrics.raster(after.image) else {
-      return XCTFail("raster failed")
-    }
-
-    // reference band: disposable (owner-ratified "good") on the same frame
-    let dispo = try engine.develop(
-      source, with: .recipe(for: "disposable"), maxPixelSize: 1024, seed: 1, reading: reading
-    )
-    let dispoClip = ImageMetrics.raster(dispo.image).map { ImageMetrics.highlightClipRate($0, threshold: 250) } ?? -1
-    // family check (report only — fix only if measured broken)
-    for id in ["point-shoot", "iphone-flash"] {
-      let r = try engine.develop(source, with: .recipe(for: id), maxPixelSize: 1024, seed: 1, reading: reading)
-      let clip = ImageMetrics.raster(r.image).map { ImageMetrics.highlightClipRate($0, threshold: 250) } ?? -1
-      print("family daylight clip ≥250: \(id) \(clip)")
-    }
-
+          let afterR = ImageMetrics.raster(after.image) else { return XCTFail("raster failed") }
     let beforeClip = ImageMetrics.highlightClipRate(beforeR, threshold: 250)
     let afterClip = ImageMetrics.highlightClipRate(afterR, threshold: 250)
-    print("y2k daylight whole-frame clip ≥250: before \(beforeClip) after \(afterClip) (disposable \(dispoClip))")
-    XCTAssertLessThan(afterClip, beforeClip * 0.7,
-                      "the daylight guard must materially reduce the bleaching")
-    XCTAssertLessThan(afterClip, 0.12,
-                      "y2k must stop bleaching daylight — highlights held off clip")
+    // disposable is the owner-ratified "good" reference for how much is right
+    let dispo = try engine.develop(bright, with: .recipe(for: "disposable"), seed: 1, reading: reading)
+    let dispoClip = ImageMetrics.raster(dispo.image).map { ImageMetrics.highlightClipRate($0, threshold: 250) } ?? -1
+    print("y2k owner-like daylight clip ≥250: before \(beforeClip) after \(afterClip) (disposable \(dispoClip))")
+    // non-degenerate: the pre-fix bleach must visibly exist, the guard must cut
+    // it materially, and the fixed render must hold highlights off clip.
+    XCTAssertGreaterThan(beforeClip, 0.30, "the pre-fix bleach must reproduce on the owner-like scene")
+    XCTAssertLessThan(afterClip, beforeClip * 0.7, "the daylight guard must materially reduce the bleaching")
+    XCTAssertLessThan(afterClip, 0.10, "y2k must stop bleaching daylight — highlights held off clip")
 
-    // faces keep structure (best-effort — runs when Vision detected faces)
-    for face in after.faces {
-      let b = ImageMetrics.highlightClipRate(beforeR, in: face.bounds, threshold: 250)
-      let a = ImageMetrics.highlightClipRate(afterR, in: face.bounds, threshold: 250)
-      print("y2k daylight face clip ≥250: before \(b) after \(a)")
-      if b > 0.12 {
-        XCTAssertLessThan(a, b * 0.7, "a washed daylight face must recover structure")
-        XCTAssertLessThan(a, 0.25, "a recovered face must not stay mostly white")
-      }
+    // --- Real-photo context: the brightest committed fixture (street). Its pre-
+    // fix y2k does not cross 250 (too dim for the owner's key) — reported, not
+    // asserted — but the guard still pulls its highlights down; the pair is the
+    // photograph the owner can review.
+    guard let street = source("sample-street.jpg") else { return }
+    let sreading = try engine.read(street)
+    print("street metered key \(sreading.scene.key) → guard weight \(FilmEngine.brightGuardWeight(sreading.scene))")
+    let sAfter = try engine.develop(street, with: recipe, maxPixelSize: 1024, seed: 1, reading: sreading)
+    let sBefore = try engine.develop(street, with: withoutDaylightGuard(recipe), maxPixelSize: 1024, seed: 1, reading: sreading)
+    try XCTUnwrap(sBefore.image.pngData()).write(to: dir.appendingPathComponent("y2k-street-before.png"))
+    try XCTUnwrap(sAfter.image.pngData()).write(to: dir.appendingPathComponent("y2k-street-after.png"))
+    for id in ["y2k-digicam", "point-shoot", "iphone-flash", "disposable"] {
+      let r = try engine.develop(street, with: .recipe(for: id), maxPixelSize: 1024, seed: 1, reading: sreading)
+      let clip = ImageMetrics.raster(r.image).map { ImageMetrics.highlightClipRate($0, threshold: 250) } ?? -1
+      let clip240 = ImageMetrics.raster(r.image).map { ImageMetrics.highlightClipRate($0, threshold: 240) } ?? -1
+      print("street clip: \(id) ≥250 \(clip) ≥240 \(clip240)")
     }
+  }
+
+  /// A deterministic bright daylight raster with owner-photo-like statistics:
+  /// bright whites (sky / shirts / umbrella highlights) at 0.90, a mid-tone face
+  /// band at 0.70, darker ground at 0.35.
+  private func brightDaylightImage(side: CGFloat = 160) -> UIImage {
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = 1
+    return UIGraphicsImageRenderer(size: CGSize(width: side, height: side), format: format).image { ctx in
+      let g = ctx.cgContext
+      g.setFillColor(UIColor(white: 0.35, alpha: 1).cgColor)
+      g.fill(CGRect(x: 0, y: 0, width: side, height: side))
+      g.setFillColor(UIColor(white: 0.90, alpha: 1).cgColor)          // bright highlights
+      g.fill(CGRect(x: 0, y: 0, width: side, height: side * 0.50))
+      g.setFillColor(UIColor(white: 0.70, alpha: 1).cgColor)          // mid-tone faces
+      g.fill(CGRect(x: side * 0.2, y: side * 0.50, width: side * 0.6, height: side * 0.15))
+    }
+  }
+
+  /// The scene an owner-like bright daylight photo meters as (key ~0.55): the
+  /// guard's smoothstep (0.27→0.45) reaches full weight here.
+  private func ownerLikeBrightScene() -> SceneProfile {
+    SceneProfile(
+      analyzed: true, key: 0.55, p01: 0.10, p50: 0.55, p99: 0.90,
+      illum: [1, 1, 1], sat: 0.20, lights: [], auxLights: [], faceLum: 0.70,
+      meanLuminance: 0.55, medianLuminance: 0.55, shadowFraction: 0.10,
+      highlightFraction: 0.35, dynamicRange: 0.6, averageRed: 0.55,
+      averageGreen: 0.55, averageBlue: 0.55, saturation: 0.20, warmth: 0,
+      isLowKey: false, isHighKey: false, isBacklit: false
+    )
   }
 
   /// A recipe clone with the R78/R81 headroom knobs overridden — reproduces the
