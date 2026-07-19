@@ -99,7 +99,7 @@ struct PaywallView: View {
       Image(systemName: "hammer")
         .scaledFont(size: 13, weight: .semibold, relativeTo: .footnote)
         .accessibilityHidden(true)   // decorative — the text carries the meaning
-      Text("Everything is free right now. This is a preview of the supporter offer — nothing is locked.")
+      Text("Everything's free right now — a preview of the supporter offer. Nothing is locked.")
         .font(.footnote.weight(.medium))   // 13pt at the default size
     }
     .foregroundStyle(Theme.inkSoft)
@@ -150,7 +150,7 @@ struct PaywallView: View {
               .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
           }
         }
-        Text("The \(ExposureRoll.loadedExposures) exposures \(stock.name) came loaded with are spent — what you developed is yours, on your Roll.")
+        Text("What you developed is yours, on your Roll.")
           .font(.footnote)   // 13pt at the default size
           .foregroundStyle(Theme.inkSoft)
           .fixedSize(horizontal: false, vertical: true)
@@ -171,8 +171,8 @@ struct PaywallView: View {
         .font(.title.weight(.heavy))   // 28pt at the default size
         .foregroundStyle(Theme.ink)
       Text(isReloadContext
-        ? "Six cameras are yours free forever, full resolution. Plus loads this camera — and the other eleven — for good, plus every camera we add later."
-        : "Six cameras are yours free, forever, at full resolution. Plus opens the other twelve — and every camera we add later.")
+        ? "Six cameras free forever, full resolution. Plus loads this one and every other — including cameras we add later."
+        : "Six cameras free forever, at full resolution. Plus opens the other twelve, and every camera we add later.")
         .font(.subheadline)   // 15pt at the default size
         .foregroundStyle(Theme.inkSoft)
     }
@@ -253,7 +253,7 @@ struct PaywallView: View {
         .font(.subheadline.weight(.bold))   // 15pt at the default size
         .foregroundStyle(Theme.ink)
       bullet("Six full cameras: \(freeStocks.map(\.name).joined(separator: ", "))")
-      bullet("Every locked camera comes loaded with \(ExposureRoll.loadedExposures) real exposures — full-resolution develops you keep")
+      bullet("Every locked camera comes loaded with \(ExposureRoll.loadedExposures) exposures — full-resolution develops you keep")
       bullet("Full-resolution export of every photo and tape")
       bullet("Importing, saving, and sharing — never gated")
       Divider()
@@ -312,7 +312,7 @@ struct PaywallView: View {
 
   private var footnotes: some View {
     VStack(alignment: .leading, spacing: 6) {
-      Text("Both offers unlock exactly the same cameras. No weekly plans, no trials that flip into charges, no watermarks at any tier.")
+      Text("Both offers unlock the same cameras. No weekly plans, no trials that become charges, no watermarks.")
       Text("Photos develop on your phone and never upload — free or Plus.")
     }
     .font(.caption)   // 12pt at the default size
