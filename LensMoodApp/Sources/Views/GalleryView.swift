@@ -219,6 +219,12 @@ private struct GalleryDetailView: View {
           .buttonStyle(InstrumentButtonStyle(kind: .primary))
           .accessibilityHint("Opens \(asset.stock.name) to develop a new photograph")
 
+          Button("Print this frame") {
+            printThisFrame()
+          }
+          .buttonStyle(InstrumentButtonStyle(kind: .secondary))
+          .accessibilityHint("Opens the Print Room with this photograph")
+
           Button(isSaving ? "Saving to Photos" : "Save to Photos") {
             save()
           }
@@ -354,6 +360,16 @@ private struct GalleryDetailView: View {
   private func shootThisFilmAgain() {
     model.pendingStock = asset.stock
     model.selectedTab = .cameras
+    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    dismiss()
+  }
+
+  /// the kept object's next life: carry this frame to the Print Room —
+  /// before this hand-off existed, only the newest frame (or a fresh
+  /// Photos pick) could ever be printed
+  private func printThisFrame() {
+    model.pendingPrintAsset = asset
+    model.selectedTab = .printRoom
     UIImpactFeedbackGenerator(style: .light).impactOccurred()
     dismiss()
   }

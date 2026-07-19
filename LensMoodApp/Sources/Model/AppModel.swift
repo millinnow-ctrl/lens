@@ -170,6 +170,10 @@ final class AppModel: ObservableObject {
   /// film again" sets it, HomeView routes it into a fresh DevelopView with
   /// that stock loaded (same hand-off idiom as `pendingDevelopImage`)
   @Published var pendingStock: Stock?
+  /// a kept frame queued for the Print Room — the Library's "Print this
+  /// frame" sets it, PrintRoomView consumes it (same hand-off idiom as
+  /// `pendingStock`), so any frame in any roll can be reprinted
+  @Published var pendingPrintAsset: DevelopedAsset?
 
   /// the Library as monthly film rolls, newest first (see `Roll.group`) —
   /// memoized so Gallery body evaluations don't regroup an unchanged library

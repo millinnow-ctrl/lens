@@ -118,6 +118,11 @@ struct PrintRoomView: View {
         }.value
         if let full { printPhoto = (asset.id, full) }
       }
+      // "Print this frame" (Library detail) queues a kept frame; take it
+      // whether this tab is already alive (onChange) or only built when the
+      // tab switch lands (onAppear) — the pendingStock idiom, for prints
+      .onAppear { consumePendingPrint() }
+      .onChange(of: model.pendingPrintAsset?.id) { _ in consumePendingPrint() }
       .alert("Print saved", isPresented: $saved) {
         Button("OK", role: .cancel) {}
       }
@@ -169,6 +174,13 @@ struct PrintRoomView: View {
     .frame(maxWidth: .infinity)
     .onChange(of: pickedPrintItem) { item in loadPrintPhoto(item) }
     .accessibilityHint("Choose a photo from your library to print")
+  }
+
+  /// take a frame queued by the Library's "Print this frame"
+  private func consumePendingPrint() {
+    guard let asset = model.pendingPrintAsset else { return }
+    model.pendingPrintAsset = nil
+    pickedAsset = asset
   }
 
   private func loadPrintPhoto(_ item: PhotosPickerItem?) {
