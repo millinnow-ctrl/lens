@@ -9,7 +9,9 @@ import SwiftUI
 struct HomeView: View {
   @EnvironmentObject private var model: AppModel
   @State private var category: StyleCategory = .all
-  @State private var path = NavigationPath()
+  // typed path (not NavigationPath) so a repeated widget/pending-stock route
+  // can inspect the top and replace rather than stack duplicate develops
+  @State private var path: [Stock] = []
 
   // "Start with a photo" → the standard iOS source chooser
   @State private var showSourceChooser = false
@@ -129,7 +131,14 @@ struct HomeView: View {
   private func routePendingStock() {
     guard let stock = model.pendingStock else { return }
     model.pendingStock = nil
-    path.append(stock)
+    if path.isEmpty {
+      path.append(stock)
+    } else {
+      // a develop is already on top (e.g. a repeated widget tap): replace it
+      // instead of stacking a second identical develop the user must back
+      // through twice
+      path[path.count - 1] = stock
+    }
   }
 
   /// carry a library pick into a fresh develop session

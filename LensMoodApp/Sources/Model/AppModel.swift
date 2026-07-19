@@ -259,6 +259,10 @@ final class AppModel: ObservableObject {
     guard let link = DeepLink.parse(url) else { return }
     switch link {
     case .develop(let stockID):
+      // a deep link is a fresh top-level intent: drop a presented Account sheet
+      // so the develop it pushes isn't buried underneath it (HomeView also
+      // dedupes repeated taps rather than stacking duplicate develops)
+      accountPresented = false
       pendingStock = Stock.find(stockID)
       selectedTab = .cameras
     }
