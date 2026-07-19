@@ -56,6 +56,13 @@ enum LibraryStore {
     dir.appendingPathComponent("\(id.uuidString).jpg")
   }
 
+  /// The reading sidecar for a frame: the SceneReading it was developed with,
+  /// as a per-id blob beside the JPEG (never in the index.json bulk, so the
+  /// grid load never pays for it — the reading is loaded only on a re-develop).
+  private static func readingURL(_ id: UUID) -> URL {
+    dir.appendingPathComponent("\(id.uuidString).reading")
+  }
+
   /// Where a frame's stored 2048 px JPEG lives (or will live once its queued
   /// write lands) — used when a session asset demotes to the stored tier.
   static func frameURL(for id: UUID) -> URL {
@@ -194,6 +201,30 @@ enum LibraryStore {
     }
   }
 
+  // MARK: - Reading sidecar
+
+  /// Freeze the reading a frame was developed with, beside that frame. Written
+  /// on the same serial queue as the JPEG so ordering with persist/prune holds.
+  /// Best-effort: a missing sidecar simply means a re-develop reads fresh.
+  static func persistReading(_ reading: SceneReading, for id: UUID) {
+    let record = PersistedReading(reading, osBuild: PersistedReading.currentOSBuild)
+    protectedAsync {
+      guard let data = try? JSONEncoder().encode(record) else { return }
+      try? data.write(to: readingURL(id), options: .atomic)
+    }
+  }
+
+  /// The reading a frame was developed with, ready to hand back to the engine.
+  /// nil when there is no sidecar OR its engine schema is not the current one —
+  /// either way the caller falls back to a fresh read (never a crash, never a
+  /// half-applied reading).
+  static func loadReading(for id: UUID) -> SceneReading? {
+    guard let data = try? Data(contentsOf: readingURL(id)),
+          let record = try? JSONDecoder().decode(PersistedReading.self, from: data)
+    else { return nil }
+    return record.makeReading()
+  }
+
   /// Flip a stored asset's favorite flag in place (no image rewrite).
   static func setFavorite(id: UUID, favorite: Bool) {
     protectedAsync {
@@ -211,6 +242,8 @@ enum LibraryStore {
   static func delete(id: UUID) {
     protectedAsync {
       try? FileManager.default.removeItem(at: imageURL(id))
+      // the reading sidecar follows its frame out
+      try? FileManager.default.removeItem(at: readingURL(id))
       writeIndex(loadIndex().filter { $0.id != id })
     }
   }
@@ -222,6 +255,7 @@ enum LibraryStore {
       let keep = Set(ids)
       for entry in loadIndex() where !keep.contains(entry.id) {
         try? FileManager.default.removeItem(at: imageURL(entry.id))
+        try? FileManager.default.removeItem(at: readingURL(entry.id))
       }
       writeIndex(loadIndex().filter { keep.contains($0.id) })
     }
