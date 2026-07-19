@@ -768,6 +768,12 @@ struct DevelopView: View {
     // Store.everythingFreeForNow — this path never runs.
     if !spendingExposure, sessionExposureAssets[currentStock.id] == nil,
       store.developAccess(for: currentStock) != .open {
+      // orphan any in-flight render before standing at the door: this path
+      // returns without minting a new renderID, so a develop started on the
+      // previous camera (or the previous photograph) would otherwise still
+      // pass the renderID guard and land its frame under this door — a
+      // stale render the spent roll promised never to show
+      renderID = UUID()
       isDeveloping = false
       developedImage = nil
       decisions = []
