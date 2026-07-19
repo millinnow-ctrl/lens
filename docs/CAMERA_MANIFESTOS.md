@@ -179,7 +179,7 @@ legal review.
 - Protects: portrait presence and broad facial planes.
 - Sacrifices: modern color, clean borders, and quick-exposure perfection.
 - Exposure: conservative plate-like response with deep edge loss.
-- Color: warm metallic near-monochrome translation.
+- Color: cool silver orthochromatic near-monochrome — reds run dark, blues run pale (owner-directed collodion plate, not warm sepia).
 - Grain/optics: coarse plate texture, strong vignette, uneven edges.
 - Excels: still portraits and simple backgrounds.
 - Failure character: movement and busy scenes become heavy and strange.

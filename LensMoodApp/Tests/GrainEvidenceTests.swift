@@ -126,7 +126,8 @@ final class GrainEvidenceTests: XCTestCase {
       gainDrivenGrain: r.gainDrivenGrain, nightReciprocity: r.nightReciprocity,
       ccdClip: r.ccdClip, highlightSmear: r.highlightSmear,
       highlightSmearDarkOnly: r.highlightSmearDarkOnly,
-      rimLight: r.rimLight, skinProtect: r.skinProtect, skyResponse: r.skyResponse
+      rimLight: r.rimLight, skinProtect: r.skinProtect, skyResponse: r.skyResponse,
+      flashHighlightHeadroom: r.flashHighlightHeadroom
     )
   }
 

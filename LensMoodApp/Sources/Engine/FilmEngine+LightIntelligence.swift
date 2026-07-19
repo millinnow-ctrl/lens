@@ -26,7 +26,8 @@ extension FilmEngine {
     _ image: CIImage,
     scene: SceneProfile,
     subject: SubjectAnalysis,
-    amount: Double
+    amount: Double,
+    highlightHeadroom: Double = 0
   ) -> CIImage {
     guard amount > 0.001 else { return image }
     let extent = image.extent
@@ -48,9 +49,15 @@ extension FilmEngine {
 
     // 2 — speculars: bright + desaturated pixels catch the flash and bloom.
     if let kernel = flashSpecularKernel {
-      let lo = scene.p50 + (scene.p99 - scene.p50) * 0.55
+      // R78: on a headroom stock whose flashed faces already sit near clip —
+      // photobooth especially, whose mono conversion defeats the specular's
+      // saturation guard so EVERY bright pixel reads as a mirror — lift the
+      // threshold toward the very top and cut the push, so only genuine glints
+      // (catchlights, glass) pop and the face body keeps its structure.
+      let loFrac = 0.55 + 0.38 * highlightHeadroom
+      let lo = scene.p50 + (scene.p99 - scene.p50) * loFrac
       let hi = max(scene.p99, lo + 0.04) + 0.02
-      let push = 0.5 * amount
+      let push = 0.5 * amount * (1 - 0.6 * highlightHeadroom)
       if let specced = kernel.apply(extent: extent, arguments: [out, lo, hi, push]) {
         out = specced.cropped(to: extent)
       }
@@ -282,12 +289,23 @@ extension FilmEngine {
   /// (reciprocity failure) — instead of shipping the phone's full shadow
   /// detail with a warm cast. Applied BEFORE the color core; strictly gated on
   /// scene darkness so daylight renders (and the golden) are byte-identical.
-  func applyNightReciprocity(_ image: CIImage, scene: SceneProfile, amount: Double) -> CIImage {
+  /// `protectEmissive` is the R62.1 carve-out (parity correction to the
+  /// ratified "only the neon survives" verdict). It is `true` on the shipping
+  /// path; the evidence test renders `false` to reconstruct the pre-carve
+  /// "before". When there are no emissive sources (e.g. the daylight parity
+  /// golden, or any scene with no colored/hot lights) the carve-out is a
+  /// structural no-op and the output is byte-identical to the uniform starve.
+  func applyNightReciprocity(
+    _ image: CIImage,
+    scene: SceneProfile,
+    amount: Double,
+    protectEmissive: Bool = true
+  ) -> CIImage {
     guard amount > 0.001, scene.analyzed else { return image }
     let darkness = max(0, min(1, (0.30 - scene.key) / 0.30))
     guard darkness > 0.05 else { return image }
     let extent = image.extent
-    return image
+    let starved = image
       .applyingFilter("CIExposureAdjust", parameters: [
         kCIInputEVKey: -2.0 * darkness * amount,
       ])
@@ -298,6 +316,32 @@ extension FilmEngine {
         kCIInputSaturationKey: 1.0 - 0.35 * darkness * amount,
       ])
       .cropped(to: extent)
+
+    // R62.1 carve-out: real ISO-40 movie film photographing a lit neon sign
+    // still records the sign even as the street dies. Uniform −2 EV erased it
+    // (the develop-screen review returned an essentially black frame). When
+    // the meter found emissive sources, hold the brightest emissive highlights
+    // back from the collapse so signs/lamps stay readable; the desaturated
+    // shadows still crush. Gated on emissive presence, so daylight (and the
+    // golden) render byte-identically to the uniform starve.
+    guard protectEmissive,
+          !FilmEngine.emissiveLights(in: scene).isEmpty,
+          let maskKernel = nightEmissiveMaskKernel else { return starved }
+    let t0 = min(0.90, max(0.55, scene.p99 - 0.10))
+    let t1 = min(1.0, t0 + 0.14)
+    // deeper night → stronger neon survival, with a floor so the sign is
+    // clearly readable ("only the neon survives"); capped below 1 so it is
+    // still touched by the pull (not a hole punched in the reciprocity)
+    let strength = min(0.90, 0.45 + 0.55 * darkness)
+    guard let mask = maskKernel.apply(
+      extent: extent, arguments: [image, t0, t1, strength]
+    ) else { return starved }
+    // foreground (the original neon) where the mask is bright, the starved
+    // street where it is dark — same idiom as applyFaceProtection.
+    return image.applyingFilter("CIBlendWithMask", parameters: [
+      kCIInputBackgroundImageKey: starved,
+      kCIInputMaskImageKey: mask,
+    ]).cropped(to: extent)
   }
 
   // MARK: - CCD sensor behavior (y2k-digicam, camcorder-90s)

@@ -119,6 +119,24 @@ enum ImageMetrics {
     return Double(c) / Double(r.count)
   }
 
+  /// Fraction of pixels whose luma ≥ threshold inside a normalized,
+  /// top-left-origin rect (blown highlights within a crop, e.g. a face box).
+  static func highlightClipRate(_ r: Raster, in rect: CGRect, threshold: Double = 250) -> Double {
+    let x0 = max(0, Int(Double(rect.minX) * Double(r.w)))
+    let x1 = min(r.w, Int(Double(rect.maxX) * Double(r.w)))
+    let y0 = max(0, Int(Double(rect.minY) * Double(r.h)))
+    let y1 = min(r.h, Int(Double(rect.maxY) * Double(r.h)))
+    guard x1 > x0, y1 > y0 else { return 0 }
+    var c = 0, n = 0
+    for y in y0..<y1 {
+      for x in x0..<x1 {
+        if luma(r.px, (y * r.w + x) * 4) >= threshold { c += 1 }
+        n += 1
+      }
+    }
+    return n > 0 ? Double(c) / Double(n) : 0
+  }
+
   /// Fraction of pixels whose luma ≤ threshold (crushed shadows), 0…1.
   static func shadowClipRate(_ r: Raster, threshold: Double = 5) -> Double {
     guard r.count > 0 else { return 0 }

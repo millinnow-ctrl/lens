@@ -287,6 +287,35 @@ final class LightIntelligenceTests: XCTestCase {
     XCTAssertGreaterThan(flash, 0, "the subject exposure still gets some help")
   }
 
+  // R78 — flash highlight headroom (photobooth face-blowout fix)
+  func testFlashHighlightHeadroomWiringAndFaceCap() {
+    // wiring: only photobooth carries the headroom; the color flash family
+    // measured sound (7–10% face clip) and stays at 0 (unchanged).
+    XCTAssertGreaterThan(CameraRecipe.recipe(for: "photobooth").flashHighlightHeadroom, 0)
+    for id in ["iphone-flash", "y2k-digicam", "point-shoot", "disposable"] {
+      XCTAssertEqual(CameraRecipe.recipe(for: id).flashHighlightHeadroom, 0, id)
+    }
+    // functional: a photobooth flashed face already near clip gets LESS adaptive
+    // lift than the same scene with a mid-toned face — the headroom backing off.
+    let engine = FilmEngine()
+    func boothScene(faceLum: Double) -> SceneProfile {
+      SceneProfile(
+        analyzed: true, key: 0.17, p01: 0.0, p50: 0.14, p99: 0.7,
+        illum: [1, 1, 1], sat: 0.3, lights: [], auxLights: [], faceLum: faceLum,
+        meanLuminance: 0.17, medianLuminance: 0.14, shadowFraction: 0.5,
+        highlightFraction: 0.05, dynamicRange: 0.6, averageRed: 0.15,
+        averageGreen: 0.15, averageBlue: 0.16, saturation: 0.3, warmth: 0,
+        isLowKey: true, isHighKey: false, isBacklit: false
+      )
+    }
+    let booth = CameraRecipe.recipe(for: "photobooth")
+    let hotFace = engine.adaptiveExposure(for: boothScene(faceLum: 0.86), recipe: booth)
+    let midFace = engine.adaptiveExposure(for: boothScene(faceLum: 0.45), recipe: booth)
+    XCTAssertLessThan(hotFace, midFace,
+                      "headroom must back the lift off when the flashed face is near clip")
+    XCTAssertGreaterThan(hotFace, 0, "the subject still gets some help")
+  }
+
   func testKeyShadowFallsBackToChromaLights() {
     let img = canvas { g, size in
       g.setFillColor(UIColor(white: 0.5, alpha: 1).cgColor)
@@ -340,6 +369,43 @@ final class LightIntelligenceTests: XCTestCase {
                       "slow film must collapse in the dark")
     let day = FilmEngine.shared.applyNightReciprocity(img, scene: scene(key: 0.5), amount: 1.0)
     XCTAssertEqual(render(day), render(img), "daylight must be byte-identical (parity safety)")
+  }
+
+  /// R62.1 — the ratified verdict is "only the neon survives": a lit sign must
+  /// stay readable while the street crushes. A bright, saturated neon patch on
+  /// a dark field, in a scene the meter reads as emissive-lit; the carve-out
+  /// (protectEmissive) must hold the sign back from the −2 EV collapse without
+  /// rescuing the dead street.
+  func testSuper8NightReciprocityLetsEmissiveHighlightsSurvive() {
+    let img = canvas { g, size in
+      g.setFillColor(UIColor(white: 0.08, alpha: 1).cgColor)
+      g.fill(CGRect(origin: .zero, size: size))
+      // a bright, saturated cyan neon sign
+      g.setFillColor(UIColor(red: 0.55, green: 1.0, blue: 1.0, alpha: 1).cgColor)
+      g.fill(CGRect(x: 32, y: 16, width: 32, height: 24))
+    }
+    let neonLight = LightSource(x: 0.5, y: 0.28, r: 0.06, intensity: 0.9, tint: [0.2, 0.9, 1.0])
+    let night = scene(key: 0.06, p99: 0.88, lights: [neonLight])
+    XCTAssertFalse(FilmEngine.emissiveLights(in: night).isEmpty, "scene must read as emissive")
+
+    let before = FilmEngine.shared.applyNightReciprocity(img, scene: night, amount: 1.0, protectEmissive: false)
+    let after = FilmEngine.shared.applyNightReciprocity(img, scene: night, amount: 1.0, protectEmissive: true)
+
+    // neon region (CI y-up: UIKit y16..40 of 96 → CI 0.583..0.833)
+    let neon = CGRect(x: 0.36, y: 0.60, width: 0.25, height: 0.20)
+    // a dark corner of the street, away from the sign
+    let street = CGRect(x: 0.05, y: 0.05, width: 0.20, height: 0.20)
+
+    let beforeNeon = meanLuma(before, region: neon)
+    let afterNeon = meanLuma(after, region: neon)
+    let afterStreet = meanLuma(after, region: street)
+
+    XCTAssertGreaterThan(afterNeon, beforeNeon + 20,
+                         "the carve-out must let the lit sign survive the pull")
+    XCTAssertGreaterThan(afterNeon, afterStreet + 40,
+                         "the neon must read far above the dead street")
+    XCTAssertLessThan(afterStreet, 25,
+                      "the street must still crush — shadows die, only the neon survives")
   }
 
   func testCCDClipRacesHighlightsToWhite() {
