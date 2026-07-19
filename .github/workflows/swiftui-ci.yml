@@ -106,6 +106,15 @@ jobs:
             sleep 9
             xcrun simctl io "$DEVICE_ID" screenshot ui-artifacts/develop-screens/$stock.png
           done
+          # gate rehearsal (DEBUG-only switch, never in release): the film
+          # door on a locked camera, so the owner can approve gate-on
+          # visuals before any flip is ever decided
+          xcrun simctl terminate "$DEVICE_ID" app.lensmood.ios || true
+          SIMCTL_CHILD_LENSMOOD_TAB=cameras SIMCTL_CHILD_LENSMOOD_AD=1 SIMCTL_CHILD_LENSMOOD_AD_STOCK=kodachrome \
+            SIMCTL_CHILD_LENSMOOD_REHEARSAL=gate-on \
+            xcrun simctl launch "$DEVICE_ID" app.lensmood.ios
+          sleep 9
+          xcrun simctl io "$DEVICE_ID" screenshot ui-artifacts/develop-screens/rehearsal-film-door.png
           # the same neon develop in Original and Compare preview modes — the
           # ad's compare-slider moment wipes between genuine app states
           for mode in original compare; do
