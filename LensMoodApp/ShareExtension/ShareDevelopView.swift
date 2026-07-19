@@ -36,6 +36,7 @@ struct ShareDevelopView: View {
   /// cameras — the extension is a compact surface, not a side door around
   /// the develop gate. Identical to today while everything is free.
   @ObservedObject private var store = Store.shared
+  @Environment(\.dynamicTypeSize) private var typeSize
 
   private var selected: Stock { Stock.find(selectedID) }
 
@@ -123,6 +124,9 @@ struct ShareDevelopView: View {
           }
         }
         .padding(8)
+        // the unlabeled preview images were silent — name the surface
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Photograph preview, developed with \(selected.name)")
       } else if loading {
         ProgressView().tint(.white)
       } else {
@@ -218,27 +222,44 @@ struct ShareDevelopView: View {
     }
   }
 
+  /// Accessibility type sizes: the grown "Save to Photos" no longer shares a
+  /// row with a 110pt-capped Cancel — the two stack full-width, save first.
+  @ViewBuilder
   private var actions: some View {
-    HStack(spacing: 10) {
-      Button("Cancel") {
-        finish()
+    if typeSize.isAccessibilitySize {
+      VStack(spacing: 10) {
+        saveButton
+        cancelButton
       }
-      .buttonStyle(InstrumentButtonStyle(kind: .secondary))
-      .frame(maxWidth: 110)
-      Button {
-        if saved { finish() } else { save() }
-      } label: {
-        if isSaving {
-          ProgressView().tint(.white)
-        } else if saved {
-          Label("Saved — Done", systemImage: "checkmark")
-        } else {
-          Label("Save to Photos", systemImage: "square.and.arrow.down")
-        }
+    } else {
+      HStack(spacing: 10) {
+        cancelButton.frame(maxWidth: 110)
+        saveButton
       }
-      .buttonStyle(InstrumentButtonStyle(kind: .primary))
-      .disabled(source == nil || isSaving)
     }
+  }
+
+  private var cancelButton: some View {
+    Button("Cancel") {
+      finish()
+    }
+    .buttonStyle(InstrumentButtonStyle(kind: .secondary))
+  }
+
+  private var saveButton: some View {
+    Button {
+      if saved { finish() } else { save() }
+    } label: {
+      if isSaving {
+        ProgressView().tint(.white)
+      } else if saved {
+        Label("Saved — Done", systemImage: "checkmark")
+      } else {
+        Label("Save to Photos", systemImage: "square.and.arrow.down")
+      }
+    }
+    .buttonStyle(InstrumentButtonStyle(kind: .primary))
+    .disabled(source == nil || isSaving)
   }
 
   // MARK: work
