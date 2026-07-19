@@ -546,6 +546,7 @@ struct HeroCard: View {
   private static let wordTimer = Timer.publish(every: 3.4, on: .main, in: .common).autoconnect()
   @State private var word = 0
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @Environment(\.dynamicTypeSize) private var typeSize
 
   var body: some View {
     VStack(spacing: 0) {
@@ -627,18 +628,30 @@ struct HeroCard: View {
           .minimumScaleFactor(0.7)
           .foregroundStyle(.white)
           .shadow(color: .black.opacity(0.5), radius: 7, y: 1)
+          // one sentence for VoiceOver instead of three fragments — and a
+          // stable one: the rotating word must not churn the element
+          .accessibilityElement(children: .combine)
+          .accessibilityLabel("Every photo has a mood")
 
           Button(action: onStart) {
             HStack(spacing: 8) {
-              Image(systemName: "photo.badge.plus")
-                .scaledFont(size: 15, weight: .semibold, relativeTo: .subheadline)
+              // accessibility sizes: the two decorative glyphs cost ~90pt the
+              // grown title needs — the words are the button
+              if !typeSize.isAccessibilitySize {
+                Image(systemName: "photo.badge.plus")
+                  .scaledFont(size: 15, weight: .semibold, relativeTo: .subheadline)
+              }
               Text("Start with a photo")
                 .font(.subheadline.weight(.bold))   // 15pt at the default size
-                .lineLimit(1)
+                // at accessibility sizes the title may take a second line
+                // rather than shrink-and-truncate inside the capsule
+                .lineLimit(typeSize.isAccessibilitySize ? 2 : 1)
                 .minimumScaleFactor(0.8)
-              Image(systemName: "chevron.down")
-                .scaledFont(size: 10, weight: .bold, relativeTo: .caption2)
-                .opacity(0.45)
+              if !typeSize.isAccessibilitySize {
+                Image(systemName: "chevron.down")
+                  .scaledFont(size: 10, weight: .bold, relativeTo: .caption2)
+                  .opacity(0.45)
+              }
             }
             .foregroundStyle(Theme.ink)
             .padding(.horizontal, 20)
@@ -653,7 +666,10 @@ struct HeroCard: View {
         }
         .padding(16)
       }
-      .aspectRatio(4.0 / 3.6, contentMode: .fit)
+      // accessibility sizes get a slightly taller poster (4:4.6): the grown
+      // two-line headline plus button no longer clear the SHOT ON tag inside
+      // 4:3.6 on small screens — everything else about the frame is unchanged
+      .aspectRatio(typeSize.isAccessibilitySize ? 4.0 / 4.6 : 4.0 / 3.6, contentMode: .fit)
       .clipped()
     }
     .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
