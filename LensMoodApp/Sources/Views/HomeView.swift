@@ -16,6 +16,10 @@ struct HomeView: View {
   @State private var showLibraryPicker = false
   @State private var heroPickedItem: PhotosPickerItem?
   @State private var heroPickError: String?
+  /// true while a hero pick is being read + ranked — the hero shows a busy
+  /// state and the photograph is not handed off until the push, so a camera
+  /// tapped during the read can never consume it mid-resolve
+  @State private var heroLoading = false
   @State private var carouselIndex = 0
   @Environment(\.dynamicTypeSize) private var typeSize
 
@@ -41,7 +45,7 @@ struct HomeView: View {
     NavigationStack(path: $path) {
       ScrollView {
         VStack(alignment: .leading, spacing: 0) {
-          HeroCard {
+          HeroCard(loading: heroLoading) {
             showSourceChooser = true
           }
           .padding(.top, 6)
@@ -131,18 +135,21 @@ struct HomeView: View {
   /// carry a library pick into a fresh develop session
   private func loadHeroPhoto(_ item: PhotosPickerItem?) {
     guard let item else { return }
+    heroLoading = true
     Task { @MainActor in
-      defer { heroPickedItem = nil }
+      defer { heroPickedItem = nil; heroLoading = false }
       do {
         guard let data = try await item.loadTransferable(type: Data.self),
               let image = UIImage(data: data) else {
           heroPickError = "That photo could not be read."
           return
         }
-        model.pendingDevelopImage = image
         // the first develop opens on the Conductor's pick for THIS photo —
         // the top-ranked camera the user can open today, read once here and
-        // replayed by the develop via the shared key
+        // replayed by the develop via the shared key. The image is handed to
+        // the model ONLY at the push (never before the read), so a carousel or
+        // shelf card tapped during the multi-second read cannot consume this
+        // photograph and develop it in the wrong camera.
         do {
           let key = UUID()
           let reading = try await Conductor.shared.reading(for: image, key: key)
@@ -151,9 +158,11 @@ struct HomeView: View {
             ranked: ranked.map(\.stockID),
             isUnlocked: { Store.shared.isUnlocked(Stock.find($0)) }
           )
+          model.pendingDevelopImage = image
           model.pendingDevelopKey = key
           path.append(Stock.find(pick))
         } catch {
+          model.pendingDevelopImage = image
           path.append(Stock.all[0])   // unreadable for ranking — develop still works
         }
       } catch {
@@ -556,6 +565,10 @@ struct StyleCard: View {
 /// headline "Every photo has a mood. / look. / texture. / glow." Falls back
 /// to the poster, then to the dusk gradient, when the loop is absent.
 struct HeroCard: View {
+  /// true while a chosen photo is being read + ranked — the start button shows
+  /// a spinner and stops accepting taps, so the wait (an iCloud original can
+  /// take seconds) reads as progress rather than a dead button
+  var loading: Bool = false
   var onStart: () -> Void
 
   private static let words = ["mood.", "look.", "texture.", "glow."]
@@ -653,22 +666,32 @@ struct HeroCard: View {
 
           Button(action: onStart) {
             HStack(spacing: 8) {
-              // accessibility sizes: the two decorative glyphs cost ~90pt the
-              // grown title needs — the words are the button
-              if !typeSize.isAccessibilitySize {
-                Image(systemName: "photo.badge.plus")
-                  .scaledFont(size: 15, weight: .semibold, relativeTo: .subheadline)
-              }
-              Text("Start with a photo")
-                .font(.subheadline.weight(.bold))   // 15pt at the default size
-                // at accessibility sizes the title may take a second line
-                // rather than shrink-and-truncate inside the capsule
-                .lineLimit(typeSize.isAccessibilitySize ? 2 : 1)
-                .minimumScaleFactor(0.8)
-              if !typeSize.isAccessibilitySize {
-                Image(systemName: "chevron.down")
-                  .scaledFont(size: 10, weight: .bold, relativeTo: .caption2)
-                  .opacity(0.45)
+              if loading {
+                ProgressView()
+                  .controlSize(.small)
+                  .tint(Theme.ink)
+                Text("Reading your photo…")
+                  .font(.subheadline.weight(.bold))   // 15pt at the default size
+                  .lineLimit(1)
+                  .minimumScaleFactor(0.8)
+              } else {
+                // accessibility sizes: the two decorative glyphs cost ~90pt the
+                // grown title needs — the words are the button
+                if !typeSize.isAccessibilitySize {
+                  Image(systemName: "photo.badge.plus")
+                    .scaledFont(size: 15, weight: .semibold, relativeTo: .subheadline)
+                }
+                Text("Start with a photo")
+                  .font(.subheadline.weight(.bold))   // 15pt at the default size
+                  // at accessibility sizes the title may take a second line
+                  // rather than shrink-and-truncate inside the capsule
+                  .lineLimit(typeSize.isAccessibilitySize ? 2 : 1)
+                  .minimumScaleFactor(0.8)
+                if !typeSize.isAccessibilitySize {
+                  Image(systemName: "chevron.down")
+                    .scaledFont(size: 10, weight: .bold, relativeTo: .caption2)
+                    .opacity(0.45)
+                }
               }
             }
             .foregroundStyle(Theme.ink)
@@ -678,8 +701,9 @@ struct HeroCard: View {
             .clipShape(Capsule())
           }
           .buttonStyle(.plain)
+          .disabled(loading)
           .padding(.top, 8)
-          .accessibilityLabel("Start with a photo")
+          .accessibilityLabel(loading ? "Reading your photo" : "Start with a photo")
           .accessibilityHint("Opens options to take a photo or choose from your library")
         }
         .padding(16)
