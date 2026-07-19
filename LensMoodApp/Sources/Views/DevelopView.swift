@@ -47,7 +47,8 @@ struct DevelopView: View {
   @State private var isDeveloping = false
   @State private var isSaving = false
   @State private var errorMessage: String?
-  @State private var saveConfirmation = false
+  /// monotonic save counter driving the SavedTick (see SavedTick.swift)
+  @State private var saveTick = 0
   @State private var renderID = UUID()
   /// Per-import session id so the preview cache never reuses one photo's render
   /// for another. Reset whenever a new photograph is loaded.
@@ -171,7 +172,7 @@ struct DevelopView: View {
         }
       }
     }
-    .savedTick(isPresented: $saveConfirmation)
+    .savedTick(trigger: saveTick)
     .alert("Could not develop this photograph", isPresented: Binding(
       get: { errorMessage != nil },
       set: { if !$0 { errorMessage = nil } }
@@ -1015,7 +1016,7 @@ struct DevelopView: View {
         }.value
         try await PhotoLibraryWriter.save(image: fullResolution)
         isSaving = false
-        saveConfirmation = true
+        saveTick += 1
         Analytics.log(.photoSaved(lookID: stockID))
         UINotificationFeedbackGenerator().notificationOccurred(.success)
       } catch is CancellationError {

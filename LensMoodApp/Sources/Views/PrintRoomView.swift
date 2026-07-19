@@ -56,7 +56,8 @@ struct PrintRoomView: View {
   @State private var pickedPrintItem: PhotosPickerItem?
   @State private var pickedAsset: DevelopedAsset?
   @State private var surface: PrintSurface = .wood
-  @State private var saved = false
+  /// monotonic save counter driving the SavedTick (see SavedTick.swift)
+  @State private var saveTick = 0
   @State private var isSaving = false
   @State private var errorMessage: String?
   @State private var printReveal: CGFloat = 1
@@ -125,7 +126,7 @@ struct PrintRoomView: View {
       // tab switch lands (onAppear) — the pendingStock idiom, for prints
       .onAppear { consumePendingPrint() }
       .onChange(of: model.pendingPrintAsset?.id) { _ in consumePendingPrint() }
-      .savedTick(isPresented: $saved, text: "Print saved to Photos")
+      .savedTick(trigger: saveTick, text: "Print saved to Photos")
       .alert("Could not save this print", isPresented: Binding(
         get: { errorMessage != nil },
         set: { if !$0 { errorMessage = nil } }
@@ -266,7 +267,7 @@ struct PrintRoomView: View {
       do {
         try await PhotoLibraryWriter.save(image: image)
         isSaving = false
-        saved = true
+        saveTick += 1
         UINotificationFeedbackGenerator().notificationOccurred(.success)
       } catch {
         isSaving = false

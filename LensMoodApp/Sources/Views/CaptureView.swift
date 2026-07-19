@@ -34,7 +34,8 @@ struct CaptureView: View {
   @State private var reviewFullImage: (id: UUID, image: UIImage)?
   @State private var shutterFlash = false
   @State private var errorMessage: String?
-  @State private var saveConfirmation = false
+  /// monotonic save counter driving the SavedTick (see SavedTick.swift)
+  @State private var saveTick = 0
   @State private var isSavingShot = false
   @State private var renderToken = UUID()
   @State private var cameraSeeded = false
@@ -84,7 +85,7 @@ struct CaptureView: View {
     .overlay { if guideShown { guideOverlay } }
     .sheet(isPresented: $mountPickerShown) { mountPicker }
     .sheet(isPresented: $libraryShown) { librarySheet }
-    .savedTick(isPresented: $saveConfirmation)
+    .savedTick(trigger: saveTick)
     .alert("Could not complete that", isPresented: Binding(
       get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } }
     )) { Button("OK", role: .cancel) {} } message: { Text(errorMessage ?? "Try again.") }
@@ -927,7 +928,7 @@ struct CaptureView: View {
           defer { isSavingShot = false }
           do {
             try await PhotoLibraryWriter.save(image: export)
-            saveConfirmation = true; review = nil
+            saveTick += 1; review = nil
             UINotificationFeedbackGenerator().notificationOccurred(.success)
           } catch { errorMessage = error.localizedDescription }
         }

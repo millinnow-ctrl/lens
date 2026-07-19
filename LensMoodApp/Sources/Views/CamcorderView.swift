@@ -25,7 +25,8 @@ struct CamcorderView: View {
   @State private var cameraPresented = false
   @State private var isExporting = false
   @State private var errorMessage: String?
-  @State private var saved = false
+  /// monotonic save counter driving the SavedTick (see SavedTick.swift)
+  @State private var saveTick = 0
   @State private var cameraUnavailable = false
   @State private var isSaving = false
 
@@ -60,7 +61,7 @@ struct CamcorderView: View {
         importMovie(item)
       }
       .onAppear { sweepOrphanedTapes() }
-      .savedTick(isPresented: $saved, text: "Tape saved to Photos")
+      .savedTick(trigger: saveTick, text: "Tape saved to Photos")
       .alert("Tape could not be developed", isPresented: Binding(
         get: { errorMessage != nil },
         set: { if !$0 { errorMessage = nil } }
@@ -264,7 +265,7 @@ struct CamcorderView: View {
       do {
         try await PhotoLibraryWriter.save(videoAt: outputURL)
         isSaving = false
-        saved = true
+        saveTick += 1
         UINotificationFeedbackGenerator().notificationOccurred(.success)
       } catch {
         isSaving = false

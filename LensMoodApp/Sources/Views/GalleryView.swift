@@ -189,7 +189,8 @@ private struct GalleryDetailView: View {
   @Environment(\.dismiss) private var dismiss
   @State private var shareItem: ShareItem?
   @State private var isSaving = false
-  @State private var saveConfirmation = false
+  /// monotonic save counter driving the SavedTick (see SavedTick.swift)
+  @State private var saveTick = 0
   @State private var deleteRequested = false
   @State private var errorMessage: String?
   /// the stored 2048 px frame, decoded once on appearance (two-tier: a
@@ -311,7 +312,7 @@ private struct GalleryDetailView: View {
       .sheet(item: $shareItem) { item in
         ActivitySheet(items: [item.image])
       }
-      .savedTick(isPresented: $saveConfirmation)
+      .savedTick(trigger: saveTick)
       .alert("Could not save this photograph", isPresented: Binding(
         get: { errorMessage != nil },
         set: { if !$0 { errorMessage = nil } }
@@ -443,7 +444,7 @@ private struct GalleryDetailView: View {
         }.value
         try await PhotoLibraryWriter.save(image: frame)
         isSaving = false
-        saveConfirmation = true
+        saveTick += 1
         UINotificationFeedbackGenerator().notificationOccurred(.success)
       } catch {
         isSaving = false

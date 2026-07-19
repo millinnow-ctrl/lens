@@ -10,14 +10,22 @@ import SwiftUI
 import UIKit
 
 struct SavedTickModifier: ViewModifier {
-  @Binding var isPresented: Bool
+  /// a monotonically increasing save counter — the caller bumps it on every
+  /// save. Keying on the count (not a Bool) means a second save while the tick
+  /// is still up restarts the clock: `true` set over `true` is no change, so
+  /// the second confirmation used to ride — and be cut short by — the first
+  /// save's timer.
+  let trigger: Int
   let text: String
+  /// the trigger value currently on screen; nil = hidden. The modifier owns
+  /// its own dismissal, so the caller only ever counts up.
+  @State private var shown: Int?
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   func body(content: Content) -> some View {
     content
       .overlay(alignment: .bottom) {
-        if isPresented {
+        if shown != nil {
           HStack(spacing: 8) {
             Image(systemName: "checkmark.circle.fill")
               .scaledFont(size: 15, weight: .semibold, relativeTo: .subheadline)
@@ -38,31 +46,36 @@ struct SavedTickModifier: ViewModifier {
           .transition(reduceMotion
             ? .opacity
             : .move(edge: .bottom).combined(with: .opacity))
-          .onAppear {
-            UIAccessibility.post(notification: .announcement, argument: text)
-          }
-          // task(id:) so a save landing while the tick is up restarts the
-          // clock instead of racing the old dismissal
-          .task(id: isPresented) {
+          // task(id: shown) so each save (a new count) restarts the clock
+          // instead of racing the old dismissal
+          .task(id: shown) {
             try? await Task.sleep(nanoseconds: 1_800_000_000)
             withAnimation(reduceMotion ? nil : .easeOut(duration: 0.25)) {
-              isPresented = false
+              shown = nil
             }
           }
           .allowsHitTesting(false)
         }
       }
+      .onChange(of: trigger) { newValue in
+        guard newValue > 0 else { return }
+        UIAccessibility.post(notification: .announcement, argument: text)
+        withAnimation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.8)) {
+          shown = newValue
+        }
+      }
       .animation(
         reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.8),
-        value: isPresented
+        value: shown
       )
   }
 }
 
 extension View {
-  /// A transient, self-dismissing save confirmation — success without an
-  /// OK button.
-  func savedTick(isPresented: Binding<Bool>, text: String = "Saved to Photos") -> some View {
-    modifier(SavedTickModifier(isPresented: isPresented, text: text))
+  /// A transient, self-dismissing save confirmation — success without an OK
+  /// button. Drive it with a counter bumped on each save (`saveTick += 1`), so
+  /// repeated saves each get their full moment on screen.
+  func savedTick(trigger: Int, text: String = "Saved to Photos") -> some View {
+    modifier(SavedTickModifier(trigger: trigger, text: text))
   }
 }
