@@ -105,6 +105,19 @@ final class ConductorTests: XCTestCase {
     XCTAssertGreaterThan(litScore, flatScore, "noir wants a key light to carve shadows from")
   }
 
+  /// Hero-path routing is pure: the same ranking and the same gate always
+  /// pick the same first-develop camera.
+  func testFirstDevelopStockIDIsDeterministic() {
+    let ranked = Conductor.rank(
+      scene: scene(key: 0.15, auxLights: [neon]), faces: oneFace
+    ).map(\.stockID)
+    let unlocked: (String) -> Bool = { PlusCatalog.freeForeverStockIDs.contains($0) }
+    let first = Conductor.firstDevelopStockID(ranked: ranked, isUnlocked: unlocked)
+    let second = Conductor.firstDevelopStockID(ranked: ranked, isUnlocked: unlocked)
+    XCTAssertEqual(first, second, "same input must always route the same camera")
+    XCTAssertTrue(unlocked(first), "the pick must be a camera the user can open")
+  }
+
   // MARK: - Narration honesty
 
   func testNarrationOnlyNamesStepsThatRun() {

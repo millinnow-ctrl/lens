@@ -14,7 +14,16 @@
 import StoreKit
 import SwiftUI
 
+/// Where the offer is standing when it appears: over the user's own developed
+/// frame at the keep moment, or browsed cold (AccountView's design preview).
+enum PaywallContext {
+  case keep(preview: UIImage, stock: Stock)
+  case browse
+}
+
 struct PaywallView: View {
+  var context: PaywallContext = .browse
+
   @ObservedObject private var store = Store.shared
   @Environment(\.dismiss) private var dismiss
 
@@ -25,8 +34,13 @@ struct PaywallView: View {
     Stock.all.filter { PlusCatalog.freeForeverStockIDs.contains($0.id) }
   }
 
-  private var plusStocks: [Stock] {
-    Stock.all.filter { !PlusCatalog.freeForeverStockIDs.contains($0.id) }
+  private var isKeepContext: Bool {
+    if case .keep = context { return true }
+    return false
+  }
+
+  private var surfaceName: String {
+    isKeepContext ? "develop-keep" : "account"
   }
 
   var body: some View {
@@ -34,6 +48,9 @@ struct PaywallView: View {
       VStack(alignment: .leading, spacing: 20) {
         if Store.everythingFreeForNow {
           previewBanner
+        }
+        if case .keep(let preview, let stock) = context {
+          keepContextSection(preview: preview, stock: stock)
         }
         header
         offerRow
@@ -54,7 +71,7 @@ struct PaywallView: View {
     .navigationTitle("LensMood Plus")
     .navigationBarTitleDisplayMode(.inline)
     .task {
-      Analytics.log(.paywallViewed(surface: "account"))
+      Analytics.log(.paywallViewed(surface: surfaceName))
       await store.start()
     }
   }
@@ -74,12 +91,33 @@ struct PaywallView: View {
     .background(Theme.accent.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
   }
 
+  /// the keep context leads with the user's own frame — the offer stands
+  /// over the photograph it is about, never over stock art
+  private func keepContextSection(preview: UIImage, stock: Stock) -> some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Color.clear
+        .aspectRatio(4.0 / 5.0, contentMode: .fit)
+        .overlay(
+          Image(uiImage: preview)
+            .resizable()
+            .scaledToFill()
+        )
+        .frame(maxWidth: .infinity)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+      Text("Your photograph, developed on \(stock.name).")
+        .font(.footnote)   // 13pt at the default size
+        .foregroundStyle(Theme.inkSoft)
+    }
+  }
+
   private var header: some View {
     VStack(alignment: .leading, spacing: 6) {
-      Text("Twelve more cameras")
+      Text(isKeepContext ? "Keep the darkroom open" : "Twelve more cameras")
         .font(.title.weight(.heavy))   // 28pt at the default size
         .foregroundStyle(Theme.ink)
-      Text("Six cameras are yours free, forever, at full resolution. Plus opens the other twelve — and every camera we add later.")
+      Text(isKeepContext
+        ? "Six cameras are yours free forever, full resolution. Plus opens the other twelve — including this one — and every camera we add later."
+        : "Six cameras are yours free, forever, at full resolution. Plus opens the other twelve — and every camera we add later.")
         .font(.subheadline)   // 15pt at the default size
         .foregroundStyle(Theme.inkSoft)
     }
@@ -145,13 +183,52 @@ struct PaywallView: View {
       bullet("Full-resolution export of every photo and tape")
       bullet("Importing, saving, and sharing — never gated")
       Divider()
-      Text("Plus adds \(plusStocks.count) signature cameras: \(plusStocks.map(\.name).joined(separator: ", "))")
-        .font(.footnote)   // 13pt at the default size
-        .foregroundStyle(Theme.inkSoft)
+      shelfGrid
     }
     .padding(14)
     .frame(maxWidth: .infinity, alignment: .leading)
     .background(Theme.surface, in: RoundedRectangle(cornerRadius: 18))
+  }
+
+  /// the whole shelf at a glance — all 18 cameras in catalog order, gradient
+  /// swatches like the develop rail's chips. Free is the labeled exception;
+  /// Plus cameras carry no caption.
+  private var shelfGrid: some View {
+    LazyVGrid(
+      columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 6),
+      spacing: 10
+    ) {
+      ForEach(Stock.all) { stock in
+        shelfCell(stock)
+      }
+    }
+  }
+
+  private func shelfCell(_ stock: Stock) -> some View {
+    let free = PlusCatalog.freeForeverStockIDs.contains(stock.id)
+    return VStack(spacing: 3) {
+      RoundedRectangle(cornerRadius: 12, style: .continuous)
+        .fill(
+          LinearGradient(
+            colors: [Color(hex: stock.g0), Color(hex: stock.g1)],
+            startPoint: .topLeading, endPoint: .bottomTrailing
+          )
+        )
+        .frame(width: 40, height: 40)
+      Text(stock.name)
+        .font(.caption2)   // 11pt at the default size
+        .foregroundStyle(Theme.inkSoft)
+        .lineLimit(1)
+        .minimumScaleFactor(0.6)
+      if free {
+        Text("FREE")
+          .scaledFont(size: 8.5, weight: .bold, design: .monospaced, relativeTo: .caption2)
+          .foregroundStyle(Theme.accent)
+      }
+    }
+    .frame(maxWidth: .infinity, alignment: .top)
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(free ? "\(stock.name), free forever" : "\(stock.name), in Plus")
   }
 
   private var footnotes: some View {
@@ -273,5 +350,14 @@ private struct OfferCard: View {
 #Preview {
   NavigationStack {
     PaywallView()
+  }
+}
+
+#Preview("Keep context") {
+  NavigationStack {
+    PaywallView(context: .keep(
+      preview: BundleMedia.image("style-polaroid") ?? UIImage(),
+      stock: Stock.all[8]
+    ))
   }
 }

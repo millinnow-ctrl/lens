@@ -46,7 +46,7 @@ enum PlusCatalog {
   /// never render once real products load.
   enum PlaceholderPrice {
     static let yearly = "$19.99"
-    static let lifetime = "$34.99"
+    static let lifetime = "$49.99"
   }
 
   enum Entitlement: String {

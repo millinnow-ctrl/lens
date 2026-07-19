@@ -70,6 +70,13 @@ struct DevelopView: View {
   /// share (carrying its composited frame) or the membership offer — one
   /// presentation seat, so the two can never collide on this view
   @State private var activeSheet: DevelopSheet?
+  /// the keep action the paywall interrupted; completed on dismiss if the
+  /// entitlement now covers the camera
+  private enum PendingKeep { case save, share }
+  @State private var pendingKeep: PendingKeep?
+  /// the composited frame the keep-context paywall shows — the user's own
+  /// photograph on the locked camera, built from the bounded preview render
+  @State private var paywallPreview: UIImage?
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   var body: some View {
@@ -105,6 +112,14 @@ struct DevelopView: View {
       // a photo chosen from the Home hero develops immediately on arrival
       if let pending = model.pendingDevelopImage {
         model.pendingDevelopImage = nil
+        // the hero path already read this photograph for its ranking — adopt
+        // that reading's key so the develop replays the identical read from
+        // the Conductor cache (one-reading law: a second read is not
+        // guaranteed bit-stable)
+        if let key = model.pendingDevelopKey {
+          photoKey = key
+          model.pendingDevelopKey = nil
+        }
         sourceImage = pending
         develop(pending)
       }
@@ -114,12 +129,16 @@ struct DevelopView: View {
     // force a fresh subject pass — splitting export from preview. The
     // Conductor's small LRU cap bounds memory instead; load() still forgets
     // the replaced photo's key explicitly.
-    .sheet(item: $activeSheet) { sheet in
+    .sheet(item: $activeSheet, onDismiss: handleSheetDismiss) { sheet in
       switch sheet {
       case .share(let image):
         ActivitySheet(items: [image])
       case .paywall:
-        PaywallView()
+        if let paywallPreview {
+          PaywallView(context: .keep(preview: paywallPreview, stock: currentStock))
+        } else {
+          PaywallView()
+        }
       }
     }
     .alert("Saved to Photos", isPresented: $saveConfirmation) {
@@ -142,16 +161,22 @@ struct DevelopView: View {
     return matches.map { Stock.find($0.stockID) }
   }
 
+  /// the caption's reason belongs to the LOADED camera, never a different
+  /// one — the ranking's top reason must not caption a camera it isn't about
+  private var railReason: String? {
+    matches?.first(where: { $0.stockID == currentStock.id })?.reason
+  }
+
   /// StyleRail — the horizontal camera switcher from the reference app:
   /// gradient swatch chips, ocean ring on the active camera. Selecting
   /// re-develops the loaded photograph in place. Once the Conductor has read
   /// the photograph, the rail reorders to the looks that will love it.
   private var styleRail: some View {
     VStack(alignment: .leading, spacing: 7) {
-      if let top = matches?.first {
+      if matches != nil {
         HStack(spacing: 8) {
           TechnicalLabel(text: "For this photo")
-          if let reason = top.reason {
+          if let reason = railReason {
             Text(reason)
               .font(.caption2.weight(.medium))   // 11pt at the default size
               .foregroundStyle(Theme.fog)
@@ -160,7 +185,7 @@ struct DevelopView: View {
           }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Cameras reordered for this photo." + (top.reason.map { " \($0)." } ?? ""))
+        .accessibilityLabel("Cameras reordered for this photo." + (railReason.map { " \($0)." } ?? ""))
       }
       ScrollViewReader { proxy in
         ScrollView(.horizontal, showsIndicators: false) {
@@ -445,29 +470,85 @@ struct DevelopView: View {
       ? ceremonySteps[ceremonyActiveIndex] : "Developing")
   }
 
+  /// a locked camera's Save is the keep offer in plain words; the tap still
+  /// routes through save(), whose gate presents the paywall
+  private var saveButtonTitle: String {
+    guard Store.shared.isUnlocked(currentStock) else { return "Keep this photo — get Plus" }
+    return isSaving ? "Preparing full resolution" : "Save"
+  }
+
   private var actions: some View {
     VStack(spacing: 10) {
       HStack(spacing: 10) {
         photoPicker(title: "New photograph")
-        Button(isSaving ? "Preparing full resolution" : "Save") { save() }
+        Button(saveButtonTitle) { save() }
           .buttonStyle(InstrumentButtonStyle(kind: .primary))
           .disabled(developedImage == nil || isSaving)
       }
       Button("Share developed photograph") {
-        // composite off-main; presenting inside the sheet's body re-ran the
-        // full-frame blend on every view evaluation
-        guard let developedImage, let sourceImage else { return }
-        let strength = intensity
-        Task.detached(priority: .userInitiated) {
-          let composed = blended(developed: developedImage, over: sourceImage, intensity: strength)
-          await MainActor.run {
-            Analytics.log(.photoShared)
-            activeSheet = .share(composed)
-          }
+        guard Store.shared.isUnlocked(currentStock) else {
+          pendingKeep = .share
+          presentPaywall()
+          return
         }
+        presentShareSheet()
       }
       .buttonStyle(InstrumentButtonStyle(kind: .secondary))
       .disabled(developedImage == nil)
+      if !Store.shared.isUnlocked(currentStock), developedImage != nil {
+        Text("This develop stays until you leave — keeping it is what Plus is for.")
+          .font(.footnote)   // 13pt at the default size
+          .foregroundStyle(Theme.inkSoft)
+          .frame(maxWidth: .infinity, alignment: .center)
+          .multilineTextAlignment(.center)
+      }
+    }
+  }
+
+  /// the Share sheet's composite-and-present path — called by the Share
+  /// button and by handleSheetDismiss when a purchase completes a share
+  private func presentShareSheet() {
+    // composite off-main; presenting inside the sheet's body re-ran the
+    // full-frame blend on every view evaluation
+    guard let developedImage, let sourceImage else { return }
+    let strength = intensity
+    Task.detached(priority: .userInitiated) {
+      let composed = blended(developed: developedImage, over: sourceImage, intensity: strength)
+      await MainActor.run {
+        Analytics.log(.photoShared)
+        activeSheet = .share(composed)
+      }
+    }
+  }
+
+  /// composite the keep-context frame (the user's own photograph on this
+  /// camera, at the current strength) and present the offer over it
+  private func presentPaywall() {
+    guard let developedImage, let sourceImage else {
+      activeSheet = .paywall
+      return
+    }
+    let strength = intensity
+    Task.detached(priority: .userInitiated) {
+      let composed = blended(developed: developedImage, over: sourceImage, intensity: strength)
+      await MainActor.run {
+        paywallPreview = composed
+        activeSheet = .paywall
+      }
+    }
+  }
+
+  /// after the paywall closes: if the purchase now covers the camera, land
+  /// the develop in the Library and finish the keep the user asked for
+  private func handleSheetDismiss() {
+    paywallPreview = nil
+    guard let action = pendingKeep else { return }
+    pendingKeep = nil
+    guard Store.shared.isUnlocked(currentStock) else { return }
+    commitSessionToLibrary()
+    switch action {
+    case .save: save()
+    case .share: presentShareSheet()
     }
   }
 
@@ -528,13 +609,8 @@ struct DevelopView: View {
   }
 
   private func develop(_ image: UIImage) {
-    // THE gate site: every render of a locked camera stops here and shows the
-    // offer instead. A no-op while Store.everythingFreeForNow keeps all 18 open.
-    guard Store.shared.isUnlocked(currentStock) else {
-      isDeveloping = false
-      activeSheet = .paywall
-      return
-    }
+    // Every camera develops — the transformation is never gated. The gate
+    // sits at the keep moment (save/share) instead; see save().
     Analytics.log(.developStarted(lookID: currentStock.id))
     let request = UUID()
     renderID = request
@@ -620,12 +696,35 @@ struct DevelopView: View {
   }
 
   /// Commit a finished develop (from a fresh render or a cache hit) into editor
-  /// state and the library. Runs on the main thread.
+  /// state — and into the library only when the camera is the user's to keep.
+  /// Runs on the main thread.
   private func applyDeveloped(image developed: UIImage, decisions newDecisions: [String], source: UIImage) {
     isDeveloping = false
     developedImage = developed
     decisions = newDecisions
     previewMode = harnessPreviewMode ?? .developed
+    // the roll keeps what you keep: a locked camera's develop lives on the
+    // stage only, and enters the Library via commitSessionToLibrary() once
+    // the entitlement covers it. A no-op while Store.everythingFreeForNow —
+    // every develop lands exactly as before.
+    if Store.shared.isUnlocked(currentStock) {
+      storeInLibrary(developed: developed, decisions: newDecisions, source: source)
+    }
+    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+  }
+
+  /// land the on-stage develop in the Library after a purchase unlocked its
+  /// camera — the same landing a free camera's develop takes immediately
+  private func commitSessionToLibrary() {
+    guard let developedImage, let sourceImage,
+      Store.shared.isUnlocked(currentStock) else { return }
+    storeInLibrary(developed: developedImage, decisions: decisions, source: sourceImage)
+  }
+
+  /// the one Library landing (shared by applyDeveloped and
+  /// commitSessionToLibrary): bounded original copy, favorite-preserving
+  /// session replace, model.add
+  private func storeInLibrary(developed: UIImage, decisions newDecisions: [String], source: UIImage) {
     // the Library keeps a bounded copy of the original, built once per photo —
     // retaining 48 full-resolution sources was the session's dominant memory cost
     if librarySource == nil {
@@ -645,7 +744,6 @@ struct DevelopView: View {
     if let previous = sessionAssetID { model.remove(id: previous) }
     model.add(asset)
     sessionAssetID = asset.id
-    UIImpactFeedbackGenerator(style: .light).impactOccurred()
   }
 
   /// Cap the stored original's longest edge — detail-view quality at a
@@ -667,6 +765,13 @@ struct DevelopView: View {
 
   private func save() {
     guard let sourceImage else { return }
+    // THE gate site: keeping a locked camera's develop is what Plus sells.
+    // A no-op while Store.everythingFreeForNow.
+    guard Store.shared.isUnlocked(currentStock) else {
+      pendingKeep = .save
+      presentPaywall()
+      return
+    }
     isSaving = true
     let recipe = currentStock.recipe
     let seed = Double(currentStock.id.unicodeScalars.reduce(17) { ($0 * 31 + Int($1.value)) % 100_000 })

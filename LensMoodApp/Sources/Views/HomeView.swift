@@ -130,7 +130,22 @@ struct HomeView: View {
           return
         }
         model.pendingDevelopImage = image
-        path.append(Stock.all[0])
+        // the first develop opens on the Conductor's pick for THIS photo —
+        // the top-ranked camera the user can open today, read once here and
+        // replayed by the develop via the shared key
+        do {
+          let key = UUID()
+          let reading = try await Conductor.shared.reading(for: image, key: key)
+          let ranked = Conductor.rank(scene: reading.scene, faces: reading.subject.faces)
+          let pick = Conductor.firstDevelopStockID(
+            ranked: ranked.map(\.stockID),
+            isUnlocked: { Store.shared.isUnlocked(Stock.find($0)) }
+          )
+          model.pendingDevelopKey = key
+          path.append(Stock.find(pick))
+        } catch {
+          path.append(Stock.all[0])   // unreadable for ranking — develop still works
+        }
       } catch {
         heroPickError = error.localizedDescription
       }

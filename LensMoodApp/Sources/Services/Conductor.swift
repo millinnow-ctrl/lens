@@ -95,6 +95,14 @@ final class Conductor: ObservableObject {
     inFlight[key] = nil
   }
 
+  /// The first develop must be a develop, never an ask: top-ranked camera
+  /// the user can open today. Falls back to the catalog's first camera.
+  nonisolated static func firstDevelopStockID(
+    ranked: [String], isUnlocked: (String) -> Bool
+  ) -> String {
+    ranked.first(where: isUnlocked) ?? Stock.all[0].id
+  }
+
   /// Rank every camera against the measured scene — the "For this photo"
   /// order for the film rail. Pure and deterministic: the same photograph
   /// always ranks the rail identically, and every adjustment mirrors a real
