@@ -1,4 +1,3 @@
-import CoreImage
 import UIKit
 import XCTest
 @testable import LensMood

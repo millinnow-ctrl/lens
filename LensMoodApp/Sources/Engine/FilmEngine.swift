@@ -59,6 +59,15 @@ final class FilmEngine {
   let rimCompressKernel: CIColorKernel?
   let skinProtectKernel: CIColorKernel?
 
+  /// Stage-1 hand-fit grain values (intentional camera refinement: grain
+  /// stage 1 — multi-scale, luminance-responsive). The second octave's cell
+  /// scale and amplitude give the flat V1 texture a coarse under-structure;
+  /// the response floor keeps deep shadows and highlights from going sterile
+  /// while the midtones carry the grain, the way film does.
+  static let grainOctaveScale = 2.3
+  static let grainOctaveAmplitude = 0.55
+  static let grainResponseFloor = 0.15
+
   init() {
     let sRGB = CGColorSpace(name: CGColorSpace.sRGB)!
     context = CIContext(options: [
@@ -68,12 +77,22 @@ final class FilmEngine {
       .useSoftwareRenderer: false,
     ])
     analyzer = SceneAnalyzer(context: context)
+    // Grain stage 1 (V2): two octaves of the V1 cell-hash value noise —
+    // octave 2 rides at grainSize × the octave scale — summed, normalized,
+    // then scaled by a midtone-peaked luminance response. Same seed plumbing
+    // and clamped add as V1; recipe.grain / recipe.grainSize semantics and
+    // the gain-driven amount are untouched.
     grainKernel = CIColorKernel(source: """
-      kernel vec4 lensMoodGrain(__sample pixel, float amount, float seed, float grainSize) {
-        vec2 cell = floor(destCoord() / max(grainSize, 0.5));
-        float random = fract(sin(dot(cell, vec2(12.9898, 78.233)) + seed) * 43758.5453);
-        float noise = (random - 0.5) * amount;
-        return vec4(clamp(pixel.rgb + vec3(noise), 0.0, 1.0), pixel.a);
+      kernel vec4 lensMoodGrainV2(__sample pixel, float amount, float seed, float grainSize) {
+        vec2 coord = destCoord();
+        vec2 cellA = floor(coord / max(grainSize, 0.5));
+        vec2 cellB = floor(coord / max(grainSize * \(FilmEngine.grainOctaveScale), 0.5));
+        float noiseA = fract(sin(dot(cellA, vec2(12.9898, 78.233)) + seed) * 43758.5453) - 0.5;
+        float noiseB = fract(sin(dot(cellB, vec2(26.6516, 43.3327)) + seed) * 24634.6345) - 0.5;
+        float noise = (noiseA + noiseB * \(FilmEngine.grainOctaveAmplitude)) / \(1.0 + FilmEngine.grainOctaveAmplitude);
+        float lum = dot(pixel.rgb, vec3(0.299, 0.587, 0.114));
+        float response = clamp(4.0 * lum * (1.0 - lum), \(FilmEngine.grainResponseFloor), 1.0);
+        return vec4(clamp(pixel.rgb + vec3(noise * amount * response), 0.0, 1.0), pixel.a);
       }
       """)
     referenceGeometryKernel = CIWarpKernel(source: """
@@ -685,7 +704,9 @@ final class FilmEngine {
     return image.composited(over: paper)
   }
 
-  private func applyGrain(
+  // internal for direct unit testing of the stage-1 grain texture
+  // (determinism + the midtone-peaked luminance response)
+  func applyGrain(
     _ image: CIImage,
     amount: Double,
     size: Double,
