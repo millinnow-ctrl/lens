@@ -24,6 +24,9 @@ struct CaptureView: View {
   @State private var activeDial: ActiveDial = .aperture
   @State private var showGrid = true
   @State private var mountPickerShown = false
+  /// the mount sheet's detent — opens at .medium (the shelf), but a spent cell
+  /// pushes the paywall, which needs the full height to breathe
+  @State private var mountDetent: PresentationDetent = .medium
   @State private var libraryShown = false
 
   @State private var isDeveloping = false
@@ -347,7 +350,7 @@ struct CaptureView: View {
   // MARK: film canister selector
 
   private var filmBar: some View {
-    Button { mountPickerShown = true } label: {
+    Button { mountDetent = .medium; mountPickerShown = true } label: {
       HStack(spacing: 10) {
         canisterIcon
         Text(loadedStock.name).font(.spaceMono(15, bold: true)).foregroundStyle(CameraTheme.text)
@@ -551,7 +554,7 @@ struct CaptureView: View {
       .navigationTitle("Load a film").navigationBarTitleDisplayMode(.inline)
       .toolbarColorScheme(.dark, for: .navigationBar)
     }
-    .presentationDetents([.medium, .large])
+    .presentationDetents([.medium, .large], selection: $mountDetent)
   }
 
   /// One camera on the mount shelf. Open and loaded cameras mount as ever —
@@ -576,6 +579,9 @@ struct CaptureView: View {
         // own .toolbarColorScheme(.dark).
         .environment(\.colorScheme, .light)
         .toolbarColorScheme(.light, for: .navigationBar)
+        // the purchase surface (lifetime primary, restore, legal) needs the
+        // full sheet — lift the mount picker from .medium to .large on push
+        .onAppear { mountDetent = .large }
       } label: {
         mountCellLabel(stock, access: access)
       }
