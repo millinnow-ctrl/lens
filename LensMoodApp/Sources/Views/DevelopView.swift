@@ -86,33 +86,46 @@ struct DevelopView: View {
 
   var body: some View {
     ScrollView {
-      VStack(alignment: .leading, spacing: 20) {
-        cameraIdentity
-        stage
-        styleRail
-        previewControl
-        if developedImage != nil { strengthControl }
+      ScrollViewReader { proxy in
+        VStack(alignment: .leading, spacing: 20) {
+          cameraIdentity
+          stage
+          styleRail
+          previewControl
+          if developedImage != nil { strengthControl }
 
-        if isDeveloping {
-          developingState
-        } else if sourceImage == nil {
-          photoPicker(title: "Choose a photograph")
-        } else if let door = filmDoor {
-          filmDoorPanel(door)
-          photoPicker(title: "New photograph")
-        } else {
-          actions
-          if !decisions.isEmpty { decisionPanel }
+          if isDeveloping {
+            developingState
+          } else if sourceImage == nil {
+            photoPicker(title: "Choose a photograph")
+          } else if let door = filmDoor {
+            filmDoorPanel(door)
+              .id("film-door")
+            photoPicker(title: "New photograph")
+          } else {
+            actions
+            if !decisions.isEmpty { decisionPanel }
+          }
+
+          characterCard
+
         }
-
-        characterCard
-
+        .padding(Theme.pagePadding)
+        // clearance for the floating tab dock, like every other scrolling tab
+        // (Home 36 / Tape 80): without it the last panel — the film door's
+        // message on a locked camera — rests against the dock capsule
+        .padding(.bottom, 36)
+        // a door must be seen to be answered: it sits below the stage and
+        // the rail, so when a locked camera halts the develop the gate would
+        // otherwise wait below the fold (CI run 234 caught it cut off behind
+        // the dock, its one action off-screen)
+        .onChange(of: filmDoor) { door in
+          guard door != nil else { return }
+          withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.35)) {
+            proxy.scrollTo("film-door", anchor: .bottom)
+          }
+        }
       }
-      .padding(Theme.pagePadding)
-      // clearance for the floating tab dock, like every other scrolling tab
-      // (Home 36 / Tape 80): without it the last panel — the film door's
-      // message on a locked camera — rests against the dock capsule
-      .padding(.bottom, 36)
     }
     .background(Theme.paper)
     .navigationTitle(currentStock.name)
