@@ -152,8 +152,18 @@ extension FilmEngine {
       let colorfulness = tintMax > 1e-4 ? (tintMax - tintMin) / tintMax : 0
       let whiteness = 1 - min(1, colorfulness / 0.5)  // 1 = white lamp, 0 = neon
       let core = max(light.r * maxEdge, 3)
-      var outer = core * (2.2 + 1.8 * amount) * (1 - 0.45 * whiteness)
-      outer = min(outer, maxEdge * 0.15)
+      // R84 (Wave 2 item 6 — PARITY CORRECTION): the port under-rendered the
+      // CineStill 800T backlit halation vs the reference engine. The reference's
+      // per-light glow blooms to lr ≈ maxEdge·(4·r+0.05)·(1+halation·0.6) AND
+      // rides a strong broad warm crush-bloom (alpha ≈ 0.24); ours capped the
+      // per-source radius at 0.15·maxEdge and kept only baseBloom·0.4 of the broad
+      // pass — so a clipped source read as a dim POINT, not the reference's broad
+      // red-dominant disc (dossier target: ≈2.5–3× the radius). Widen the glow
+      // (wider multiplier + a higher cap) toward the reference while KEEPING the
+      // squared ramp below (the anti-white-disc guard). Colored neon still throws
+      // the wide halo; white lamps stay tight (the whiteness factor). Conservative
+      // — flagged for owner visual approval per the directive ("done = approved").
+      let outer = min(core * (3.2 + 2.6 * amount) * (1 - 0.45 * whiteness), maxEdge * 0.24)
       let strength = (0.35 + 0.65 * min(1, light.intensity)) * (1 - 0.5 * whiteness)
       guard let sprite = CIFilter(name: "CIRadialGradient", parameters: [
         "inputCenter": center,
@@ -204,8 +214,11 @@ extension FilmEngine {
       kCIInputBackgroundImageKey: gain,
     ]).cropped(to: extent)
 
-    // 4 — the stock's own halation, reduced: sources carry the glow now.
-    return applyBloom(out, amount: baseBloom * 0.4)
+    // 4 — the stock's own broad halation. R84 (item 6 parity): raised from ·0.4
+    // to ·0.6 toward the reference's strong uniform crush-bloom, so the warm halo
+    // reads as a broad glow around every bright source, not only the tight per-
+    // source discs above. (The sources still carry the localized colored glow.)
+    return applyBloom(out, amount: baseBloom * 0.6)
   }
 
   /// Sources that are genuinely emissive. Neon does not exist under the sun:
