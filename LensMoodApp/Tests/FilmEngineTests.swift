@@ -181,9 +181,11 @@ final class FilmEngineTests: XCTestCase {
     // intentionally moves away from the neutral reference render; night is
     // byte-identical (scene-keyed off). Raised from the 18.3 pre-refinement
     // baseline by reasoning (~0.55 golden weight × the desat/rolloff/lift, direction
-    // uncertain vs the reference), pending CI's printed MAE — headroom set, tighten
-    // to measured+~2 like tintype/film-noir.
-    "pastel-cinema": 33.0,
+    // uncertain vs the reference), run 252 measured 13.03 — the powder palette landed
+    // CLOSER to the reference than the pre-refinement render (18.3): the
+    // reference engine's pastel always had this softness and the port had
+    // lost it. Tightened to measured+2.
+    "pastel-cinema": 15.0,
     "polaroid": 18.9,
     "gq-editorial": 19.7,
     // a24-still: R87A gave the Independent Still its BASE identity — a lifted-black
@@ -192,8 +194,11 @@ final class FilmEngineTests: XCTestCase {
     // 2026-07-20; see FilmEngine.applyA24FilmicBase). A base look applied day AND
     // night, so it moves the golden AND the night render. Raised from the 23.1
     // pre-refinement baseline by reasoning (full-strength toe/teal/desat on the
-    // golden), pending CI's printed MAE — headroom set, tighten to measured+~2.
-    "a24-still": 36.0,
+    // golden), run 252 measured 11.80 — the filmic base landed CLOSER
+    // to the reference than the pre-refinement render (23.1): the reference
+    // a24 always carried lifted blacks the clean port was missing. Tightened
+    // to measured+2.
+    "a24-still": 13.8,
     "leica-street": 25.2,
     // tokyo-neon: R61 source bloom REFUSES daylight (neon does not exist under the
     // sun). R87A adds a GLOBAL daylight de-cast of the residual lavender the Wave-1
@@ -202,9 +207,10 @@ final class FilmEngineTests: XCTestCase {
     // reference LUT, 2026-07-20; see FilmEngine.applyTokyoDaylightNeutralize). It
     // diverges from the lavender-baked golden on daylight; night byte-identical
     // (scene-keyed off). Raised from the 28.2 pre-refinement baseline by reasoning
-    // (~0.55 golden weight × the de-cast), pending CI's printed MAE — headroom set,
-    // tighten to measured+~2.
-    "tokyo-neon": 37.0,
+    // (~0.55 golden weight × the de-cast), run 252 measured 28.61 (was 28.2
+    // pre-refinement — the de-cast is a small honest divergence). Tightened to
+    // measured+2.
+    "tokyo-neon": 30.6,
     "super-8": 34.3,
     // film-noir: cool silver tone + R61 directional key shadow (owner-directed
     // physics). CI-measured 21.97 on the golden, visually approved — the sky
