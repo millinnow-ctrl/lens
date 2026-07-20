@@ -480,7 +480,17 @@ final class FilmEngine {
     // film's blue response. Both are scoped to masks produced once in `read`'s
     // subject pass — no mask (or no cached reading) means structurally off.
     if recipe.skinProtect > 0.001 {
-      image = applySkinProtection(image, subject: subject, recipe: recipe, amount: recipe.skinProtect)
+      // R84 (Wave 2 item 2): a24-still's new skin protection is scene-keyed to
+      // daylight (its collapse into leica is a daylight failure; its night is
+      // already lovely). Every other skinProtect stock is unchanged → byte-
+      // identical. On the analyzeSubjects:false golden path the mask is nil and
+      // the pass no-ops regardless. Night: brightGuardWeight 0 → amount 0 → skipped.
+      let skinAmount = recipe.id == "a24-still"
+        ? recipe.skinProtect * FilmEngine.brightGuardWeight(scene)
+        : recipe.skinProtect
+      if skinAmount > 0.001 {
+        image = applySkinProtection(image, subject: subject, recipe: recipe, amount: skinAmount)
+      }
     }
     // R84 (item 6): kodachrome's warm bias overshoots into an amber daylight wash
     // that pushes skin toward jaundice (critic A #8). De-amber the skin midtones
@@ -546,7 +556,15 @@ final class FilmEngine {
     // — it rides the same glow stage as bloom, before the smear. Structural
     // no-op without a subject matte or without metered lights.
     if recipe.rimLight > 0.001 {
-      image = applyRimHalation(image, scene: scene, subject: subject, recipe: recipe, amount: recipe.rimLight)
+      // R84 (Wave 2 item 2): a24-still's new soft rim is scene-keyed to daylight
+      // (same reasoning as its skin protection above); every other rim stock is
+      // unchanged → byte-identical, and the golden path (nil matte) no-ops anyway.
+      let rimAmount = recipe.id == "a24-still"
+        ? recipe.rimLight * FilmEngine.brightGuardWeight(scene)
+        : recipe.rimLight
+      if rimAmount > 0.001 {
+        image = applyRimHalation(image, scene: scene, subject: subject, recipe: recipe, amount: rimAmount)
+      }
     }
     // R62: clipped highlights bleed down the sensor column (CCD blooming /
     // tube comet-tails), riding on top of the bloomed highlights.
@@ -1057,11 +1075,15 @@ final class FilmEngine {
     }
     // R66 masked-light notes — only when the mask existed and the pass's own
     // structural gates passed (the same gates the passes run).
+    // a24-still's rim/skin are scene-keyed to daylight (see develop): keep the
+    // note honest — it must not claim the pass on a dark scene where the guard
+    // weight is 0 and the pass is skipped.
+    let a24DaylightActive = recipe.id != "a24-still" || FilmEngine.brightGuardWeight(scene) > 0.001
     if recipe.rimLight > 0.001, subject.subjectMatte != nil,
-       !rimSources(scene: scene, recipe: recipe).isEmpty {
+       !rimSources(scene: scene, recipe: recipe).isEmpty, a24DaylightActive {
       notes.append("Rim light traced behind your subject")
     }
-    if recipe.skinProtect > 0.001, subject.skinMask != nil {
+    if recipe.skinProtect > 0.001, subject.skinMask != nil, a24DaylightActive {
       notes.append("Skin held natural under the look")
     }
     if skyPassEngages(scene: scene, subject: subject, recipe: recipe) {
