@@ -65,10 +65,14 @@ jobs:
 
       - name: Show failing tests
         # the test step tails only 120 lines, which can scroll failures out of
-        # the job log entirely — surface every failing case + assertion here
+        # the job log entirely — surface every failing case + assertion here.
+        # DIAG lines are diagnostic prints from evidence tests (numeric probes
+        # a red run needs visible to be diagnosed without artifact access).
         if: failure()
         working-directory: LensMoodApp
-        run: grep -E "error:|Test Case .*failed" xcodetest.log | tail -80 || true
+        run: |
+          grep -E "error:|Test Case .*failed" xcodetest.log | tail -80 || true
+          grep "DIAG" xcodetest.log | tail -120 || true
 
       - name: Capture simulator product surfaces
         # success() only; booting the simulator after a failed build/test
