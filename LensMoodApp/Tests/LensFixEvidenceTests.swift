@@ -502,16 +502,27 @@ final class LensFixEvidenceTests: XCTestCase {
       "tokyo-neon night must be byte-identical — the sky neutralization is a no-op in the dark"
     )
 
-    // golden safety: without a sky mask (the analyzeSubjects:false golden path)
-    // the pass no-ops regardless of scene key → byte-identical.
+    // golden path: the SKY neutralization is sky-mask scoped, so it never touches
+    // the maskless golden path. R87A adds an approved GLOBAL daylight de-cast
+    // (owner 2026-07-20 — the non-sky lavender moved beyond the frozen reference
+    // LUT): it is NOT mask-scoped, so on a maskless bright frame it DOES fire and
+    // intentionally moves the daylight golden (recorded in FilmEngineTests.
+    // maeRegressionCeiling). It stays scene-keyed off in the dark, so the dark/
+    // night golden path is byte-identical.
     let maskless = SubjectAnalysis(faces: [], personMask: nil)
     let goldenDay = try engine.develop(skyUI, with: recipe, seed: 1,
       reading: SceneReading(scene: skyOnlyScene(key: 0.55), subject: maskless)).image
     let goldenDim = try engine.develop(skyUI, with: recipe, seed: 1,
       reading: SceneReading(scene: skyOnlyScene(key: 0.20), subject: maskless)).image
+    let goldenNight = try engine.develop(skyUI, with: recipe, seed: 1,
+      reading: SceneReading(scene: skyOnlyScene(key: 0.13), subject: maskless)).image
     XCTAssertEqual(
+      try XCTUnwrap(goldenDim.pngData()), try XCTUnwrap(goldenNight.pngData()),
+      "the global de-cast is scene-keyed off in the dark → the dark/night golden path is byte-identical"
+    )
+    XCTAssertNotEqual(
       try XCTUnwrap(goldenDay.pngData()), try XCTUnwrap(goldenDim.pngData()),
-      "no sky mask (the golden path) → sky neutralization is a structural no-op, byte-identical"
+      "the approved global daylight de-cast intentionally moves the daylight golden (ceiling updated)"
     )
   }
 
@@ -1105,14 +1116,24 @@ final class LensFixEvidenceTests: XCTestCase {
     XCTAssertEqual(try XCTUnwrap(before.pngData()), try XCTUnwrap(night.pngData()),
                    "pastel night must be byte-identical — the subject palette is a no-op in the dark")
 
-    // golden safety: no matte on the analyzeSubjects:false path → no-op regardless of key.
+    // golden path: the SUBJECT palette is mask-scoped, so it never touches the
+    // maskless golden path. R87A adds an approved GLOBAL daylight palette (owner
+    // 2026-07-20 — the umbrella/powder map moved beyond the frozen reference LUT):
+    // it is NOT mask-scoped, so on a maskless bright frame it DOES fire and
+    // intentionally moves the daylight golden (recorded in FilmEngineTests.
+    // maeRegressionCeiling). It stays scene-keyed off in the dark, so the dark/
+    // night golden path is byte-identical.
     let maskless = SubjectAnalysis(faces: [], personMask: nil)
     let gDay = try engine.develop(skinUI, with: recipe, seed: 1,
       reading: SceneReading(scene: skinScene(key: 0.55), subject: maskless)).image
     let gDim = try engine.develop(skinUI, with: recipe, seed: 1,
       reading: SceneReading(scene: skinScene(key: 0.20), subject: maskless)).image
-    XCTAssertEqual(try XCTUnwrap(gDay.pngData()), try XCTUnwrap(gDim.pngData()),
-                   "no matte (golden path) → pastel subject palette is a structural no-op, byte-identical")
+    let gNight = try engine.develop(skinUI, with: recipe, seed: 1,
+      reading: SceneReading(scene: skinScene(key: 0.13), subject: maskless)).image
+    XCTAssertEqual(try XCTUnwrap(gDim.pngData()), try XCTUnwrap(gNight.pngData()),
+                   "the global palette is scene-keyed off in the dark → the dark/night golden path is byte-identical")
+    XCTAssertNotEqual(try XCTUnwrap(gDay.pngData()), try XCTUnwrap(gDim.pngData()),
+                   "the approved global daylight palette intentionally moves the daylight golden (ceiling updated)")
   }
 
   // MARK: - Lomo cross-process shadows (R84 Wave 2 item 4)
@@ -1284,5 +1305,149 @@ final class LensFixEvidenceTests: XCTestCase {
     guard n > 0 else { return 0 }
     let mean = sum / n
     return (sumSq / n - mean * mean).squareRoot()
+  }
+
+  // MARK: - A24 lifted-black filmic base (R87A — approved camera refinement)
+
+  /// A24's base identity moved beyond the frozen reference LUT (owner 2026-07-20):
+  /// a lifted-black filmic curve + subtle teal shadows, distinct from Leica's clean
+  /// contrast. This is a BASE look (day AND night), so the before/after isolates
+  /// the new applyA24FilmicBase pass by swapping the recipe id (the pass is
+  /// id-gated). Maskless, so the skin/rim passes are structurally off and the ONLY
+  /// difference is the base grade. Pins: the shadow floor lifts (toned toe) and the
+  /// shadows lean teal (B > R) — and the NIGHT render moves the same way (its
+  /// intended, owner-approved consequence).
+  func testA24FilmicBaseIdentity() throws {
+    let engine = FilmEngine()
+    let recipe = CameraRecipe.recipe(for: "a24-still")
+    let dir = try outDir()
+    // the base pass is id-gated + unconditional; the probe id turns it OFF (the
+    // "before" — the pre-refinement a24 that collapsed into leica).
+    let baseOff = variant(recipe, id: "a24-baseprobe")
+    let maskless = SubjectAnalysis(faces: [], personMask: nil)
+    let probe = washProneImage()   // bright top 0.88, mid 0.55, shadow band 0.15 (bottom 22%)
+    let shadow = CGRect(x: 0.1, y: 0.80, width: 0.8, height: 0.17)
+    let highlight = CGRect(x: 0, y: 0.02, width: 1, height: 0.33)
+
+    func develop(_ r: CameraRecipe, key: Double) throws -> UIImage {
+      try engine.develop(probe, with: r, seed: 1,
+        reading: SceneReading(scene: skinScene(key: key), subject: maskless)).image
+    }
+    let after = try develop(recipe, key: 0.55)
+    let before = try develop(baseOff, key: 0.55)
+    try XCTUnwrap(before.pngData()).write(to: dir.appendingPathComponent("a24-base-before.png"))
+    try XCTUnwrap(after.pngData()).write(to: dir.appendingPathComponent("a24-base-after.png"))
+
+    guard let beforeR = ImageMetrics.raster(before), let afterR = ImageMetrics.raster(after)
+    else { return XCTFail("raster failed") }
+    let beforeC = try XCTUnwrap(ImageMetrics.meanColor(beforeR, in: shadow))
+    let afterC = try XCTUnwrap(ImageMetrics.meanColor(afterR, in: shadow))
+    let beforeShadowL = beforeC.r * 0.299 + beforeC.g * 0.587 + beforeC.b * 0.114
+    let afterShadowL = afterC.r * 0.299 + afterC.g * 0.587 + afterC.b * 0.114
+    print("a24 base — shadow L before \(beforeShadowL) after \(afterShadowL); shadow teal (B-R) before \(beforeC.b - beforeC.r) after \(afterC.b - afterC.r)")
+    // 1) lifted-black filmic toe: the shadow floor lifts off its crushed value.
+    XCTAssertGreaterThan(afterShadowL, beforeShadowL + 1.5, "a24 must lift the black floor (toned filmic toe)")
+    // 2) teal shadow balance: the shadows lean blue-green (B > R), and clearly more
+    //    than the near-neutral pre-refinement shadow (the teal IS the refinement).
+    XCTAssertGreaterThan(afterC.b - afterC.r, 2, "a24 shadows must lean teal (B > R)")
+    XCTAssertGreaterThan((afterC.b - afterC.r) - (beforeC.b - beforeC.r), 2, "the teal lean is the refinement, not the LUT")
+    // soft filmic shoulder: the highlight band rolls off lower than before.
+    let beforeHi = meanLuma(beforeR, in: highlight)
+    let afterHi = meanLuma(afterR, in: highlight)
+    XCTAssertLessThan(afterHi, beforeHi, "a24 highlights roll off softer (filmic shoulder)")
+
+    // NIGHT intentionally moves: the base look is unconditional, so the night
+    // render carries the SAME lifted-teal grade (owner-approved 2026-07-20). Pinned
+    // on the real night fixture for the owner's eye.
+    if let night = source("sample-night.jpg") {
+      let real = try engine.read(night, analyzeSubjects: false)
+      let nAfter = try engine.develop(night, with: recipe, maxPixelSize: 560, seed: 1, reading: real).image
+      let nBefore = try engine.develop(night, with: baseOff, maxPixelSize: 560, seed: 1, reading: real).image
+      try XCTUnwrap(nBefore.pngData()).write(to: dir.appendingPathComponent("a24-base-night-before.png"))
+      try XCTUnwrap(nAfter.pngData()).write(to: dir.appendingPathComponent("a24-base-night-after.png"))
+      XCTAssertNotEqual(try XCTUnwrap(nAfter.pngData()), try XCTUnwrap(nBefore.pngData()),
+                        "a24 night must move — the base look is a day-AND-night refinement")
+    }
+  }
+
+  // MARK: - Pastel Cinema global daylight palette (R87A — approved refinement)
+
+  /// Pastel Cinema's powdery palette moved beyond the frozen reference LUT (owner
+  /// 2026-07-20): a GLOBAL daylight base layer under the Wave-2 subject pass. The
+  /// key-swap isolates the new applyPastelDaylightPalette pass (maskless, so the
+  /// subject pass is off; at the dim key the global pass is weight 0). Pin: the
+  /// chroma of a saturated patch is compressed toward the pale pastel band on
+  /// daylight; night byte-identical (weight 0 in the dark).
+  func testPastelGlobalPaletteAwakens() throws {
+    let engine = FilmEngine()
+    let recipe = CameraRecipe.recipe(for: "pastel-cinema")
+    let dir = try outDir()
+    let maskless = SubjectAnalysis(faces: [], personMask: nil)
+    let img = skinPatchImage()   // a saturated patch over neutral ground
+    let patch = CGRect(x: 0.40, y: 0.42, width: 0.20, height: 0.16)
+
+    func develop(key: Double) throws -> UIImage {
+      try engine.develop(img, with: recipe, seed: 1,
+        reading: SceneReading(scene: skinScene(key: key), subject: maskless)).image
+    }
+    XCTAssertGreaterThan(FilmEngine.brightGuardWeight(skinScene(key: 0.55)), 0.99, "the global palette engages on daylight")
+    let after = try develop(key: 0.55)   // daylight → global powder engages
+    let before = try develop(key: 0.20)  // weight 0 → inert (pre-refinement)
+    let night = try develop(key: 0.13)   // night → inert
+    try XCTUnwrap(before.pngData()).write(to: dir.appendingPathComponent("pastel-global-before.png"))
+    try XCTUnwrap(after.pngData()).write(to: dir.appendingPathComponent("pastel-global-after.png"))
+
+    let aC = try XCTUnwrap(ImageMetrics.meanColor(try XCTUnwrap(ImageMetrics.raster(after)), in: patch))
+    let bC = try XCTUnwrap(ImageMetrics.meanColor(try XCTUnwrap(ImageMetrics.raster(before)), in: patch))
+    let aChroma = max(aC.r, max(aC.g, aC.b)) - min(aC.r, min(aC.g, aC.b))
+    let bChroma = max(bC.r, max(bC.g, bC.b)) - min(bC.r, min(bC.g, bC.b))
+    print("pastel global chroma (max-min): daylight \(aChroma) vs inert \(bChroma)")
+    // the powdery palette compresses chroma toward the pale pastel band.
+    XCTAssertLessThan(aChroma, bChroma - 3, "pastel daylight must compress chroma toward the pastel band (powdery)")
+
+    // night byte-identity: both sub-onset keys carry weight 0 → inert, identical.
+    XCTAssertEqual(try XCTUnwrap(before.pngData()), try XCTUnwrap(night.pngData()),
+                   "pastel night must be byte-identical — the global palette is a no-op in the dark")
+  }
+
+  // MARK: - Tokyo Neon global daylight de-cast (R87A — approved refinement)
+
+  /// Tokyo-neon's residual GLOBAL lavender cast (the non-sky cast the Wave-1 sky
+  /// pass leaves) moved beyond the frozen reference LUT (owner 2026-07-20). The
+  /// key-swap isolates the new applyTokyoDaylightNeutralize pass (maskless, no
+  /// lights → sourceBloom is key-independent; at the dim key the pass is weight 0).
+  /// Pin: on a neutral grey patch the red-excess (the lavender) is pulled down and
+  /// the patch moves OUT of magenta toward tokyo's cool signature — grey-patch
+  /// neutrality; night byte-identical.
+  func testTokyoDaylightGlobalNeutralize() throws {
+    let engine = FilmEngine()
+    let recipe = CameraRecipe.recipe(for: "tokyo-neon")
+    let dir = try outDir()
+    let maskless = SubjectAnalysis(faces: [], personMask: nil)
+    let img = flatGrayImage()   // uniform 0.55 grey — the neutral that reads lavender
+    let patch = CGRect(x: 0.35, y: 0.35, width: 0.30, height: 0.30)
+
+    func develop(key: Double) throws -> UIImage {
+      try engine.develop(img, with: recipe, seed: 1,
+        reading: SceneReading(scene: skyOnlyScene(key: key), subject: maskless)).image
+    }
+    XCTAssertGreaterThan(FilmEngine.brightGuardWeight(skyOnlyScene(key: 0.55)), 0.99, "the de-cast engages on daylight")
+    let after = try develop(key: 0.55)
+    let before = try develop(key: 0.20)
+    let night = try develop(key: 0.13)
+    try XCTUnwrap(before.pngData()).write(to: dir.appendingPathComponent("tokyo-global-before.png"))
+    try XCTUnwrap(after.pngData()).write(to: dir.appendingPathComponent("tokyo-global-after.png"))
+
+    let aC = try XCTUnwrap(ImageMetrics.meanColor(try XCTUnwrap(ImageMetrics.raster(after)), in: patch))
+    let bC = try XCTUnwrap(ImageMetrics.meanColor(try XCTUnwrap(ImageMetrics.raster(before)), in: patch))
+    print("tokyo grey patch — before RGB \(bC) magenta(R-G) \(bC.r - bC.g); after RGB \(aC) magenta(R-G) \(aC.r - aC.g)")
+    // the lavender cast is excess red over green — the de-cast pulls the grey OUT
+    // of magenta toward tokyo's cool signature (grey-patch neutrality).
+    XCTAssertLessThan(aC.r, bC.r - 3, "the daylight de-cast must pull the grey's red (the lavender) down")
+    XCTAssertLessThan(aC.r - aC.g, bC.r - bC.g, "the grey must move OUT of magenta toward cool/neutral")
+
+    // night byte-identity: weight 0 at both sub-onset keys → identical, no de-cast.
+    XCTAssertEqual(try XCTUnwrap(before.pngData()), try XCTUnwrap(night.pngData()),
+                   "tokyo night must be byte-identical — the daylight de-cast is a no-op in the dark")
   }
 }

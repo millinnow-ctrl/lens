@@ -598,4 +598,150 @@ extension FilmEngine {
       kCIInputMaskImageKey: shadowMask,
     ]).cropped(to: extent)
   }
+
+  // MARK: - A24 lifted-black filmic base (R87A — approved camera refinement)
+
+  /// The Independent Still's base identity, ratified beyond the frozen reference
+  /// LUT's exact colors (owner decision 2026-07-20): a lifted-black FILMIC curve
+  /// with subtle teal-leaning shadows, so a24 reads distinct from Leica Street's
+  /// clean neutral contrast instead of collapsing into it (critic B cluster B,
+  /// distance 8.56). Unlike the Wave-2 rim/skin passes — scene-keyed and
+  /// mask-scoped, so structurally off on the golden — this is the stock's BASE
+  /// look and applies day AND night: it grades the LUT color core directly, so it
+  /// moves the Class-A golden (recorded in FilmEngineTests.maeRegressionCeiling)
+  /// AND it moves the (already-lovely) night render by the same coherent grade —
+  /// a toned toe, a softer highlight shoulder, muted saturation, a whisper of teal
+  /// in the deep shadows. Three parts, each measured (dossier: "subtle", "small
+  /// margin", "never teal-orange"):
+  ///   1. filmic curve — a lifted, TONED toe (blacks sit a few 1/255 above true
+  ///      black, the v8eo/Fuji-Eterna a24 grade) + a rounded highlight shoulder,
+  ///      giving lower local contrast than leica's clean curve;
+  ///   2. teal shadow tone — a small green+blue bias blended through a shadow mask
+  ///      (luma-inverted, gamma-steepened), so ONLY the low tones lean teal and
+  ///      skin/highlights keep their natural hue;
+  ///   3. muted saturation — a global pull below leica's level (natural skin, no
+  ///      push), the understated indie palette.
+  /// Key-independent (no scene term), so every existing a24 key-swap byte-identity
+  /// (night vs night, golden-path day vs dim) still holds — both sides carry the
+  /// same base grade. Label: intentional camera refinement.
+  func applyA24FilmicBase(_ image: CIImage) -> CIImage {
+    let extent = image.extent
+    // 1 — lifted, toned toe + soft shoulder (lower local contrast than leica)
+    let curved = image.applyingFilter("CIToneCurve", parameters: [
+      "inputPoint0": CIVector(x: 0.0, y: 0.030),
+      "inputPoint1": CIVector(x: 0.25, y: 0.262),
+      "inputPoint2": CIVector(x: 0.5, y: 0.5),
+      "inputPoint3": CIVector(x: 0.8, y: 0.785),
+      "inputPoint4": CIVector(x: 1.0, y: 0.965),
+    ]).cropped(to: extent)
+    // 2 — teal shadow tone: green + blue lifted in the low tones only, through a
+    // shadow mask so skin and highlights keep their own hue.
+    let tealed = curved
+      .applyingFilter("CIColorMatrix", parameters: [
+        "inputRVector": CIVector(x: 1, y: 0, z: 0, w: 0),
+        "inputGVector": CIVector(x: 0, y: 1, z: 0, w: 0),
+        "inputBVector": CIVector(x: 0, y: 0, z: 1, w: 0),
+        "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 1),
+        "inputBiasVector": CIVector(x: 0, y: 0.018, z: 0.032, w: 0),
+      ])
+      .applyingFilter("CIColorClamp", parameters: [
+        "inputMinComponents": CIVector(x: 0, y: 0, z: 0, w: 0),
+        "inputMaxComponents": CIVector(x: 1, y: 1, z: 1, w: 1),
+      ])
+    let shadowMask = curved
+      .applyingFilter("CIPhotoEffectMono")
+      .applyingFilter("CIColorInvert")
+      .applyingFilter("CIGammaAdjust", parameters: ["inputPower": 2.4])
+      .cropped(to: extent)
+    let toned = tealed.applyingFilter("CIBlendWithMask", parameters: [
+      kCIInputBackgroundImageKey: curved,
+      kCIInputMaskImageKey: shadowMask,
+    ]).cropped(to: extent)
+    // 3 — muted saturation (below leica; natural skin, no push)
+    return toned.applyingFilter("CIColorControls", parameters: [
+      kCIInputSaturationKey: 0.94,
+    ]).cropped(to: extent)
+  }
+
+  // MARK: - Pastel Cinema global daylight palette (R87A — approved refinement)
+
+  /// Pastel Cinema rendered as a plain neutral frame on daylight — the powdery
+  /// Wes-Anderson palette never engaged (critic A #7 / cluster B). The Wave-2
+  /// pass woke it on the SUBJECT only; the global umbrella/powder map was left
+  /// golden-LUT-locked. The owner ratified moving it beyond the frozen reference
+  /// (decision 2026-07-20): this is the GLOBAL powdery base layer UNDER the
+  /// subject pass — a designed pastel grade that renders on the whole daylight
+  /// frame. Powdery global desaturation (chroma compressed toward the pale pastel
+  /// band so the bold red umbrella softens toward dusty rose), a high-key lift, a
+  /// soft highlight rolloff (flat, low local contrast), and a whisper of cream.
+  /// Scene-keyed by brightGuardWeight → a structural no-op in the dark (weight 0 →
+  /// returned unchanged), so pastel's night is byte-identical; it is NOT
+  /// mask-scoped, so it DOES render on the daylight golden (recorded in
+  /// FilmEngineTests.maeRegressionCeiling). Label: intentional camera refinement.
+  func applyPastelDaylightPalette(_ image: CIImage, scene: SceneProfile) -> CIImage {
+    let w = FilmEngine.brightGuardWeight(scene)
+    guard w > 0.001 else { return image }
+    let extent = image.extent
+    // powdery desaturation + high-key lift
+    let powder = image.applyingFilter("CIColorControls", parameters: [
+      kCIInputSaturationKey: 1 - 0.30 * w,
+      kCIInputBrightnessKey: 0.03 * w,
+    ])
+    // soft highlight rolloff (flat, low local contrast) + a lifted powder toe
+    let rolled = powder.applyingFilter("CIToneCurve", parameters: [
+      "inputPoint0": CIVector(x: 0.0, y: 0.02 * w),
+      "inputPoint1": CIVector(x: 0.25, y: 0.25 + 0.015 * w),
+      "inputPoint2": CIVector(x: 0.5, y: 0.5),
+      "inputPoint3": CIVector(x: 0.8, y: 0.8 - 0.03 * w),
+      "inputPoint4": CIVector(x: 1.0, y: 1.0 - 0.06 * w),
+    ]).cropped(to: extent)
+    // a whisper of cream (warm-pale), then clamp
+    return rolled
+      .applyingFilter("CIColorMatrix", parameters: [
+        "inputRVector": CIVector(x: 1, y: 0, z: 0, w: 0),
+        "inputGVector": CIVector(x: 0, y: 1, z: 0, w: 0),
+        "inputBVector": CIVector(x: 0, y: 0, z: 1, w: 0),
+        "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 1),
+        "inputBiasVector": CIVector(x: 0.02 * w, y: 0.015 * w, z: 0.01 * w, w: 0),
+      ])
+      .applyingFilter("CIColorClamp", parameters: [
+        "inputMinComponents": CIVector(x: 0, y: 0, z: 0, w: 0),
+        "inputMaxComponents": CIVector(x: 1, y: 1, z: 1, w: 1),
+      ])
+      .cropped(to: extent)
+  }
+
+  // MARK: - Tokyo Neon daylight cast neutralization (R87A — approved refinement)
+
+  /// CineStill 800T's neon-night grade smears a lavender/magenta cast across a
+  /// bright DAYLIGHT frame (critic A #2 — umbrella → pink, shadows → purple, skin
+  /// → mauve). The Wave-1 sky pass neutralizes the SKY only; the non-sky global
+  /// cast was golden-LUT-locked. The owner ratified moving it beyond the frozen
+  /// reference (decision 2026-07-20). The lavender IS excess red over a suppressed
+  /// green: this pulls the red-excess down and lifts green so a neutral grey moves
+  /// OUT of magenta toward tokyo's real cool teal-blue signature, while a saturated
+  /// red stays red (the correction is small next to the umbrella's own chroma —
+  /// dossier: umbrella hue within ±10° of true red). Daylight-only, scene-keyed by
+  /// brightGuardWeight → a structural no-op in the dark, so tokyo's approved GOOD
+  /// night is byte-identical; global (not mask-scoped), so it DOES move the
+  /// daylight golden (recorded in FilmEngineTests.maeRegressionCeiling). The
+  /// Wave-1 sky pass stays and stacks on top of the sky. Label: intentional
+  /// camera refinement.
+  func applyTokyoDaylightNeutralize(_ image: CIImage, scene: SceneProfile) -> CIImage {
+    let w = FilmEngine.brightGuardWeight(scene)
+    guard w > 0.001 else { return image }
+    let extent = image.extent
+    return image
+      .applyingFilter("CIColorMatrix", parameters: [
+        "inputRVector": CIVector(x: 1 - 0.14 * w, y: 0, z: 0, w: 0),
+        "inputGVector": CIVector(x: 0, y: 1 + 0.05 * w, z: 0, w: 0),
+        "inputBVector": CIVector(x: 0, y: 0, z: 1, w: 0),
+        "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 1),
+      ])
+      .applyingFilter("CIColorClamp", parameters: [
+        "inputMinComponents": CIVector(x: 0, y: 0, z: 0, w: 0),
+        "inputMaxComponents": CIVector(x: 1, y: 1, z: 1, w: 1),
+      ])
+      .cropped(to: extent)
+  }
 }

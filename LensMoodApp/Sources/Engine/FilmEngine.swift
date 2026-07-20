@@ -474,6 +474,15 @@ final class FilmEngine {
         break
       }
     }
+    // R87A (approved camera refinement, owner 2026-07-20): a24-still's BASE
+    // identity — a lifted-black filmic curve with subtle teal shadows, distinct
+    // from Leica Street's clean contrast. A base look (day AND night): it grades
+    // the LUT color core directly, so it moves the golden AND the night render
+    // (see applyA24FilmicBase / FilmEngineTests.maeRegressionCeiling). Runs before
+    // the masked-light passes so the skin mask counter-grades the final curve.
+    if recipe.id == "a24-still" {
+      image = applyA24FilmicBase(image)
+    }
     // R66 masked-light, immediately after the color core so both passes see
     // (and can answer) exactly what the emulsion just did: the skin mask holds
     // a gentler counter-grade of the stock's own curve; the sky takes the
@@ -506,12 +515,23 @@ final class FilmEngine {
     if recipe.skyResponse > 0.001 {
       image = applySkyResponse(image, scene: scene, subject: subject, recipe: recipe, amount: recipe.skyResponse)
     }
-    // R84 (Wave 2 item 3): wake Pastel Cinema's powdery palette on the SUBJECT
-    // (the Wes-Anderson costume-pastel) through the subject matte — mask-scoped
-    // (nil on the analyzeSubjects:false golden path → byte-identical golden) and
-    // scene-keyed to daylight (byte-identical night). The global umbrella/powder
-    // map is golden-LUT-locked (owner-approved regen — see the report).
+    // R87A (approved camera refinement, owner 2026-07-20): neutralize tokyo-neon's
+    // residual GLOBAL lavender cast on daylight frames (the non-sky cast the Wave-1
+    // sky pass above leaves). Scene-keyed → night byte-identical; global → moves
+    // the daylight golden (see FilmEngineTests.maeRegressionCeiling). The Wave-1
+    // sky pass stays and stacks on the sky.
+    if recipe.id == "tokyo-neon" {
+      image = applyTokyoDaylightNeutralize(image, scene: scene)
+    }
+    // Pastel Cinema's powdery palette. R84 (Wave 2 item 3) woke it on the SUBJECT
+    // through the subject matte. R87A (owner 2026-07-20) adds the approved GLOBAL
+    // daylight base layer UNDER that subject pass — the umbrella/powder map moved
+    // beyond the frozen reference LUT. Both are scene-keyed to daylight
+    // (byte-identical night). The global layer is NOT mask-scoped, so it moves the
+    // daylight golden (see FilmEngineTests.maeRegressionCeiling); the subject pass
+    // stays mask-scoped (nil on the analyzeSubjects:false golden path).
     if recipe.id == "pastel-cinema" {
+      image = applyPastelDaylightPalette(image, scene: scene)
       image = applyPastelSubjectPalette(image, scene: scene, subject: subject)
     }
     // R62: early-CCD sensors have no film shoulder — highlights race to clip.

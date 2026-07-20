@@ -174,15 +174,37 @@ final class FilmEngineTests: XCTestCase {
   /// record honestly how far each camera still is, and may only go down.
   static let maeRegressionCeiling: [String: Double] = [
     "kodachrome": 2.0,
-    "pastel-cinema": 18.3,
+    // pastel-cinema: R87A woke the GLOBAL powdery Wes-Anderson palette on daylight
+    // — powdery desaturation + soft highlight rolloff + high-key lift + a whisper
+    // of cream (owner-approved refinement BEYOND the frozen reference LUT,
+    // 2026-07-20; see FilmEngine.applyPastelDaylightPalette). The daylight golden
+    // intentionally moves away from the neutral reference render; night is
+    // byte-identical (scene-keyed off). Raised from the 18.3 pre-refinement
+    // baseline by reasoning (~0.55 golden weight × the desat/rolloff/lift, direction
+    // uncertain vs the reference), pending CI's printed MAE — headroom set, tighten
+    // to measured+~2 like tintype/film-noir.
+    "pastel-cinema": 33.0,
     "polaroid": 18.9,
     "gq-editorial": 19.7,
-    "a24-still": 23.1,
+    // a24-still: R87A gave the Independent Still its BASE identity — a lifted-black
+    // filmic curve + subtle teal shadows, muted saturation, distinct from Leica's
+    // clean contrast (owner-approved refinement BEYOND the frozen reference LUT,
+    // 2026-07-20; see FilmEngine.applyA24FilmicBase). A base look applied day AND
+    // night, so it moves the golden AND the night render. Raised from the 23.1
+    // pre-refinement baseline by reasoning (full-strength toe/teal/desat on the
+    // golden), pending CI's printed MAE — headroom set, tighten to measured+~2.
+    "a24-still": 36.0,
     "leica-street": 25.2,
-    // tokyo-neon: R61 source bloom REFUSES daylight (neon does not exist under
-    // the sun — the sun's warm annulus slipped the first gate and measured
-    // 39.3; the key<0.35 refusal restores the pre-R61 daylight render).
-    "tokyo-neon": 28.2,
+    // tokyo-neon: R61 source bloom REFUSES daylight (neon does not exist under the
+    // sun). R87A adds a GLOBAL daylight de-cast of the residual lavender the Wave-1
+    // sky pass leaves — red-excess pulled down, green lifted toward tokyo's real
+    // cool teal-blue signature (owner-approved refinement BEYOND the frozen
+    // reference LUT, 2026-07-20; see FilmEngine.applyTokyoDaylightNeutralize). It
+    // diverges from the lavender-baked golden on daylight; night byte-identical
+    // (scene-keyed off). Raised from the 28.2 pre-refinement baseline by reasoning
+    // (~0.55 golden weight × the de-cast), pending CI's printed MAE — headroom set,
+    // tighten to measured+~2.
+    "tokyo-neon": 37.0,
     "super-8": 34.3,
     // film-noir: cool silver tone + R61 directional key shadow (owner-directed
     // physics). CI-measured 21.97 on the golden, visually approved — the sky
