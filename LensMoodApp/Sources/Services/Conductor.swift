@@ -169,13 +169,24 @@ final class Conductor: ObservableObject {
         }
       }
       if recipe.keyShadow > 0.001 {
-        if let keyLight {
-          // noir loves HARD directional light, not merely any detected
-          // source — scale by the scene's contrast so flat scenes don't
-          // put noir at the top of every rail
+        // The noir key-shadow pass (applyKeyShadow) carves the frame away from
+        // the detected key with a per-pixel gain weighted by (1 − luma): it
+        // sculpts real chiaroscuro only where a dark fill sits below the key. A
+        // bright, evenly-lit daylight frame leaves that (1 − luma) carve budget
+        // near zero, so the pass runs but sculpts no shadow even when the meter
+        // found a bright spot to key from — the flat scenes that used to take
+        // film-noir to the top of every rail with a claim it never earned.
+        // Mirror the render math (the (1 − luma) budget IS the scene's dark
+        // fill, exactly as ccdClip mirrors the bright-scene grade-down): gate
+        // the chiaroscuro claim and its promotion on the measured key-to-fill
+        // ratio — a real key over a dark fill — never on mere light presence.
+        let keyToFill = (keyLight?.intensity ?? 0) * darkness
+        if let keyLight, keyToFill > 0.10 {
           score += (0.12 + 0.22 * range) * (0.6 + 0.4 * keyLight.intensity)
           reasons.append("A key light to carve shadows from")
         } else {
+          // a detected light with no dark fill to carve (or no light at all) —
+          // a small contrast-based nudge, never the chiaroscuro claim
           score += 0.10 * range
         }
       }
