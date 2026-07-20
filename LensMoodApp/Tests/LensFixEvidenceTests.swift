@@ -341,6 +341,80 @@ final class LensFixEvidenceTests: XCTestCase {
     }
   }
 
+  /// R84 item-2 DIAGNOSTIC (kept as honest documentation, no assertions — it
+  /// only measures). Two prior toe reshapes left the daylight shadow floating at
+  /// ~101 then ~107. Instead of guessing a third toe blind, this stages the SAME
+  /// wash scene through recipe variants that isolate the three questions the CI
+  /// log must answer in ONE run:
+  ///  (a) does applyDaylightBlackPoint execute AND change the output? BP_OFF is
+  ///      the id swapped out of `daylightBlackPointStocks` (so the toe gate's
+  ///      `contains(recipe.id)` is false) with the median-chase cap re-supplied
+  ///      via `flashHighlightHeadroom` (adaptiveExposure's dayRestraint also
+  ///      gates on the set, so headroom keeps the cap identical). BP_OFF vs FULL
+  ///      differs ONLY by the black-point pass → their shadow gap IS the toe's
+  ///      net effect on the final render.
+  ///  (b) what value does the COLOR CORE hand the toe — is it even in the toe's
+  ///      pull zone (the toe is identity from 0.66)? CORE_NOBP strips every
+  ///      downstream pass (bloom/grain/vignette/flash/skin/sky/ccd) AND the
+  ///      black-point → the shadow ENTERING the toe. CORE_BP is the same strip
+  ///      with the black-point ON → the shadow LEAVING the toe. Their delta is
+  ///      the toe's true reduction at the value it actually sees.
+  ///  (c) does any downstream pass re-lift the committed black? NOBLOOM/NOGRAIN/
+  ///      NOVIGNETTE/NOFLASH zero one suspect each; whichever equals CORE_BP is
+  ///      the eraser. (Structurally skin/sky are no-ops here — no masks.)
+  func testFlashWashDaylightGuardDiagnostic() throws {
+    let engine = FilmEngine()
+    let bright = washProneImage()
+    let scene = washProneScene()
+    let reading = SceneReading(scene: scene, subject: SubjectAnalysis(faces: [], personMask: nil))
+    let weight = FilmEngine.brightGuardWeight(scene)
+    let shadow = CGRect(x: 0.1, y: 0.80, width: 0.8, height: 0.17)
+    let highlight = CGRect(x: 0, y: 0.02, width: 1, height: 0.33)
+    print("DIAG guard weight \(weight)")
+
+    func measure(_ r: CameraRecipe) throws -> (shadow: Double, hi: Double) {
+      let out = try engine.develop(bright, with: r, seed: 1, reading: reading)
+      guard let raster = ImageMetrics.raster(out.image) else { return (-1, -1) }
+      return (meanLuma(raster, in: shadow), meanLuma(raster, in: highlight))
+    }
+
+    for id in ["iphone-flash", "point-shoot"] {
+      let base = CameraRecipe.recipe(for: id)
+      // the effective median-chase restraint the set-gated dayRestraint applies
+      // on FULL; re-supplied via headroom on the BP-off variants so ONLY the
+      // black-point pass differs between the paired renders.
+      let H = base.daylightHighlightGuard * weight
+      let bpOffID = id + "-diagProbe"
+
+      let full       = base
+      let guardOff   = variant(base, dayGuard: 0)
+      let bpOff      = variant(base, id: bpOffID, headroom: H)
+      let coreNoBP   = variant(base, id: bpOffID, headroom: H,
+                               bloom: 0, grain: 0, vignette: 0, flash: 0, skin: 0, sky: 0, ccd: 0)
+      let coreBP     = variant(base, headroom: H,
+                               bloom: 0, grain: 0, vignette: 0, flash: 0, skin: 0, sky: 0, ccd: 0)
+      let noBloom    = variant(base, bloom: 0)
+      let noGrain    = variant(base, grain: 0)
+      let noVignette = variant(base, vignette: 0)
+      let noFlash    = variant(base, flash: 0)
+
+      let f = try measure(full)
+      let go = try measure(guardOff)
+      let bo = try measure(bpOff)
+      let cnb = try measure(coreNoBP)
+      let cb = try measure(coreBP)
+      let nb = try measure(noBloom)
+      let ng = try measure(noGrain)
+      let nv = try measure(noVignette)
+      let nf = try measure(noFlash)
+
+      print("DIAG \(id): FULL shadow \(f.shadow) hi \(f.hi) | GUARD_OFF shadow \(go.shadow)")
+      print("DIAG \(id): CORE_NOBP(enter toe) \(cnb.shadow) -> CORE_BP(leave toe) \(cb.shadow)  [toe reduces by \(cnb.shadow - cb.shadow)]")
+      print("DIAG \(id): BP_OFF(cap kept, full downstream) \(bo.shadow)  [black-point net on FULL = \(bo.shadow - f.shadow)]")
+      print("DIAG \(id): downstream — NOBLOOM \(nb.shadow) NOGRAIN \(ng.shadow) NOVIGNETTE \(nv.shadow) NOFLASH \(nf.shadow)  (vs FULL \(f.shadow))")
+    }
+  }
+
   /// A bright daylight raster that WASHES for a flash stock: a bright background
   /// (top 40%) at 0.88, a mid face band at 0.55, and a shadow surface (bottom
   /// 22%) at 0.15 — the "tabletop" that should reach black but floats grey.
@@ -820,6 +894,48 @@ final class LensFixEvidenceTests: XCTestCase {
 
   private func withoutDaylightGuard(_ r: CameraRecipe) -> CameraRecipe {
     clone(r, flashHeadroom: r.flashHighlightHeadroom, dayGuard: 0)
+  }
+
+  /// A recipe clone with arbitrary fields overridden for the R84 item-2
+  /// diagnostic (nil = keep the source's value). Lets the staged probe swap the
+  /// `id` (to toggle the black-point set membership without touching product
+  /// code) and zero individual downstream passes to bisect the shadow re-lift.
+  private func variant(
+    _ r: CameraRecipe,
+    id: String? = nil,
+    headroom: Double? = nil,
+    dayGuard: Double? = nil,
+    bloom: Double? = nil,
+    grain: Double? = nil,
+    vignette: Double? = nil,
+    flash: Double? = nil,
+    skin: Double? = nil,
+    sky: Double? = nil,
+    ccd: Double? = nil,
+    contrast: Double? = nil,
+    shadowLift: Double? = nil,
+    adaptive: Double? = nil,
+    exposure: Double? = nil
+  ) -> CameraRecipe {
+    CameraRecipe(
+      id: id ?? r.id, engineClass: r.engineClass, lutName: r.lutName,
+      postLUTExposure: r.postLUTExposure, postLUTSaturation: r.postLUTSaturation,
+      postLUTContrast: r.postLUTContrast, postLUTMatrix: r.postLUTMatrix,
+      referenceSpatial: r.referenceSpatial, exposureBias: exposure ?? r.exposureBias,
+      adaptiveExposure: adaptive ?? r.adaptiveExposure, warmth: r.warmth, saturation: r.saturation,
+      contrast: contrast ?? r.contrast, shadowLift: shadowLift ?? r.shadowLift,
+      highlightCompression: r.highlightCompression, vignette: vignette ?? r.vignette,
+      bloom: bloom ?? r.bloom, grain: grain ?? r.grain, grainSize: r.grainSize,
+      monochrome: r.monochrome, protectsFaces: r.protectsFaces,
+      preservesWarmCast: r.preservesWarmCast, decisionVocabulary: r.decisionVocabulary,
+      flashPhysics: flash ?? r.flashPhysics, sourceBloom: r.sourceBloom, keyShadow: r.keyShadow,
+      gainDrivenGrain: r.gainDrivenGrain, nightReciprocity: r.nightReciprocity,
+      ccdClip: ccd ?? r.ccdClip, highlightSmear: r.highlightSmear,
+      highlightSmearDarkOnly: r.highlightSmearDarkOnly,
+      rimLight: r.rimLight, skinProtect: skin ?? r.skinProtect, skyResponse: sky ?? r.skyResponse,
+      flashHighlightHeadroom: headroom ?? r.flashHighlightHeadroom,
+      daylightHighlightGuard: dayGuard ?? r.daylightHighlightGuard
+    )
   }
 
   // MARK: helpers
