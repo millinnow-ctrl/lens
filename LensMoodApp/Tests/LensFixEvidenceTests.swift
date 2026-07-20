@@ -911,6 +911,7 @@ final class LensFixEvidenceTests: XCTestCase {
     flash: Double? = nil,
     skin: Double? = nil,
     sky: Double? = nil,
+    rim: Double? = nil,
     ccd: Double? = nil,
     contrast: Double? = nil,
     shadowLift: Double? = nil,
@@ -932,10 +933,315 @@ final class LensFixEvidenceTests: XCTestCase {
       gainDrivenGrain: r.gainDrivenGrain, nightReciprocity: r.nightReciprocity,
       ccdClip: ccd ?? r.ccdClip, highlightSmear: r.highlightSmear,
       highlightSmearDarkOnly: r.highlightSmearDarkOnly,
-      rimLight: r.rimLight, skinProtect: skin ?? r.skinProtect, skyResponse: sky ?? r.skyResponse,
+      rimLight: rim ?? r.rimLight, skinProtect: skin ?? r.skinProtect, skyResponse: sky ?? r.skyResponse,
       flashHighlightHeadroom: headroom ?? r.flashHighlightHeadroom,
       daylightHighlightGuard: dayGuard ?? r.daylightHighlightGuard
     )
+  }
+
+  // MARK: - Flash trio daylight identity split (R84 Wave 2 item 1)
+
+  /// The three flash-family digitals collapsed into one bright warm-punchy
+  /// cluster on daylight (critic B: iphone-flash ~ point-shoot at 5.06, the
+  /// tightest near-duplicate in the whole set). This splits their DAYLIGHT
+  /// identity — Direct Flash clinical-cold, Pocket Compact warm, Pocket 2002
+  /// cyan-CCD — scene-keyed so night (already distinct) is byte-identical.
+  /// The direct pin runs the identity pass on a flat mid-gray at full daylight
+  /// weight: each stock must read its own tint AND every pair must stay apart;
+  /// the full develop is exported on the street fixture for the owner's eye.
+  func testFlashTrioDaylightIdentitySplit() throws {
+    let engine = FilmEngine()
+    let dir = try outDir()
+    guard let grayCI = CIImage(image: flatGrayImage()) else { return XCTFail("gray build failed") }
+    let base = grayCI.orientedForDisplay
+    let day = ownerLikeBrightScene()   // key 0.55 → full daylight weight
+    XCTAssertGreaterThan(FilmEngine.brightGuardWeight(day), 0.99, "the split must fully engage on daylight")
+
+    func splitColor(_ id: String) throws -> (r: Double, g: Double, b: Double) {
+      let out = engine.applyFlashDaylightIdentity(base, scene: day, recipe: .recipe(for: id))
+      let raster = try XCTUnwrap(ImageMetrics.raster(cgImage(out)))
+      return try XCTUnwrap(ImageMetrics.meanColor(raster, in: CGRect(x: 0.3, y: 0.3, width: 0.4, height: 0.4)))
+    }
+    let iphone = try splitColor("iphone-flash")
+    let pocket = try splitColor("point-shoot")
+    let y2k = try splitColor("y2k-digicam")
+    print("flash split gray RGB — Direct Flash \(iphone) Pocket Compact \(pocket) Pocket 2002 \(y2k)")
+
+    // each stock reads its dossier identity on daylight:
+    XCTAssertLessThan(iphone.r - iphone.b, -3, "Direct Flash daylight must read cold (R < B)")
+    XCTAssertGreaterThan(pocket.r - pocket.b, 5, "Pocket Compact daylight must read warm (R > B)")
+    XCTAssertGreaterThan(y2k.g - y2k.r, 2, "Pocket 2002 daylight must lean cyan (G > R)")
+    XCTAssertGreaterThan(y2k.b - y2k.r, 0, "Pocket 2002 daylight must lean cyan (B > R)")
+
+    // no pair collapses (critic B's near-duplicate measured 5.06 in Lab-ish crop
+    // units; this RGB-mean proxy floors every pair well clear of a collapse).
+    let dIP = ImageMetrics.colorDelta(iphone, pocket)
+    let dIY = ImageMetrics.colorDelta(iphone, y2k)
+    let dPY = ImageMetrics.colorDelta(pocket, y2k)
+    print("flash split pairwise RGB dist — DF|PC \(dIP) DF|P2 \(dIY) PC|P2 \(dPY)")
+    XCTAssertGreaterThan(dIP, 6, "Direct Flash vs Pocket Compact must be distinct on daylight")
+    XCTAssertGreaterThan(dIY, 6, "Direct Flash vs Pocket 2002 must be distinct on daylight")
+    XCTAssertGreaterThan(dPY, 6, "Pocket Compact vs Pocket 2002 must be distinct on daylight")
+
+    // night byte-identity: the pass guards on brightGuardWeight, exactly 0 in the
+    // dark, so it returns its input bit-for-bit (structural no-op).
+    let night = flatGrayScene(key: 0.166)
+    XCTAssertEqual(FilmEngine.brightGuardWeight(night), 0, "night weight 0 → flash split is a structural no-op")
+    for id in ["iphone-flash", "point-shoot", "y2k-digicam"] {
+      let out = engine.applyFlashDaylightIdentity(base, scene: night, recipe: .recipe(for: id))
+      XCTAssertEqual(try pngOf(out), try pngOf(base), "\(id): the flash split must be a night no-op")
+    }
+
+    // owner evidence + whole-develop separation on the real street fixture.
+    if let street = source("sample-street.jpg") {
+      let reading = try engine.read(street)
+      var whole: [String: (r: Double, g: Double, b: Double)] = [:]
+      for id in ["iphone-flash", "point-shoot", "y2k-digicam"] {
+        let img = try engine.develop(street, with: .recipe(for: id), maxPixelSize: 1024, seed: 1, reading: reading).image
+        try XCTUnwrap(img.pngData()).write(to: dir.appendingPathComponent("flash-split-\(id).png"))
+        let raster = try XCTUnwrap(ImageMetrics.raster(img))
+        whole[id] = try XCTUnwrap(ImageMetrics.meanColor(raster, in: CGRect(x: 0, y: 0, width: 1, height: 1)))
+      }
+      print("flash split whole-develop street dist — DF|PC \(ImageMetrics.colorDelta(whole["iphone-flash"]!, whole["point-shoot"]!)) DF|P2 \(ImageMetrics.colorDelta(whole["iphone-flash"]!, whole["y2k-digicam"]!)) PC|P2 \(ImageMetrics.colorDelta(whole["point-shoot"]!, whole["y2k-digicam"]!))")
+    }
+  }
+
+  // MARK: - A24 light-intelligence engagement (R84 Wave 2 item 2)
+
+  /// A24-still engaged ZERO light passes and collapsed into leica (critic B
+  /// cluster B, 8.56). It now carries a soft rim (0.30) + a high skin protection
+  /// (0.60), scene-keyed to daylight and mask-scoped. CI's simulator Vision
+  /// returns no mask, so this injects a skin patch + matte and runs the real
+  /// passes; the pin proves the intelligence ENGAGES on daylight, is OFF at night
+  /// (scene-keyed), and is byte-identical on the analyzeSubjects:false golden path.
+  func testA24LightIntelligenceEngagement() throws {
+    let engine = FilmEngine()
+    let recipe = CameraRecipe.recipe(for: "a24-still")
+    XCTAssertGreaterThan(recipe.rimLight, 0, "a24 must carry the soft rim row")
+    XCTAssertGreaterThan(recipe.skinProtect, 0, "a24 must carry the high skin row")
+    let dir = try outDir()
+    let stripped = variant(recipe, skin: 0, rim: 0)   // the pre-Wave-2 a24 (no intelligence)
+
+    let skinUI = skinPatchImage()
+    guard let skinCI = CIImage(image: skinUI),
+          let matteCI = CIImage(image: skinPatchMatte()) else { return XCTFail("synthetic build failed") }
+    let subject = engine.attachLightMasks(
+      to: SubjectAnalysis(faces: [], personMask: matteCI), image: skinCI.orientedForDisplay)
+    XCTAssertNotNil(subject.skinMask, "injected skin patch must produce a skin mask")
+
+    func develop(_ r: CameraRecipe, key: Double) throws -> UIImage {
+      try engine.develop(skinUI, with: r, seed: 1,
+        reading: SceneReading(scene: skinScene(key: key), subject: subject)).image
+    }
+    XCTAssertGreaterThan(FilmEngine.brightGuardWeight(skinScene(key: 0.55)), 0.99, "engagement at the daylight key")
+    let fullDay = try develop(recipe, key: 0.55)
+    let strippedDay = try develop(stripped, key: 0.55)
+    try XCTUnwrap(fullDay.pngData()).write(to: dir.appendingPathComponent("a24-intelligence-after.png"))
+    try XCTUnwrap(strippedDay.pngData()).write(to: dir.appendingPathComponent("a24-intelligence-before.png"))
+
+    // ENGAGED on daylight: the skin patch moves under the new intelligence.
+    let patch = CGRect(x: 0.40, y: 0.42, width: 0.20, height: 0.16)
+    let fullC = try XCTUnwrap(ImageMetrics.meanColor(try XCTUnwrap(ImageMetrics.raster(fullDay)), in: patch))
+    let stripC = try XCTUnwrap(ImageMetrics.meanColor(try XCTUnwrap(ImageMetrics.raster(strippedDay)), in: patch))
+    print("a24 skin patch — with intelligence \(fullC) vs pre-Wave-2 \(stripC); delta \(ImageMetrics.colorDelta(fullC, stripC))")
+    XCTAssertGreaterThan(ImageMetrics.colorDelta(fullC, stripC), 1.5, "a24 intelligence must engage on daylight skin")
+    XCTAssertNotEqual(try XCTUnwrap(fullDay.pngData()), try XCTUnwrap(strippedDay.pngData()))
+
+    // night byte-identity: at key 0.13 the scene-key weight is 0, so the full
+    // recipe and the stripped recipe render identically (the passes are skipped).
+    XCTAssertEqual(FilmEngine.brightGuardWeight(skinScene(key: 0.13)), 0, "night weight 0 → a24 intelligence skipped")
+    XCTAssertEqual(try XCTUnwrap(try develop(recipe, key: 0.13).pngData()),
+                   try XCTUnwrap(try develop(stripped, key: 0.13).pngData()),
+                   "a24 night must be byte-identical — the intelligence is scene-keyed off")
+
+    // golden safety: without masks (the analyzeSubjects:false golden path) the
+    // passes structurally no-op regardless of key → byte-identical.
+    let maskless = SubjectAnalysis(faces: [], personMask: nil)
+    let gDay = try engine.develop(skinUI, with: recipe, seed: 1,
+      reading: SceneReading(scene: skinScene(key: 0.55), subject: maskless)).image
+    let gDim = try engine.develop(skinUI, with: recipe, seed: 1,
+      reading: SceneReading(scene: skinScene(key: 0.20), subject: maskless)).image
+    XCTAssertEqual(try XCTUnwrap(gDay.pngData()), try XCTUnwrap(gDim.pngData()),
+                   "no mask (golden path) → a24 intelligence is a structural no-op, byte-identical")
+  }
+
+  // MARK: - Pastel Cinema subject palette (R84 Wave 2 item 3)
+
+  /// Pastel Cinema read as a plain neutral render — its powdery palette never
+  /// engaged (critic A #7 / cluster B). The global umbrella/powder map is baked
+  /// into the Class-A golden LUT (owner regen). This wakes the palette on the
+  /// SUBJECT (mask-scoped, daylight-scene-keyed): the subject must desaturate on
+  /// daylight, with the golden path + night byte-identical.
+  func testPastelSubjectPaletteAwakens() throws {
+    let engine = FilmEngine()
+    let recipe = CameraRecipe.recipe(for: "pastel-cinema")
+    let dir = try outDir()
+    let skinUI = skinPatchImage()  // a saturated patch over neutral ground stands in for a costumed subject
+    guard let skinCI = CIImage(image: skinUI),
+          let matteCI = CIImage(image: skinPatchMatte()) else { return XCTFail("synthetic build failed") }
+    let subject = engine.attachLightMasks(
+      to: SubjectAnalysis(faces: [], personMask: matteCI), image: skinCI.orientedForDisplay)
+    XCTAssertNotNil(subject.subjectMatte, "injected matte must produce a subject matte")
+
+    func develop(key: Double) throws -> UIImage {
+      try engine.develop(skinUI, with: recipe, seed: 1,
+        reading: SceneReading(scene: skinScene(key: key), subject: subject)).image
+    }
+    let after = try develop(key: 0.55)   // daylight → palette wakes
+    let before = try develop(key: 0.20)  // weight 0 → inert (pre-fix)
+    let night = try develop(key: 0.13)   // night → inert
+    try XCTUnwrap(before.pngData()).write(to: dir.appendingPathComponent("pastel-subject-before.png"))
+    try XCTUnwrap(after.pngData()).write(to: dir.appendingPathComponent("pastel-subject-after.png"))
+
+    let patch = CGRect(x: 0.40, y: 0.42, width: 0.20, height: 0.16)
+    let afterC = try XCTUnwrap(ImageMetrics.meanColor(try XCTUnwrap(ImageMetrics.raster(after)), in: patch))
+    let beforeC = try XCTUnwrap(ImageMetrics.meanColor(try XCTUnwrap(ImageMetrics.raster(before)), in: patch))
+    let afterSat = max(afterC.r, max(afterC.g, afterC.b)) - min(afterC.r, min(afterC.g, afterC.b))
+    let beforeSat = max(beforeC.r, max(beforeC.g, beforeC.b)) - min(beforeC.r, min(beforeC.g, beforeC.b))
+    print("pastel subject chroma (max-min): daylight \(afterSat) vs inert \(beforeSat)")
+    XCTAssertLessThan(afterSat, beforeSat - 3, "the pastel palette must desaturate the subject on daylight (powdery)")
+
+    // night byte-identity: weight 0 at both sub-onset keys → identical, inert.
+    XCTAssertEqual(try XCTUnwrap(before.pngData()), try XCTUnwrap(night.pngData()),
+                   "pastel night must be byte-identical — the subject palette is a no-op in the dark")
+
+    // golden safety: no matte on the analyzeSubjects:false path → no-op regardless of key.
+    let maskless = SubjectAnalysis(faces: [], personMask: nil)
+    let gDay = try engine.develop(skinUI, with: recipe, seed: 1,
+      reading: SceneReading(scene: skinScene(key: 0.55), subject: maskless)).image
+    let gDim = try engine.develop(skinUI, with: recipe, seed: 1,
+      reading: SceneReading(scene: skinScene(key: 0.20), subject: maskless)).image
+    XCTAssertEqual(try XCTUnwrap(gDay.pngData()), try XCTUnwrap(gDim.pngData()),
+                   "no matte (golden path) → pastel subject palette is a structural no-op, byte-identical")
+  }
+
+  // MARK: - Lomo cross-process shadows (R84 Wave 2 item 4)
+
+  /// After Wave 1 de-ambered Kodachrome's skin, Lomo still overlapped it (critic
+  /// B cluster D). The cleanest separator is Lomo's cross-process shadow shift —
+  /// shadows cross toward CYAN-GREEN, highlights stay warm. Scene-keyed to
+  /// daylight (Lomo's warm-orange night is byte-identical). The image and scene
+  /// change ONLY in key across the pair, so the shadow shift is isolated.
+  func testLomoCrossProcessShadows() throws {
+    let engine = FilmEngine()
+    let dir = try outDir()
+    let img = washProneImage()   // has a 0.15 shadow band (bottom 22%) + bright top
+    let maskless = SubjectAnalysis(faces: [], personMask: nil)
+    let shadow = CGRect(x: 0.1, y: 0.80, width: 0.8, height: 0.17)
+
+    func develop(key: Double) throws -> UIImage {
+      try engine.develop(img, with: .recipe(for: "lomo"), seed: 1,
+        reading: SceneReading(scene: lomoCrossScene(key: key), subject: maskless)).image
+    }
+    XCTAssertGreaterThan(FilmEngine.brightGuardWeight(lomoCrossScene(key: 0.55)), 0.99, "cross-process engages on daylight")
+    let day = try develop(key: 0.55)
+    let night = try develop(key: 0.13)
+    try XCTUnwrap(night.pngData()).write(to: dir.appendingPathComponent("lomo-crossprocess-before.png"))
+    try XCTUnwrap(day.pngData()).write(to: dir.appendingPathComponent("lomo-crossprocess-after.png"))
+
+    let dayC = try XCTUnwrap(ImageMetrics.meanColor(try XCTUnwrap(ImageMetrics.raster(day)), in: shadow))
+    let nightC = try XCTUnwrap(ImageMetrics.meanColor(try XCTUnwrap(ImageMetrics.raster(night)), in: shadow))
+    print("lomo shadow — daylight R,G,B \(dayC) B-R \(dayC.b - dayC.r) G-R \(dayC.g - dayC.r); night \(nightC) B-R \(nightC.b - nightC.r)")
+    // daylight shadows cross cyan-green, and clearly more so than the warm night.
+    XCTAssertGreaterThan(dayC.b - dayC.r, 0, "Lomo daylight shadows must cross toward cyan (B > R)")
+    XCTAssertGreaterThan(dayC.g - dayC.r, 0, "Lomo daylight shadows must cross toward green (G > R)")
+    XCTAssertGreaterThan((dayC.b - dayC.r) - (nightC.b - nightC.r), 8, "the cross-process must shift the shadows cool vs the warm night")
+
+    // night byte-identity: both sub-onset keys carry weight 0 → identical, no cross.
+    let nightB = try develop(key: 0.20)
+    XCTAssertEqual(try XCTUnwrap(night.pngData()), try XCTUnwrap(nightB.pngData()),
+                   "Lomo night must be byte-identical — the cross-process is a no-op in the dark")
+
+    // separation evidence vs Kodachrome on the real street fixture.
+    if let street = source("sample-street.jpg") {
+      let reading = try engine.read(street)
+      let lomoImg = try engine.develop(street, with: .recipe(for: "lomo"), maxPixelSize: 1024, seed: 1, reading: reading).image
+      let kodaImg = try engine.develop(street, with: .recipe(for: "kodachrome"), maxPixelSize: 1024, seed: 1, reading: reading).image
+      let lC = try XCTUnwrap(ImageMetrics.meanColor(try XCTUnwrap(ImageMetrics.raster(lomoImg)), in: CGRect(x: 0, y: 0, width: 1, height: 1)))
+      let kC = try XCTUnwrap(ImageMetrics.meanColor(try XCTUnwrap(ImageMetrics.raster(kodaImg)), in: CGRect(x: 0, y: 0, width: 1, height: 1)))
+      print("Lomo vs Kodachrome whole-develop street dist: \(ImageMetrics.colorDelta(lC, kC))")
+    }
+  }
+
+  // MARK: - Tokyo-neon halation parity widening (R84 Wave 2 item 6)
+
+  /// PARITY CORRECTION: the port under-rendered CineStill 800T's backlit halation
+  /// — the per-source glow was radius-capped at 0.15·maxEdge (a dim point) where
+  /// the reference blooms a broad red-dominant disc. The widening (cap → 0.24,
+  /// wider multiplier, stronger broad bloom) is pinned here: the glow must now
+  /// reach a ring the old cap excluded, carry the source's hue, and stay local
+  /// (not a full-frame wash). Golden safety: at the daylight golden key the
+  /// emissive gate is EMPTY, so the widened per-source code is never reached.
+  func testTokyoNeonHalationWidening() throws {
+    let engine = FilmEngine()
+    let dir = try outDir()
+    let dark = UIGraphicsImageRenderer(size: CGSize(width: 200, height: 200)).image { ctx in
+      ctx.cgContext.setFillColor(UIColor(white: 0.10, alpha: 1).cgColor)
+      ctx.cgContext.fill(CGRect(x: 0, y: 0, width: 200, height: 200))
+    }
+    guard let darkCI = CIImage(image: dark) else { return XCTFail("dark build failed") }
+    let base = darkCI.orientedForDisplay
+    // one magenta neon at frame center.
+    let neon = LightSource(x: 0.5, y: 0.5, r: 0.04, intensity: 0.9, tint: [1.0, 0.25, 0.9])
+    let scene = neonNightScene(key: 0.10, light: neon)
+    XCTAssertFalse(FilmEngine.emissiveLights(in: scene).isEmpty, "the neon scene must meter as emissive")
+    let out = engine.applySourceBloom(base, scene: scene, baseBloom: 0.18, amount: 1.0)
+    try pngOf(out).write(to: dir.appendingPathComponent("tokyo-halation-widened.png"))
+
+    let raster = try XCTUnwrap(ImageMetrics.raster(cgImage(out)))
+    func L(_ rect: CGRect) throws -> (rgb: (r: Double, g: Double, b: Double), lum: Double) {
+      let c = try XCTUnwrap(ImageMetrics.meanColor(raster, in: rect))
+      return (c, c.r * 0.299 + c.g * 0.587 + c.b * 0.114)
+    }
+    // inner ring ≈ 0.12·maxEdge — well inside the new sprite: a strong broad glow.
+    let inner = try L(CGRect(x: 0.585, y: 0.45, width: 0.07, height: 0.10))
+    // outer ring ≈ 0.19·maxEdge — BEYOND the old 0.15·maxEdge cap (where the old
+    // per-source glow had died) but inside the new one: this is the widening.
+    let outer = try L(CGRect(x: 0.655, y: 0.45, width: 0.07, height: 0.10))
+    // far corner: the untouched surround (locality control).
+    let corner = try L(CGRect(x: 0.02, y: 0.02, width: 0.10, height: 0.10))
+    print("tokyo halation — inner L \(inner.lum) outer L \(outer.lum) corner L \(corner.lum); inner RGB \(inner.rgb)")
+    XCTAssertGreaterThan(inner.lum, corner.lum + 6, "the source must bloom a strong broad halo")
+    XCTAssertGreaterThan(inner.rgb.r, inner.rgb.g + 2, "the halo must carry the source's red-dominant (magenta) hue")
+    XCTAssertGreaterThan(outer.lum, corner.lum + 2, "the widened halo must reach past the old 0.15·maxEdge cap")
+    XCTAssertGreaterThan(inner.lum, outer.lum, "the halo must stay local — it falls off with radius, not a flat wash")
+
+    // golden safety: at the daylight golden key the emissive gate is empty, so the
+    // widened per-source glow code is never reached → tokyo golden byte-identical.
+    XCTAssertTrue(FilmEngine.emissiveLights(in: neonNightScene(key: 0.366, light: neon)).isEmpty,
+                  "at the golden daylight key neon refuses → the per-source glow code is unreachable")
+  }
+
+  /// A dark emissive scene carrying one colored light, for the halation pin.
+  private func neonNightScene(key: Double, light: LightSource) -> SceneProfile {
+    SceneProfile(
+      analyzed: true, key: key, p01: 0.02, p50: 0.10, p99: 0.95,
+      illum: [1, 1, 1], sat: 0.5, lights: [light], auxLights: [], faceLum: nil,
+      meanLuminance: 0.12, medianLuminance: 0.10, shadowFraction: 0.7,
+      highlightFraction: 0.05, dynamicRange: 0.9, averageRed: 0.12,
+      averageGreen: 0.10, averageBlue: 0.12, saturation: 0.5, warmth: 0,
+      isLowKey: true, isHighKey: false, isBacklit: false
+    )
+  }
+
+  /// A Lomo scene at a chosen key with a FIXED median / low-key flag, so the
+  /// adaptive exposure is identical across keys and only the daylight-keyed
+  /// cross-process differs (no sky mask on the wash raster → skyResponse inert).
+  private func lomoCrossScene(key: Double) -> SceneProfile {
+    SceneProfile(
+      analyzed: true, key: key, p01: 0.05, p50: 0.42, p99: 0.90,
+      illum: [1, 1, 1], sat: 0.30, lights: [], auxLights: [], faceLum: nil,
+      meanLuminance: 0.46, medianLuminance: 0.42, shadowFraction: 0.22,
+      highlightFraction: 0.40, dynamicRange: 0.7, averageRed: 0.46,
+      averageGreen: 0.46, averageBlue: 0.46, saturation: 0.30, warmth: 0,
+      isLowKey: false, isHighKey: false, isBacklit: false
+    )
+  }
+
+  /// PNG bytes of a rendered CIImage, in the tests' own context.
+  private func pngOf(_ image: CIImage) throws -> Data {
+    let cg = try XCTUnwrap(context.createCGImage(image, from: image.extent.integral))
+    return try XCTUnwrap(UIImage(cgImage: cg).pngData())
   }
 
   // MARK: helpers
