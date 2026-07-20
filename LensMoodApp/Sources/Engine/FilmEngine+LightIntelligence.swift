@@ -397,22 +397,51 @@ extension FilmEngine {
   }
 
   /// R84 (item 2): the shadow toe a flash-wash stock floats on daylight. The
-  /// exposureBias + adaptive lift + the tone pass's shadow amount push the
-  /// would-be blacks up to a grey ~0.40 (CI-measured), so the toe must REACH that
-  /// lifted low-mid band, not just the sub-0.30 shadows, to bring the daylight
-  /// tabletop/shadows back to black. The upper half stays identity so real
-  /// midtones/skin survive. `amount` (the graded daylight guard) scales it; 0 is
-  /// a no-op, so the dark-scene look is untouched.
+  /// exposureBias + adaptive lift + the tone pass push the would-be blacks up to
+  /// a grey ~0.44 (CI-measured: the color core hands this pass ~112/255 on the
+  /// wash scene). The pass commits that grey back toward black.
+  ///
+  /// It replaces a CIToneCurve spline (two prior attempts) that OVERSHOT upward
+  /// in its 0.42→0.66 climb and LIFTED the very shadow band it should crush —
+  /// CI-measured, the spline raised the entering ~0.44 grey to ~0.49, so both
+  /// reshapes made the wash WORSE. The construction here is a monotone
+  /// lift-subtract that cannot overshoot:
+  ///   line(x) = K + A·(x − K),   A = 1 + a·2.4   (A ≥ 1)
+  ///   toe(x)  = min(x, line(x))
+  /// Because A ≥ 1 the line sits on/below the identity for x ≤ K and on/above it
+  /// for x ≥ K, so `min(x, line)` is a straight darkening ramp below the knee K
+  /// and EXACT identity at and above it (midtones/skin ≥ 0.60 survive untouched,
+  /// highlights untouched — the rolloff pass owns those). `min` of two
+  /// monotone-increasing functions is itself monotone and never exceeds the
+  /// identity, so a shadow can only move DOWN toward black — the overshoot that
+  /// broke the spline is structurally impossible. `a` (the graded daylight
+  /// guard) scales the slope; a = 0 ⇒ A = 1 ⇒ toe = identity, so the dark-scene
+  /// look is byte-identical (and the caller already gates this off at night).
   func applyDaylightBlackPoint(_ image: CIImage, amount: Double) -> CIImage {
     guard amount > 0.001 else { return image }
     let a = min(1, amount)
-    return image.applyingFilter("CIToneCurve", parameters: [
-      "inputPoint0": CIVector(x: 0, y: 0),
-      "inputPoint1": CIVector(x: 0.16, y: max(0, 0.16 - 0.14 * a)),
-      "inputPoint2": CIVector(x: 0.42, y: max(0, 0.42 - 0.34 * a)),
-      "inputPoint3": CIVector(x: 0.66, y: 0.66),
-      "inputPoint4": CIVector(x: 1.0, y: 1.0),
-    ]).cropped(to: image.extent)
+    let K = 0.60           // identity knee: midtones/skin at or above 0.60 survive
+    let A = 1 + a * 2.4    // darkening slope below the knee, scaled by the guard
+    let bias = K * (1 - A) // line(K) = K, line(0) = bias < 0 → deep shadows crush to 0
+    let line = image
+      .applyingFilter("CIColorMatrix", parameters: [
+        "inputRVector": CIVector(x: A, y: 0, z: 0, w: 0),
+        "inputGVector": CIVector(x: 0, y: A, z: 0, w: 0),
+        "inputBVector": CIVector(x: 0, y: 0, z: A, w: 0),
+        "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 1),
+        "inputBiasVector": CIVector(x: bias, y: bias, z: bias, w: 0),
+      ])
+      .applyingFilter("CIColorClamp", parameters: [
+        "inputMinComponents": CIVector(x: 0, y: 0, z: 0, w: 0),
+        "inputMaxComponents": CIVector(x: 1, y: 1, z: 1, w: 1),
+      ])
+    // min(image, line): darken blend takes the per-channel minimum, so the toe
+    // can only pull the pixel down, never up.
+    return line
+      .applyingFilter("CIDarkenBlendMode", parameters: [
+        kCIInputBackgroundImageKey: image,
+      ])
+      .cropped(to: image.extent)
   }
 
   /// CCD charge-overflow blooming / tube comet-tails: clipped highlights smear
