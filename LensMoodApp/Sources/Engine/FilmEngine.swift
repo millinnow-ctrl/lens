@@ -459,6 +459,20 @@ final class FilmEngine {
       if dayGuard > 0.001, FilmEngine.daylightBlackPointStocks.contains(recipe.id) {
         image = applyDaylightBlackPoint(image, amount: dayGuard)
       }
+      // R84 Wave 2 daylight-identity refinements (adaptive stocks; each pass is
+      // scene-keyed by brightGuardWeight → a structural no-op in the dark, so
+      // every night render is byte-identical. None of these is a golden stock).
+      // Item 1: split the collapsed flash trio (clinical-cold / warm-compact /
+      // cyan-CCD). Item 4: Lomo's cross-process cyan-green shadows (separates it
+      // from Kodachrome's clean warm slide).
+      switch recipe.id {
+      case "iphone-flash", "point-shoot", "y2k-digicam":
+        image = applyFlashDaylightIdentity(image, scene: scene, recipe: recipe)
+      case "lomo":
+        image = applyLomoCrossProcess(image, scene: scene)
+      default:
+        break
+      }
     }
     // R66 masked-light, immediately after the color core so both passes see
     // (and can answer) exactly what the emulsion just did: the skin mask holds

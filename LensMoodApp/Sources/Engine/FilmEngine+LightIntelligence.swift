@@ -481,4 +481,108 @@ extension FilmEngine {
       kCIInputBackgroundImageKey: image,
     ]).cropped(to: extent)
   }
+
+  // MARK: - Flash-family daylight identity (R84 Wave 2 item 1)
+
+  /// The three flash-family digitals collapsed into ONE bright warm-punchy
+  /// cluster on daylight — critic B measured the tightest near-duplicate in the
+  /// whole set (Direct Flash ~ Pocket Compact at distance 5.06). Wave 1
+  /// unbleached them; this splits their DAYLIGHT identity toward the reference
+  /// dossiers:
+  ///   · iphone-flash (Direct Flash)  — clinical COLD LED white, restrained
+  ///     color, deep committed shadows (the black-point pass already lands);
+  ///   · point-shoot (Pocket Compact) — a crisp WARM compact-zoom (slight warm
+  ///     white balance, glossy saturation);
+  ///   · y2k-digicam (Pocket 2002)    — early-CCD auto-white-balance leans CYAN
+  ///     (green-blue whites, glossy, a touch brighter — no film shoulder).
+  /// Scene-keyed by `brightGuardWeight`, so it is a structural no-op in the dark
+  /// (weight 0 → the guard below returns the input unchanged). The trio's NIGHT
+  /// identities are already distinct (critic B), and stay byte-identical. None of
+  /// the three is a Class-A golden stock, so the pass rides the normal develop
+  /// path. Label: intentional camera refinement (dossier-directed color science).
+  func applyFlashDaylightIdentity(
+    _ image: CIImage,
+    scene: SceneProfile,
+    recipe: CameraRecipe
+  ) -> CIImage {
+    let w = FilmEngine.brightGuardWeight(scene)
+    guard w > 0.001 else { return image }
+    let extent = image.extent
+    let tint: (r: Double, g: Double, b: Double)
+    let saturation: Double
+    var brightness = 0.0
+    switch recipe.id {
+    case "iphone-flash":
+      tint = (1 - 0.065 * w, 1 - 0.02 * w, 1 + 0.065 * w)  // cold LED white
+      saturation = 1 - 0.14 * w                            // clinical, restrained
+      brightness = -0.01 * w                               // deep, committed
+    case "point-shoot":
+      tint = (1 + 0.08 * w, 1 + 0.005 * w, 1 - 0.05 * w)   // warm compact
+      saturation = 1 + 0.10 * w                            // glossy
+    case "y2k-digicam":
+      tint = (1 - 0.045 * w, 1 + 0.035 * w, 1 + 0.02 * w)  // cyan CCD white
+      saturation = 1 + 0.12 * w                            // glossy
+      brightness = 0.03 * w                                // no shoulder → bright
+    default:
+      return image
+    }
+    return image
+      .applyingFilter("CIColorMatrix", parameters: [
+        "inputRVector": CIVector(x: tint.r, y: 0, z: 0, w: 0),
+        "inputGVector": CIVector(x: 0, y: tint.g, z: 0, w: 0),
+        "inputBVector": CIVector(x: 0, y: 0, z: tint.b, w: 0),
+        "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 1),
+      ])
+      .applyingFilter("CIColorControls", parameters: [
+        kCIInputSaturationKey: saturation,
+        kCIInputBrightnessKey: brightness,
+      ])
+      .applyingFilter("CIColorClamp", parameters: [
+        "inputMinComponents": CIVector(x: 0, y: 0, z: 0, w: 0),
+        "inputMaxComponents": CIVector(x: 1, y: 1, z: 1, w: 1),
+      ])
+      .cropped(to: extent)
+  }
+
+  // MARK: - Lomo cross-process shadows (R84 Wave 2 item 4)
+
+  /// The Toy Color (Lomo LC-A) overlapped the Slide 64 (Kodachrome) cluster —
+  /// both dense warm-saturated (critic B distance 11.71 / cluster D). After Wave
+  /// 1 de-ambered kodachrome's skin, the single most identity-defining separator
+  /// left is Lomo's CROSS-PROCESS shadow shift (slide film in C-41): deep
+  /// saturation with hue-shifted shadows crossing toward CYAN-GREEN, highlights
+  /// left warm-yellow (dossier target 1, the cleanest kodachrome/lomo separator).
+  /// Shadow-scoped (a luma-inverted mask, so highlights stay warm) and scene-keyed
+  /// by `brightGuardWeight` — a structural no-op in the dark (weight 0 → returned
+  /// unchanged), so Lomo's on-brand warm-orange NIGHT is byte-identical. Lomo is
+  /// not a golden stock. Label: intentional camera refinement (dossier-directed).
+  func applyLomoCrossProcess(_ image: CIImage, scene: SceneProfile) -> CIImage {
+    let w = FilmEngine.brightGuardWeight(scene)
+    guard w > 0.001 else { return image }
+    let extent = image.extent
+    // shadows cross toward cyan-green: red pulled down, green + blue lifted.
+    let graded = image
+      .applyingFilter("CIColorMatrix", parameters: [
+        "inputRVector": CIVector(x: 1 - 0.14 * w, y: 0, z: 0, w: 0),
+        "inputGVector": CIVector(x: 0, y: 1, z: 0, w: 0),
+        "inputBVector": CIVector(x: 0, y: 0, z: 1, w: 0),
+        "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 1),
+        "inputBiasVector": CIVector(x: 0, y: 0.05 * w, z: 0.09 * w, w: 0),
+      ])
+      .applyingFilter("CIColorClamp", parameters: [
+        "inputMinComponents": CIVector(x: 0, y: 0, z: 0, w: 0),
+        "inputMaxComponents": CIVector(x: 1, y: 1, z: 1, w: 1),
+      ])
+    // shadow mask: bright where the frame is dark (luma inverted, gamma-steepened),
+    // so only the low / low-mid tones cross and the highlights keep their warmth.
+    let shadowMask = image
+      .applyingFilter("CIPhotoEffectMono")
+      .applyingFilter("CIColorInvert")
+      .applyingFilter("CIGammaAdjust", parameters: ["inputPower": 2.2])
+      .cropped(to: extent)
+    return graded.applyingFilter("CIBlendWithMask", parameters: [
+      kCIInputBackgroundImageKey: image,
+      kCIInputMaskImageKey: shadowMask,
+    ]).cropped(to: extent)
+  }
 }
