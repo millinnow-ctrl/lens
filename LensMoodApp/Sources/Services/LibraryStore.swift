@@ -56,6 +56,14 @@ enum LibraryStore {
     dir.appendingPathComponent("\(id.uuidString).jpg")
   }
 
+  /// The stored original photograph for a frame: the source pixels a
+  /// re-develop replays, as `original-<id>.jpg` beside the developed frame.
+  /// Bounded ≤`maxEdge` and JPEG-encoded exactly like the frame, and — like
+  /// the frame — decoded only on demand (two-tier memory law), never resident.
+  private static func originalImageURL(_ id: UUID) -> URL {
+    dir.appendingPathComponent("original-\(id.uuidString).jpg")
+  }
+
   /// The reading sidecar for a frame: the SceneReading it was developed with,
   /// as a per-id blob beside the JPEG (never in the index.json bulk, so the
   /// grid load never pays for it — the reading is loaded only on a re-develop).
@@ -67,6 +75,14 @@ enum LibraryStore {
   /// write lands) — used when a session asset demotes to the stored tier.
   static func frameURL(for id: UUID) -> URL {
     imageURL(id)
+  }
+
+  /// Where a frame's stored original photograph lives (or will live once its
+  /// queued write lands) — the source pixels the re-develop path replays.
+  /// Mirrors `frameURL`; used when a session asset demotes to the stored tier
+  /// and when the re-develop path decodes the original on demand.
+  static func originalURL(for id: UUID) -> URL {
+    originalImageURL(id)
   }
 
   // MARK: - Index
@@ -98,6 +114,11 @@ enum LibraryStore {
           id: entry.id,
           thumbnail: thumbnail,
           imageURL: url,
+          // the original sidecar may be absent (a keep from before originals
+          // were persisted, or one whose reading was schema-gated); the URL is
+          // handed over regardless and `loadOriginalImage()` returns nil when
+          // the file is missing, so the re-develop path falls back cleanly
+          originalURL: originalImageURL(entry.id),
           stock: Stock.find(entry.stockID),
           decisions: entry.decisions,
           createdAt: entry.createdAt,
@@ -185,9 +206,20 @@ enum LibraryStore {
   /// of record is already this store's JPEG, so persisting it is a no-op.
   static func persist(_ asset: DevelopedAsset) {
     guard let frame = asset.image else { return }
+    // Only a live session asset carries its original in memory; a demoted asset
+    // has source == nil and its original is already this store's JPEG, so
+    // re-persisting is a no-op for it (the frame guard above already returns).
+    let original = asset.source
     protectedAsync {
       if let data = downscaled(frame).jpegData(compressionQuality: jpegQuality) {
         try? data.write(to: imageURL(asset.id), options: .atomic)
+      }
+      // freeze the source pixels beside the frame so a re-develop after
+      // relaunch replays the SAME original (bounded ≤maxEdge, JPEG, off-main
+      // on this serial queue exactly like the frame)
+      if let original,
+         let originalData = downscaled(original).jpegData(compressionQuality: jpegQuality) {
+        try? originalData.write(to: originalImageURL(asset.id), options: .atomic)
       }
       var index = loadIndex().filter { $0.id != asset.id }
       index.append(StoredAsset(
@@ -242,8 +274,9 @@ enum LibraryStore {
   static func delete(id: UUID) {
     protectedAsync {
       try? FileManager.default.removeItem(at: imageURL(id))
-      // the reading sidecar follows its frame out
+      // the reading sidecar and the stored original follow their frame out
       try? FileManager.default.removeItem(at: readingURL(id))
+      try? FileManager.default.removeItem(at: originalImageURL(id))
       writeIndex(loadIndex().filter { $0.id != id })
     }
   }
@@ -256,6 +289,7 @@ enum LibraryStore {
       for entry in loadIndex() where !keep.contains(entry.id) {
         try? FileManager.default.removeItem(at: imageURL(entry.id))
         try? FileManager.default.removeItem(at: readingURL(entry.id))
+        try? FileManager.default.removeItem(at: originalImageURL(entry.id))
       }
       writeIndex(loadIndex().filter { keep.contains($0.id) })
     }

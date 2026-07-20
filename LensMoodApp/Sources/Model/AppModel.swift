@@ -29,6 +29,11 @@ struct DevelopedAsset: Identifiable {
   /// the original photograph — session assets only (the camera's
   /// full-resolution re-develop path); nil for persisted/demoted frames
   let source: UIImage?
+  /// the stored (≤2048 px) original JPEG backing `loadOriginalImage()` for
+  /// persisted frames — the source pixels a re-develop replays. nil for a
+  /// live session asset (which carries `source` in memory instead) and for
+  /// old keeps written before originals were persisted.
+  let originalURL: URL?
   let stock: Stock
   let decisions: [String]
   let createdAt: Date
@@ -55,6 +60,7 @@ struct DevelopedAsset: Identifiable {
       image: image,
       imageURL: nil,
       source: source,
+      originalURL: nil,
       stock: stock,
       decisions: decisions,
       createdAt: createdAt,
@@ -62,11 +68,15 @@ struct DevelopedAsset: Identifiable {
     )
   }
 
-  /// A frame restored from disk: thumbnail in memory, full frame on demand.
+  /// A frame restored from disk: thumbnail in memory, full frame and original
+  /// on demand. `originalURL` points at the stored original (which may not
+  /// exist for keeps written before originals were persisted — the accessor
+  /// returns nil gracefully in that case).
   init(
     id: UUID,
     thumbnail: UIImage,
     imageURL: URL,
+    originalURL: URL,
     stock: Stock,
     decisions: [String],
     createdAt: Date,
@@ -78,6 +88,7 @@ struct DevelopedAsset: Identifiable {
       image: nil,
       imageURL: imageURL,
       source: nil,
+      originalURL: originalURL,
       stock: stock,
       decisions: decisions,
       createdAt: createdAt,
@@ -91,6 +102,7 @@ struct DevelopedAsset: Identifiable {
     image: UIImage?,
     imageURL: URL?,
     source: UIImage?,
+    originalURL: URL?,
     stock: Stock,
     decisions: [String],
     createdAt: Date,
@@ -101,6 +113,7 @@ struct DevelopedAsset: Identifiable {
     self.image = image
     self.imageURL = imageURL
     self.source = source
+    self.originalURL = originalURL
     self.stock = stock
     self.decisions = decisions
     self.createdAt = createdAt
@@ -116,6 +129,20 @@ struct DevelopedAsset: Identifiable {
     return UIImage(contentsOfFile: imageURL.path)
   }
 
+  /// The original photograph this frame was developed from: the in-memory
+  /// session original when present, otherwise one bounded (≤2048 px) JPEG
+  /// decode from disk. Two-tier memory law: a persisted frame never holds its
+  /// original resident — it is decoded on demand for a re-develop and released
+  /// after. nil when no original was persisted (a keep written before originals
+  /// were stored, or the engine-schema gate skipped its reading sidecar) — the
+  /// re-develop path then falls back to picking a photograph. Prefer calling
+  /// off the main thread.
+  func loadOriginalImage() -> UIImage? {
+    if let source { return source }
+    guard let originalURL else { return nil }
+    return UIImage(contentsOfFile: originalURL.path)
+  }
+
   /// The same frame with its in-memory bitmaps released: once a newer frame
   /// arrives, this one's frame of record is the persisted 2048 px JPEG (its
   /// write is already queued on LibraryStore's serial queue by `add`).
@@ -127,6 +154,10 @@ struct DevelopedAsset: Identifiable {
       image: nil,
       imageURL: imageURL ?? LibraryStore.frameURL(for: id),
       source: nil,
+      // the original's frame of record becomes its on-disk JPEG (its write is
+      // already queued by the `add` that stored this asset), so a later
+      // re-develop decodes it on demand — never resident (two-tier law)
+      originalURL: originalURL ?? LibraryStore.originalURL(for: id),
       stock: stock,
       decisions: decisions,
       createdAt: createdAt,
