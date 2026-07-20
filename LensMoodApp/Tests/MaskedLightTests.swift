@@ -155,7 +155,10 @@ final class MaskedLightTests: XCTestCase {
       "camcorder-90s": (0, 0, 0),
       "leica-street": (0.20, 0.30, 0.15),
       "gq-editorial": (0.35, 0.70, 0),
-      "a24-still": (0, 0, 0),
+      // a24 gained rim/skin in the R84 lens-excellence round (Wave 2 item 2:
+      // the quiet-narrative identity finally engages the light passes,
+      // scene-keyed to daylight only) — table updated with that change
+      "a24-still": (0.30, 0.60, 0),
       "film-noir": (0.60, 0, 0.50),
       "y2k-digicam": (0, 0, 0),
       "polaroid": (0.15, 0.35, 0.25),
