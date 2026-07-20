@@ -393,12 +393,43 @@ private struct GalleryDetailView: View {
   }
 
   /// route back into the develop flow with this frame's film loaded — the
-  /// same pending hand-off HomeView uses for hero photo picks
+  /// same pending hand-off HomeView uses for hero photo picks.
+  ///
+  /// Byte-stable replay: when this frame's original photograph and its reading
+  /// were both persisted, carry the SAME source pixels and adopt the SAME
+  /// reading into the Conductor (under a fresh key the develop then replays),
+  /// so re-developing — on this camera or, via the rail, another — reads the
+  /// photograph exactly once and reproduces the develop instead of a drifted
+  /// re-read (the one-reading law across time). If either sidecar is missing
+  /// (an old keep, or a schema-gated reading) fall back to the prior behavior:
+  /// the camera opens and the user picks a photograph — never a broken flow,
+  /// and never a fresh re-read masquerading as the persisted replay.
   private func shootThisFilmAgain() {
-    model.pendingStock = asset.stock
-    model.selectedTab = .cameras
+    let asset = asset
+    let stock = asset.stock
+    let id = asset.id
     UIImpactFeedbackGenerator(style: .light).impactOccurred()
-    dismiss()
+    Task { @MainActor in
+      // decode the persisted original + reading off-main; the replay needs
+      // both — the original alone would re-read (drift), so require the pair
+      let replay = await Task.detached(priority: .userInitiated) {
+        () -> (UIImage, SceneReading)? in
+        guard let original = asset.loadOriginalImage(),
+              let reading = LibraryStore.loadReading(for: id) else { return nil }
+        return (original, reading)
+      }.value
+      if let (original, reading) = replay {
+        let key = UUID()
+        // seed the Conductor with the persisted reading so the develop's
+        // `reading(for:key:)` is a cache hit — no second subject pass
+        Conductor.shared.adopt(reading, key: key)
+        model.pendingDevelopImage = original
+        model.pendingDevelopKey = key
+      }
+      model.pendingStock = stock
+      model.selectedTab = .cameras
+      dismiss()
+    }
   }
 
   /// the kept object's next life: carry this frame to the Print Room —
