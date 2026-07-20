@@ -672,6 +672,51 @@ extension FilmEngine {
     ]).cropped(to: extent)
   }
 
+  // MARK: - Pastel subject palette (R84 Wave 2 item 3)
+
+  /// Pastel Cinema read as a plain neutral render on daylight — its powdery
+  /// Wes-Anderson palette never engaged (critic A #7 / cluster B: the vivid red
+  /// umbrella stayed bold red, contrast normal, no high-key powder). The FULL
+  /// palette map (the umbrella → dusty rose, the global high-key powdery
+  /// desaturation) lives in the baked Class-A golden LUT and needs an
+  /// owner-approved regen (flagged in the report — this round is not authorized to
+  /// regenerate goldens). What IS golden-safe: waking the palette on the SUBJECT,
+  /// where the Wes-Anderson costume-pastel actually lives — the people pushed
+  /// powdery (desaturated, high-key lifted, nudged to cream) through the subject
+  /// matte. The matte is nil on the analyzeSubjects:false golden path (byte-
+  /// identical golden) and the pass is scene-keyed to daylight (weight 0 in the
+  /// dark → byte-identical night). Label: intentional camera refinement.
+  func applyPastelSubjectPalette(
+    _ image: CIImage,
+    scene: SceneProfile,
+    subject: SubjectAnalysis
+  ) -> CIImage {
+    guard let matte = subject.subjectMatte else { return image }
+    let w = FilmEngine.brightGuardWeight(scene)
+    guard w > 0.001 else { return image }
+    let extent = image.extent
+    let graded = image
+      .applyingFilter("CIColorControls", parameters: [
+        kCIInputSaturationKey: 1 - 0.35 * w,   // powdery desaturation
+        kCIInputBrightnessKey: 0.05 * w,       // high-key lift
+      ])
+      .applyingFilter("CIColorMatrix", parameters: [
+        "inputRVector": CIVector(x: 1, y: 0, z: 0, w: 0),
+        "inputGVector": CIVector(x: 0, y: 1, z: 0, w: 0),
+        "inputBVector": CIVector(x: 0, y: 0, z: 0.98, w: 0),
+        "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 1),
+        "inputBiasVector": CIVector(x: 0.03 * w, y: 0.02 * w, z: 0.02 * w, w: 0),  // cream
+      ])
+      .applyingFilter("CIColorClamp", parameters: [
+        "inputMinComponents": CIVector(x: 0, y: 0, z: 0, w: 0),
+        "inputMaxComponents": CIVector(x: 1, y: 1, z: 1, w: 1),
+      ])
+    return graded.applyingFilter("CIBlendWithMask", parameters: [
+      kCIInputBackgroundImageKey: image,
+      kCIInputMaskImageKey: maskScaled(matte, to: extent),
+    ]).cropped(to: extent)
+  }
+
   // MARK: - Shared helpers
 
   /// Upscale a stored mask thumb onto the working extent (bilinear).

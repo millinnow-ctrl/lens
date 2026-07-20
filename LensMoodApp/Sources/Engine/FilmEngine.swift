@@ -506,6 +506,14 @@ final class FilmEngine {
     if recipe.skyResponse > 0.001 {
       image = applySkyResponse(image, scene: scene, subject: subject, recipe: recipe, amount: recipe.skyResponse)
     }
+    // R84 (Wave 2 item 3): wake Pastel Cinema's powdery palette on the SUBJECT
+    // (the Wes-Anderson costume-pastel) through the subject matte — mask-scoped
+    // (nil on the analyzeSubjects:false golden path → byte-identical golden) and
+    // scene-keyed to daylight (byte-identical night). The global umbrella/powder
+    // map is golden-LUT-locked (owner-approved regen — see the report).
+    if recipe.id == "pastel-cinema" {
+      image = applyPastelSubjectPalette(image, scene: scene, subject: subject)
+    }
     // R62: early-CCD sensors have no film shoulder — highlights race to clip.
     // R81: grade that race DOWN on a bright scene (the CCD gloss is a dark-scene
     // character; on daylight it just bleaches) — full at dayGuard 0.
