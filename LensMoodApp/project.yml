@@ -180,12 +180,35 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.lensmood.tests
         GENERATE_INFOPLIST_FILE: true
+  # Interactive click-through tour: launches the app in the simulator, taps
+  # through the real product surfaces, and captures a named screenshot at every
+  # step (see LensMoodUITests/TourTests.swift). A UI-testing bundle drives the
+  # app as a separate process — no TEST_HOST; TEST_TARGET_NAME names the app it
+  # instruments (also implied by the LensMood dependency below, set explicitly
+  # so xcodebuild is unambiguous in CI). Inherits the project's iOS 16 floor.
+  LensMoodUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - LensMoodUITests
+    dependencies:
+      - target: LensMood
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.lensmood.uitests
+        GENERATE_INFOPLIST_FILE: true
+        TEST_TARGET_NAME: LensMood
 schemes:
   LensMood:
     build:
       targets:
         LensMood: all
         LensMoodTests: [test]
+        LensMoodUITests: [test]
     test:
+      # order matters: the unit tests run first, then the tour — a tour failure
+      # (element drift, timing) can never mask or precede the engine/product
+      # invariants the unit target proves
       targets:
         - LensMoodTests
+        - LensMoodUITests

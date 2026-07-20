@@ -52,6 +52,10 @@ jobs:
             CODE_SIGNING_ALLOWED=NO | tee xcodebuild.log | tail -100
 
       - name: Test engine and product invariants
+        # The LensMood scheme's test action runs the unit target first, then the
+        # LensMoodUITests tour (project.yml orders them so a tour miss cannot
+        # mask a unit result). Both land in the one result bundle below; the
+        # tour's screenshots are exported from it in the next step.
         working-directory: LensMoodApp
         run: |
           set -o pipefail
@@ -73,6 +77,71 @@ jobs:
         run: |
           grep -E "error:|Test Case .*failed" xcodetest.log | tail -80 || true
           grep "DIAG" xcodetest.log | tail -120 || true
+
+      - name: Export tour screenshots
+        # The interactive UI tour attaches a numbered, named screenshot at every
+        # tap ("01-cameras-home", …). Pull those attachments out of the test
+        # result bundle and restore their tour names so the click-through reads
+        # in order. success()-gated + fully tolerant (|| true, never `set -e`):
+        # this is evidence plumbing and must never turn a green run red.
+        if: success()
+        working-directory: LensMoodApp
+        run: |
+          XCRESULT=ui-artifacts/LensMoodTests.xcresult
+          OUT=ui-artifacts/tour
+          RAW=$(mktemp -d)
+          mkdir -p "$OUT"
+          if [ ! -d "$XCRESULT" ]; then echo "no xcresult — skipping tour export"; exit 0; fi
+          # Xcode 16 syntax: export every attachment + a manifest.json that maps
+          # each exported file to its human-readable XCTAttachment name
+          xcrun xcresulttool export attachments --path "$XCRESULT" --output-path "$RAW" || true
+          python3 - "$RAW" "$OUT" <<'PY' || true
+          import json, os, re, shutil, sys
+          raw, out = sys.argv[1], sys.argv[2]
+          manifest = os.path.join(raw, "manifest.json")
+          count = 0
+          if os.path.exists(manifest):
+              try:
+                  data = json.load(open(manifest))
+              except Exception as exc:
+                  print("manifest unreadable:", exc); data = []
+              # manifest is an array of test entries, each carrying attachments
+              entries = data if isinstance(data, list) else [data]
+              for entry in entries:
+                  for att in (entry.get("attachments") or []):
+                      src = att.get("exportedFileName")
+                      name = att.get("suggestedHumanReadableName") or src
+                      if not src:
+                          continue
+                      # keep only the tour's own numbered screenshots (NN-name)
+                      if not re.match(r"^\d\d-", name or ""):
+                          continue
+                      srcpath = os.path.join(raw, src)
+                      if not os.path.exists(srcpath):
+                          continue
+                      safe = re.sub(r"[^A-Za-z0-9._-]", "-", name)
+                      if not safe.lower().endswith(".png"):
+                          safe += ".png"
+                      dst = os.path.join(out, safe)
+                      base, ext = os.path.splitext(dst)
+                      i = 1
+                      while os.path.exists(dst):
+                          dst = f"{base}-{i}{ext}"; i += 1
+                      shutil.copyfile(srcpath, dst)
+                      count += 1
+          # fallback: if the manifest gave us nothing (schema drift), keep every
+          # exported image so the run still carries whatever the tour produced
+          if count == 0:
+              for fn in sorted(os.listdir(raw)):
+                  if fn == "manifest.json":
+                      continue
+                  s = os.path.join(raw, fn)
+                  if os.path.isfile(s):
+                      shutil.copyfile(s, os.path.join(out, fn))
+                      count += 1
+          print(f"exported {count} tour screenshot(s) to {out}")
+          PY
+          ls -la "$OUT" || true
 
       - name: Capture simulator product surfaces
         # success() only; booting the simulator after a failed build/test

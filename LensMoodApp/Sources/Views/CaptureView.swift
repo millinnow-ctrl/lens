@@ -378,6 +378,10 @@ struct CaptureView: View {
       .overlay(RoundedRectangle(cornerRadius: 16).stroke(CameraTheme.line, lineWidth: 1))
     }
     .buttonStyle(.plain)
+    // inert UI-test hook: this bar's label is composed from the canister,
+    // camera name, counter and a nested grid button, so it has no stable
+    // spoken target — the automated tour opens the film mount through this id
+    .accessibilityIdentifier("capture-film-picker")
     .padding(.horizontal, 14).padding(.top, 12)
   }
 

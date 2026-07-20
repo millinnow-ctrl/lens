@@ -69,6 +69,10 @@ struct HomeView: View {
               }
               .buttonStyle(.plain)
               .accessibilityHint("Opens \(stock.name) development")
+              // inert UI-test hook: the grid card's composed label (name +
+              // tagline + EXIF) is not a stable target, so the automated tour
+              // reaches a camera's develop surface through this identifier
+              .accessibilityIdentifier("camera-card-\(stock.id)")
             }
           }
           .padding(.top, 12)
