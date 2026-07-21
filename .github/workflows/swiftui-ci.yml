@@ -30,7 +30,9 @@ permissions:
 jobs:
   build:
     runs-on: macos-15
-    timeout-minutes: 40
+    # 40 was enough before the interactive tour; run 254 (first tour run) hit
+    # the ceiling at 40:32 and was cancelled mid-tour
+    timeout-minutes: 55
     steps:
       - uses: actions/checkout@v4
 
