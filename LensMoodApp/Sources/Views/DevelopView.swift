@@ -430,13 +430,22 @@ struct DevelopView: View {
           fittedImage(source)
           if let developed {
             // the developed side honors the strength slider — the compare
-            // wipe must show exactly what Save will produce
-            ZStack(alignment: .leading) {
+            // wipe must show exactly what Save will produce.
+            // The overlay is ALWAYS laid out at the full stage size and only
+            // MASKED to the wipe width — a shrinking frame would make the
+            // images re-fit to the narrower container, so the two halves
+            // would render at different scales and nothing would line up
+            // across the divider. Full-size layout + leading mask keeps both
+            // layers in the identical fitted rect at any aspect ratio, any
+            // scale, any divider position.
+            ZStack {
               fittedImage(source)
               fittedImage(developed).opacity(Double(intensity))
             }
-            .frame(width: size.width * compareFraction, alignment: .leading)
-            .clipped()
+            .frame(width: size.width, height: size.height)
+            .mask(alignment: .leading) {
+              Rectangle().frame(width: size.width * compareFraction)
+            }
             Rectangle()
               .fill(Theme.paper)
               .frame(width: 1)
