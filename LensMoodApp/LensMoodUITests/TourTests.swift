@@ -225,25 +225,44 @@ final class TourTests: XCTestCase {
       shot("library-frame-favorite-toggled")
     }
 
+    // R89 regression check for the frame-detail action hierarchy. Before the
+    // restructure, Save / Share / Share-as-card / Print / Delete were five
+    // capsules stacked below the fold of a scroll view: this tour recorded
+    // Share and Print as MISSES, and the "actions" screenshot was pixel-
+    // identical to the plain detail because no action was on screen. Export
+    // now lives in the toolbar, so all of it is reachable from the frame the
+    // sheet opens on — and the tour's own miss-recording is the proof.
+
+    // Save to Photos is asserted present but deliberately NOT tapped: it
+    // writes to Photos, i.e. a system permission dialog the tour must not
+    // trip (same rule as the Print Room's Save in test04).
+    if !app.buttons["Save to Photos"].waitForExistence(timeout: 4) {
+      miss("Save to Photos toolbar button", "save-to-photos")
+    }
+
     // the share affordance opens the system share sheet — screenshot it, then
     // dismiss defensively (a wedge here cannot reach later surfaces: they are
     // separate tests)
-    if tap(app.buttons["Share"], "Share button", name: "share") {
+    if tap(app.buttons["Share"], "Share toolbar button", name: "share") {
       shot("library-share-sheet")
       dismissSystemSheet(app)
     }
 
-    // the frame detail is the menu of onward actions — capture the full set
-    // (Shoot this film again / Save / Share / Share as camera card / Print /
-    // Delete) as evidence they exist
-    _ = app.buttons["Print this frame"].waitForExistence(timeout: 4)
-    shot("library-frame-actions")
+    // the ellipsis holds the rarer onward actions — open it and capture the
+    // full set (Share as camera card / Print this frame / Delete) as evidence
+    // they exist and are one tap from the opened frame
+    if tap(app.buttons["More actions"], "More-actions ellipsis toolbar menu",
+           name: "more-actions") {
+      _ = app.buttons["Print this frame"].waitForExistence(timeout: 4)
+      shot("library-frame-actions")
 
-    // "Print this frame" carries the kept frame to the Print Room (dismisses
-    // the sheet and switches tab)
-    if tap(app.buttons["Print this frame"], "Print this frame button", name: "print-frame") {
-      _ = app.navigationBars["Print"].waitForExistence(timeout: 6)
-      shot("library-print-handoff")
+      // "Print this frame" carries the kept frame to the Print Room (dismisses
+      // the menu and the sheet, and switches tab)
+      if tap(app.buttons["Print this frame"], "Print this frame menu item",
+             name: "print-frame") {
+        _ = app.navigationBars["Print"].waitForExistence(timeout: 6)
+        shot("library-print-handoff")
+      }
     }
   }
 
@@ -381,8 +400,11 @@ final class TourTests: XCTestCase {
       if button.exists, button.isHittable { button.tap(); return }
     }
     app.swipeDown()
-    // if a stray sheet lingers, a tap near the top dims-area helps it close
-    if app.buttons["Print this frame"].waitForExistence(timeout: 3) == false {
+    // if a stray sheet lingers, a tap near the top dims-area helps it close.
+    // "More actions" is the frame detail's own toolbar ellipsis — the control
+    // that proves we are back on the frame (it replaced "Print this frame",
+    // which now lives inside that menu and is invisible while it is closed).
+    if app.buttons["More actions"].waitForExistence(timeout: 3) == false {
       app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.06)).tap()
     }
   }

@@ -233,61 +233,18 @@ private struct GalleryDetailView: View {
 
           filmPanel
 
+          // The one action left in the body, and deliberately the quiet one.
+          // Re-developing is a low-frequency choice; it used to hold the
+          // primary slot at the top of a six-capsule wall while Save and
+          // Share — the reason a frame gets opened at all — sat below the
+          // fold. Save/Share are now toolbar chrome, one tap from open.
           Button {
             shootThisFilmAgain()
           } label: {
             Text("Shoot this film again")
           }
-          .buttonStyle(InstrumentButtonStyle(kind: .primary))
+          .buttonStyle(InstrumentButtonStyle(kind: .secondary))
           .accessibilityHint("Opens \(asset.stock.name) to develop a new photograph")
-
-          Button(isSaving ? "Saving to Photos" : "Save to Photos") {
-            save()
-          }
-          .buttonStyle(InstrumentButtonStyle(kind: .secondary))
-          .disabled(isSaving)
-
-          Button("Share") {
-            // resolvedFrame: by now the decode has landed; the synchronous
-            // fallback is one bounded (≤2048 px) JPEG decode
-            shareItem = ShareItem(image: resolvedFrame())
-          }
-          .buttonStyle(InstrumentButtonStyle(kind: .secondary))
-
-          Button("Share as camera card") {
-            shareCard()
-          }
-          .buttonStyle(InstrumentButtonStyle(kind: .secondary))
-          .disabled(isComposingCard)
-
-          Button("Print this frame") {
-            printThisFrame()
-          }
-          .buttonStyle(InstrumentButtonStyle(kind: .secondary))
-          .accessibilityHint("Opens the Print Room with this photograph")
-
-          // deleting is irreversible (no undo, no trash) — it must confirm
-          // and name the consequence before anything is destroyed
-          Button(role: .destructive) {
-            deleteRequested = true
-          } label: {
-            Text("Delete")
-              .frame(maxWidth: .infinity)
-              .frame(minHeight: Theme.controlHeight)
-          }
-          .confirmationDialog(
-            "Delete this frame?",
-            isPresented: $deleteRequested,
-            titleVisibility: .visible
-          ) {
-            Button("Delete Frame", role: .destructive) {
-              model.remove(asset)
-              dismiss()
-            }
-            Button("Cancel", role: .cancel) {}
-          } message: {
-            Text("Leaves your roll for good. Saved copies stay in Photos.")
-          }
         }
         .padding(Theme.pagePadding)
       }
@@ -304,9 +261,85 @@ private struct GalleryDetailView: View {
           }
           .accessibilityLabel(isFavorite ? "Remove favorite" : "Add favorite")
         }
+
+        // Export is what a frame is opened for, so it lives in the chrome —
+        // the Photos idiom: save and share as glyphs at the trailing edge,
+        // everything rarer folded behind an ellipsis. Every one of them
+        // carries an explicit VoiceOver label; a glyph alone is silent.
+        ToolbarItem(placement: .topBarTrailing) {
+          Button {
+            save()
+          } label: {
+            if isSaving {
+              ProgressView()
+            } else {
+              Image(systemName: "square.and.arrow.down")
+            }
+          }
+          .disabled(isSaving)
+          .accessibilityLabel(isSaving ? "Saving to Photos" : "Save to Photos")
+          .accessibilityHint("Writes this photograph to your Photos library")
+        }
+        ToolbarItem(placement: .topBarTrailing) {
+          Button {
+            // resolvedFrame: by now the decode has landed; the synchronous
+            // fallback is one bounded (≤2048 px) JPEG decode
+            shareItem = ShareItem(image: resolvedFrame())
+          } label: {
+            Image(systemName: "square.and.arrow.up")
+          }
+          .accessibilityLabel("Share")
+          .accessibilityHint("Opens the share sheet with this photograph")
+        }
+        ToolbarItem(placement: .topBarTrailing) {
+          Menu {
+            Button {
+              shareCard()
+            } label: {
+              Label("Share as camera card", systemImage: "rectangle.on.rectangle.angled")
+            }
+            .disabled(isComposingCard)
+
+            Button {
+              printThisFrame()
+            } label: {
+              Label("Print this frame", systemImage: "photo.artframe")
+            }
+
+            Divider()
+
+            Button(role: .destructive) {
+              deleteRequested = true
+            } label: {
+              Label("Delete", systemImage: "trash")
+            }
+          } label: {
+            Image(systemName: "ellipsis.circle")
+          }
+          .accessibilityLabel("More actions")
+          .accessibilityHint("Share as a camera card, print this frame, or delete it")
+        }
+
         ToolbarItem(placement: .confirmationAction) {
           Button("Done") { dismiss() }
         }
+      }
+      // deleting is irreversible (no undo, no trash) — it must confirm and
+      // name the consequence before anything is destroyed. Anchored on the
+      // scroll view rather than on the button, because the button that raises
+      // it now lives inside a Menu that dismisses itself on the tap.
+      .confirmationDialog(
+        "Delete this frame?",
+        isPresented: $deleteRequested,
+        titleVisibility: .visible
+      ) {
+        Button("Delete Frame", role: .destructive) {
+          model.remove(asset)
+          dismiss()
+        }
+        Button("Cancel", role: .cancel) {}
+      } message: {
+        Text("Leaves your roll for good. Saved copies stay in Photos.")
       }
       .task {
         // decode the stored frame off-main; session assets already hold it
