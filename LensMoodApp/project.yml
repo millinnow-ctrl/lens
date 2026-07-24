@@ -1,28 +1,214 @@
 # XcodeGen spec — `xcodegen` in this directory produces LensMood.xcodeproj.
-# CI (.github/workflows/swiftui-ci.yml) does this on a cloud Mac on every push.
 name: LensMood
 options:
   bundleIdPrefix: app.lensmood
   deploymentTarget:
     iOS: '16.0'
   createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: '5.9'
 targets:
   LensMood:
     type: application
     platform: iOS
     sources:
       - Sources
+      - path: Resources/luts
+        buildPhase: resources
+        type: folder
+      - path: Resources/images
+        buildPhase: resources
+      - path: Resources/video
+        buildPhase: resources
+      - path: Resources/fonts
+        buildPhase: resources
+      - path: Resources/PrivacyInfo.xcprivacy
+        buildPhase: resources
+      - path: Resources/Assets.xcassets
+        buildPhase: resources
+    dependencies:
+      # iOS citizenship: the Share-Sheet develop surface and the Home/Lock
+      # Screen widgets ship inside the app bundle (PlugIns/). Both build
+      # unsigned in the simulator: no App Groups, no capabilities, no team.
+      - target: LensMoodShare
+        embed: true
+      - target: LensMoodWidgets
+        embed: true
+    # CFBundleURLTypes (the lensmood:// scheme for widget deep links) cannot
+    # be expressed as an INFOPLIST_KEY_ build setting, so the app carries this
+    # minimal Info.plist (written by XcodeGen at generation time). Xcode
+    # merges it with the INFOPLIST_KEY_ settings below because
+    # GENERATE_INFOPLIST_FILE stays on.
+    info:
+      path: Resources/App-Info.plist
+      properties:
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleURLTypes:
+          - CFBundleURLName: app.lensmood.ios
+            CFBundleURLSchemes:
+              - lensmood
+        # Export compliance: only exempt encryption (HTTPS/ATS + system
+        # crypto). Answers the App Store Connect question in the binary so
+        # every TestFlight/App Store upload skips the compliance prompt.
+        ITSAppUsesNonExemptEncryption: false
+        # SwiftUI launch behavior: an empty UILaunchScreen dict opts into the
+        # system-generated launch screen (correct sizing/rotation metadata).
+        # Kept here explicitly instead of INFOPLIST_KEY_UILaunchScreen_Generation
+        # so the key can't conflict with the merged Info.plist.
+        UILaunchScreen: {}
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.lensmood.ios
         MARKETING_VERSION: '1.0.0'
         CURRENT_PROJECT_VERSION: '1'
         TARGETED_DEVICE_FAMILY: '1'
-        SWIFT_VERSION: '5.9'
         GENERATE_INFOPLIST_FILE: true
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         INFOPLIST_KEY_CFBundleDisplayName: LensMood
-        INFOPLIST_KEY_UILaunchScreen_Generation: true
-        INFOPLIST_KEY_NSPhotoLibraryUsageDescription: LensMood develops photos you pick. Everything stays on your phone.
-        INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: Save your developed shots and tapes to Photos.
-        INFOPLIST_KEY_NSCameraUsageDescription: Shoot straight into a lens.
+        # PHPicker reads need no permission; the app only ever ADDS to Photos
+        INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: Save developed photographs and tapes to your library.
+        INFOPLIST_KEY_NSCameraUsageDescription: Use the camera to make photographs and tapes in LensMood.
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: Record sound with your LensMood tape.
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
+  LensMoodShare:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: ShareExtension/ShareViewController.swift
+      - path: ShareExtension/ShareDevelopView.swift
+      # Shared product sources, compiled directly into the extension (no
+      # framework target, so the app's build graph stays flat). The set is the
+      # minimal closure that stands alone: the engine (FilmEngine + kernels +
+      # meter + recipes + LUT loading), its Vision subject service, the stock
+      # rail metadata, the prose look contracts, the ocean theme, and the
+      # add-only Photos writer.
+      - path: Sources/Engine
+      - path: Sources/Model/Stock.swift
+      - path: Sources/Model/StyleDefinition.swift
+      - path: Sources/Theme.swift
+      - path: Sources/Services/VisionService.swift
+      - path: Sources/Services/PhotoLibraryWriter.swift
+      # the develop gate: the extension's rail lists only unlocked cameras
+      # (StoreKit entitlements are per Apple ID, so no App Group is needed;
+      # the film-door exposure metering stays an in-app ceremony). Store
+      # references ExposureRoll/ExposureLedger, so both files compile in.
+      - path: Sources/Services/Store.swift
+      - path: Sources/Services/ExposureRoll.swift
+      - path: Resources/luts
+        buildPhase: resources
+        type: folder
+      - path: Resources/PrivacyInfo.xcprivacy
+        buildPhase: resources
+    info:
+      path: ShareExtension/Info.plist
+      properties:
+        CFBundleDisplayName: LensMood
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # Export compliance (same answer as the app: exempt crypto only).
+        ITSAppUsesNonExemptEncryption: false
+        NSPhotoLibraryAddUsageDescription: Save developed photographs to your library.
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+          NSExtensionAttributes:
+            # one image at a time — never TRUEPREDICATE (App Review rejects it)
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsImageWithMaxCount: 1
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.lensmood.ios.share
+        MARKETING_VERSION: '1.0.0'
+        CURRENT_PROJECT_VERSION: '1'
+        TARGETED_DEVICE_FAMILY: '1'
+        SKIP_INSTALL: true
+  LensMoodWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: Widgets/LensMoodWidgets.swift
+      # Self-contained by design: camera metadata + the day rotation + the
+      # deep-link vocabulary + theme. No photographs, no shared container, so
+      # no App Groups entitlement is needed anywhere.
+      - path: Sources/Model/Stock.swift
+      - path: Sources/Model/CameraOfTheDay.swift
+      - path: Sources/Model/DeepLink.swift
+      - path: Sources/Engine/CameraRecipe.swift
+      - path: Sources/Theme.swift
+      - path: Resources/PrivacyInfo.xcprivacy
+        buildPhase: resources
+    info:
+      path: Widgets/Info.plist
+      properties:
+        CFBundleDisplayName: LensMood
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # Export compliance (same answer as the app: exempt crypto only).
+        ITSAppUsesNonExemptEncryption: false
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.lensmood.ios.widgets
+        MARKETING_VERSION: '1.0.0'
+        CURRENT_PROJECT_VERSION: '1'
+        TARGETED_DEVICE_FAMILY: '1'
+        SKIP_INSTALL: true
+  LensMoodTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - Tests
+    resources:
+      - Tests/Fixtures
+      # all 10 scene-meter parity photos (see Tests/Fixtures/scene-metrics.json)
+      - ../reference/photos/sample-golden.jpg
+      - ../reference/photos/sample-friends.jpg
+      - ../reference/photos/sample-brunch.jpg
+      - ../reference/photos/sample-street.jpg
+      - ../reference/photos/sample-night.jpg
+      - ../reference/photos/sample-concert.jpg
+      - ../reference/photos/sample-dog.jpg
+      - ../reference/photos-extended/degraded-blurry-from-brunch.png
+      - ../reference/photos-extended/degraded-noisy-from-friends.png
+      - ../reference/photos-extended/degraded-underexposed-from-golden.png
+    dependencies:
+      - target: LensMood
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.lensmood.tests
+        GENERATE_INFOPLIST_FILE: true
+  # Interactive click-through tour: launches the app in the simulator, taps
+  # through the real product surfaces, and captures a named screenshot at every
+  # step (see LensMoodUITests/TourTests.swift). A UI-testing bundle drives the
+  # app as a separate process — no TEST_HOST; TEST_TARGET_NAME names the app it
+  # instruments (also implied by the LensMood dependency below, set explicitly
+  # so xcodebuild is unambiguous in CI). Inherits the project's iOS 16 floor.
+  LensMoodUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - LensMoodUITests
+    dependencies:
+      - target: LensMood
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.lensmood.uitests
+        GENERATE_INFOPLIST_FILE: true
+        TEST_TARGET_NAME: LensMood
+schemes:
+  LensMood:
+    build:
+      targets:
+        LensMood: all
+        LensMoodTests: [test]
+        LensMoodUITests: [test]
+    test:
+      # order matters: the unit tests run first, then the tour — a tour failure
+      # (element drift, timing) can never mask or precede the engine/product
+      # invariants the unit target proves
+      targets:
+        - LensMoodTests
+        - LensMoodUITests

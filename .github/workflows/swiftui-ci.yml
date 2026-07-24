@@ -1,32 +1,38 @@
 name: SwiftUI CI
 
-# Compiles the SwiftUI app and verifies the frozen reference output.
-# No signing or Apple account is required.
+# Builds, tests, and visually captures the native app. Reference-engine
+# preservation runs separately so Swift-only changes do not regenerate and
+# retain the 180-image fixture corpus.
 
 on:
   workflow_dispatch:
   pull_request:
     paths:
       - 'LensMoodApp/**'
-      - 'reference/**'
       - '.github/workflows/swiftui-ci.yml'
+  # push runs only on main; PR branches are already covered by the
+  # pull_request trigger, and running both doubled the billed macOS minutes
   push:
+    branches: [main]
     paths:
       - 'LensMoodApp/**'
-      - 'reference/**'
       - '.github/workflows/swiftui-ci.yml'
 
 concurrency:
   group: swiftui-ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# contents: write only so the run can force-push review captures to the
+# throwaway ci-captures branch below — never to code branches
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
     runs-on: macos-15
-    timeout-minutes: 30
+    # 40 was enough before the interactive tour; run 254 (first tour run) hit
+    # the ceiling at 40:32 and was cancelled mid-tour
+    timeout-minutes: 55
     steps:
       - uses: actions/checkout@v4
 
@@ -45,46 +51,225 @@ jobs:
             -project LensMood.xcodeproj \
             -scheme LensMood \
             -destination 'generic/platform=iOS Simulator' \
-            CODE_SIGNING_ALLOWED=NO | tee xcodebuild.log | tail -80
+            CODE_SIGNING_ALLOWED=NO | tee xcodebuild.log | tail -100
 
-      - name: Upload build log on failure
+      - name: Test engine and product invariants
+        # The LensMood scheme's test action runs the unit target first, then the
+        # LensMoodUITests tour (project.yml orders them so a tour miss cannot
+        # mask a unit result). Both land in the one result bundle below; the
+        # tour's screenshots are exported from it in the next step.
+        working-directory: LensMoodApp
+        run: |
+          set -o pipefail
+          mkdir -p ui-artifacts
+          xcodebuild test \
+            -project LensMood.xcodeproj \
+            -scheme LensMood \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
+            -resultBundlePath ui-artifacts/LensMoodTests.xcresult \
+            CODE_SIGNING_ALLOWED=NO | tee xcodetest.log | tail -120
+
+      - name: Show failing tests
+        # the test step tails only 120 lines, which can scroll failures out of
+        # the job log entirely — surface every failing case + assertion here.
+        # DIAG lines are diagnostic prints from evidence tests (numeric probes
+        # a red run needs visible to be diagnosed without artifact access).
         if: failure()
+        working-directory: LensMoodApp
+        run: |
+          grep -E "error:|Test Case .*failed" xcodetest.log | tail -80 || true
+          grep "DIAG" xcodetest.log | tail -120 || true
+
+      - name: Export tour screenshots
+        # The interactive UI tour attaches a numbered, named screenshot at every
+        # tap ("01-cameras-home", …). Pull those attachments out of the test
+        # result bundle and restore their tour names so the click-through reads
+        # in order. success()-gated + fully tolerant (|| true, never `set -e`):
+        # this is evidence plumbing and must never turn a green run red.
+        if: success()
+        working-directory: LensMoodApp
+        run: |
+          XCRESULT=ui-artifacts/LensMoodTests.xcresult
+          OUT=ui-artifacts/tour
+          RAW=$(mktemp -d)
+          mkdir -p "$OUT"
+          if [ ! -d "$XCRESULT" ]; then echo "no xcresult — skipping tour export"; exit 0; fi
+          # Xcode 16 syntax: export every attachment + a manifest.json that maps
+          # each exported file to its human-readable XCTAttachment name
+          xcrun xcresulttool export attachments --path "$XCRESULT" --output-path "$RAW" || true
+          python3 - "$RAW" "$OUT" <<'PY' || true
+          import json, os, re, shutil, sys
+          raw, out = sys.argv[1], sys.argv[2]
+          manifest = os.path.join(raw, "manifest.json")
+          count = 0
+          if os.path.exists(manifest):
+              try:
+                  data = json.load(open(manifest))
+              except Exception as exc:
+                  print("manifest unreadable:", exc); data = []
+              # manifest is an array of test entries, each carrying attachments
+              entries = data if isinstance(data, list) else [data]
+              for entry in entries:
+                  for att in (entry.get("attachments") or []):
+                      src = att.get("exportedFileName")
+                      name = att.get("suggestedHumanReadableName") or src
+                      if not src:
+                          continue
+                      # keep only the tour's own numbered screenshots (NN-name)
+                      if not re.match(r"^\d\d-", name or ""):
+                          continue
+                      srcpath = os.path.join(raw, src)
+                      if not os.path.exists(srcpath):
+                          continue
+                      safe = re.sub(r"[^A-Za-z0-9._-]", "-", name)
+                      if not safe.lower().endswith(".png"):
+                          safe += ".png"
+                      dst = os.path.join(out, safe)
+                      base, ext = os.path.splitext(dst)
+                      i = 1
+                      while os.path.exists(dst):
+                          dst = f"{base}-{i}{ext}"; i += 1
+                      shutil.copyfile(srcpath, dst)
+                      count += 1
+          # fallback: if the manifest gave us nothing (schema drift), keep every
+          # exported image so the run still carries whatever the tour produced
+          if count == 0:
+              for fn in sorted(os.listdir(raw)):
+                  if fn == "manifest.json":
+                      continue
+                  s = os.path.join(raw, fn)
+                  if os.path.isfile(s):
+                      shutil.copyfile(s, os.path.join(out, fn))
+                      count += 1
+          print(f"exported {count} tour screenshot(s) to {out}")
+          PY
+          ls -la "$OUT" || true
+
+      - name: Capture simulator product surfaces
+        # success() only; booting the simulator after a failed build/test
+        # burns 10x-billed macOS minutes with nothing to capture
+        if: success()
+        working-directory: LensMoodApp
+        run: |
+          mkdir -p ui-artifacts
+          DEVICE_ID=$(xcrun simctl list devices available | awk '/iPhone 16 Pro \(/ { value=$(NF-1); gsub(/[()]/, "", value); print value; exit }')
+          test -n "$DEVICE_ID"
+          xcrun simctl boot "$DEVICE_ID" || true
+          xcrun simctl bootstatus "$DEVICE_ID" -b
+          APP_PATH=$(find "$HOME/Library/Developer/Xcode/DerivedData" -path '*/Build/Products/Debug-iphonesimulator/LensMood.app' -print -quit)
+          test -d "$APP_PATH"
+          xcrun simctl install "$DEVICE_ID" "$APP_PATH"
+          for tab in cameras capture library print tape develop; do
+            xcrun simctl terminate "$DEVICE_ID" app.lensmood.ios || true
+            # seed a demo contact sheet for the library-backed surfaces so their
+            # populated state is captured (the Simulator has no camera/roll)
+            case $tab in
+              capture|library|print) DEMO=1 ;;
+              *) DEMO= ;;
+            esac
+            # "develop" is the ad/marketing capture: boot straight into a
+            # developing photograph (LENSMOOD_AD) and give the engine time
+            AD=
+            LAUNCH_TAB=$tab
+            WAIT=3
+            if [ "$tab" = develop ]; then AD=1; LAUNCH_TAB=cameras; WAIT=9; fi
+            SIMCTL_CHILD_LENSMOOD_TAB=$LAUNCH_TAB SIMCTL_CHILD_LENSMOOD_DEMO=$DEMO SIMCTL_CHILD_LENSMOOD_AD=$AD \
+              xcrun simctl launch "$DEVICE_ID" app.lensmood.ios
+            sleep $WAIT
+            xcrun simctl io "$DEVICE_ID" screenshot ui-artifacts/$tab.png
+          done
+          # ad material: the real develop screen once per featured camera, so
+          # the ad's look-switch cuts are whole genuine screens
+          mkdir -p ui-artifacts/develop-screens
+          for stock in disposable iphone-flash camcorder-90s leica-street gq-editorial a24-still film-noir y2k-digicam polaroid super-8 lomo kodachrome security-cam point-shoot pastel-cinema tokyo-neon photobooth tintype; do
+            xcrun simctl terminate "$DEVICE_ID" app.lensmood.ios || true
+            SIMCTL_CHILD_LENSMOOD_TAB=cameras SIMCTL_CHILD_LENSMOOD_AD=1 SIMCTL_CHILD_LENSMOOD_AD_STOCK=$stock \
+              xcrun simctl launch "$DEVICE_ID" app.lensmood.ios
+            sleep 9
+            xcrun simctl io "$DEVICE_ID" screenshot ui-artifacts/develop-screens/$stock.png
+          done
+          # gate rehearsal (DEBUG-only switch, never in release): the film
+          # door on a locked camera, so the owner can approve gate-on
+          # visuals before any flip is ever decided
+          xcrun simctl terminate "$DEVICE_ID" app.lensmood.ios || true
+          SIMCTL_CHILD_LENSMOOD_TAB=cameras SIMCTL_CHILD_LENSMOOD_AD=1 SIMCTL_CHILD_LENSMOOD_AD_STOCK=kodachrome \
+            SIMCTL_CHILD_LENSMOOD_REHEARSAL=gate-on \
+            xcrun simctl launch "$DEVICE_ID" app.lensmood.ios
+          sleep 9
+          xcrun simctl io "$DEVICE_ID" screenshot ui-artifacts/develop-screens/rehearsal-film-door.png
+          # the develop ceremony, held as a completed record (DEBUG-only
+          # switch, never in release): the real step list for this photograph,
+          # every step checked, and the REAL measured develop duration. The
+          # panel is otherwise gone by the time any capture lands, so this is
+          # the only way the ceremony work is ever seen — and the number in
+          # the screenshot is the one Analytics.developFinished(ms:) logged.
+          xcrun simctl terminate "$DEVICE_ID" app.lensmood.ios || true
+          SIMCTL_CHILD_LENSMOOD_TAB=cameras SIMCTL_CHILD_LENSMOOD_AD=1 SIMCTL_CHILD_LENSMOOD_AD_STOCK=tokyo-neon \
+            SIMCTL_CHILD_LENSMOOD_CEREMONY=hold \
+            xcrun simctl launch "$DEVICE_ID" app.lensmood.ios
+          sleep 9
+          xcrun simctl io "$DEVICE_ID" screenshot ui-artifacts/develop-screens/ceremony-record.png
+          # the same neon develop in Original and Compare preview modes — the
+          # ad's compare-slider moment wipes between genuine app states
+          for mode in original compare; do
+            xcrun simctl terminate "$DEVICE_ID" app.lensmood.ios || true
+            SIMCTL_CHILD_LENSMOOD_TAB=cameras SIMCTL_CHILD_LENSMOOD_AD=1 SIMCTL_CHILD_LENSMOOD_AD_STOCK=tokyo-neon \
+              SIMCTL_CHILD_LENSMOOD_AD_MODE=$mode \
+              xcrun simctl launch "$DEVICE_ID" app.lensmood.ios
+            sleep 9
+            xcrun simctl io "$DEVICE_ID" screenshot ui-artifacts/develop-screens/tokyo-neon-$mode.png
+          done
+
+      - name: Upload simulator capture
+        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: swiftui-build-log
-          path: LensMoodApp/xcodebuild.log
-          retention-days: 14
+          name: swiftui-ui-capture
+          path: LensMoodApp/ui-artifacts/
+          if-no-files-found: error
+          retention-days: 7
 
-  fixtures:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: lensmood-native/package-lock.json
-      - name: Install reference dependencies
-        working-directory: lensmood-native
-        run: npm ci --legacy-peer-deps
-      - name: Install pinned fixture rasterizer
-        working-directory: lensmood-native
-        run: npm install --no-save --legacy-peer-deps @napi-rs/canvas@1.0.2
-      - name: Compile reference engine
-        working-directory: reference
-        run: node ../lensmood-native/node_modules/typescript/lib/tsc.js lib/engine.ts lib/styles.ts lib/scene.ts --outDir out --module commonjs --target es2020 --lib es2020,dom --noCheck
-      - name: Verify golden fixtures and emit renders
-        working-directory: reference
-        run: NODE_PATH=../lensmood-native/node_modules FIXTURES_OUT=$GITHUB_WORKSPACE/fixture-renders node fixtures.cjs verify
-      - name: Upload fixture renders and labeled grids
+      - name: Upload Class A parity evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: golden-fixtures
+          name: class-a-parity
+          path: LensMoodApp/ui-artifacts/parity/
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload Xcode logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: swiftui-xcode-logs
           path: |
-            fixture-renders/
-            reference/fixtures/*/*-grid.png
-            reference/fixtures/manifest.json
-          if-no-files-found: error
-          retention-days: 30
+            LensMoodApp/xcodebuild.log
+            LensMoodApp/xcodetest.log
+          retention-days: 3
+
+      # The dev sandbox can git-fetch but cannot reach the artifact CDN, so
+      # screenshots + parity evidence also land on a throwaway force-pushed
+      # branch for direct review. Never contains source code.
+      - name: Publish captures to ci-captures branch
+        # success-gated (was always()): a red run must not overwrite the last
+        # good evidence set. Concurrent-run clobbering is already prevented by
+        # the workflow's existing concurrency group above.
+        if: success()
+        run: |
+          set -e
+          DIR=$(mktemp -d)
+          if [ -d LensMoodApp/ui-artifacts ]; then
+            rsync -a --exclude '*.xcresult' LensMoodApp/ui-artifacts/ "$DIR"/ || true
+          fi
+          [ -n "$(ls -A "$DIR" 2>/dev/null)" ] || { echo "nothing to publish"; exit 0; }
+          echo "run ${{ github.run_number }} sha ${{ github.sha }} $(date -u +%FT%TZ)" > "$DIR/RUN.txt"
+          cd "$DIR"
+          git init -q -b ci-captures
+          git config user.email "actions@users.noreply.github.com"
+          git config user.name "CI Captures"
+          git add -A
+          git commit -q -m "captures: run ${{ github.run_number }} @ ${{ github.sha }}"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-captures
+
+

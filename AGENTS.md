@@ -3,6 +3,22 @@
 Read `docs/MASTER_DIRECTIVE.md` completely before changing anything. It is the
 owner's standing product and engineering standard.
 
+## Stewardship (owner decision, 2026-07-12)
+
+Claude Code is the sole steward of this repository while draft PR #3 is under
+directive audit. Other coding agents must not push to `agent/swift-product-foundation`
+or open new branches without a fresh, explicit owner instruction. The owner
+also directed: restore the approved ocean visual identity from the reference
+app; the "editorial paper" restyle is superseded.
+
+## CI cost discipline (mandatory — the July 2026 budget exhaustion must not repeat)
+
+- One CI run per change: never push commits one-by-one in rapid succession;
+  batch work and let the `pull_request` trigger validate it once.
+- macOS runner minutes are 10x-billed on private plans; never add `always()`
+  steps that boot simulators after failed builds.
+- Full-resolution fixture artifacts are manual-only (`workflow_dispatch`).
+
 ## Repository boundaries
 
 - Permanent product work belongs in `LensMoodApp/`: SwiftUI, Core Image,

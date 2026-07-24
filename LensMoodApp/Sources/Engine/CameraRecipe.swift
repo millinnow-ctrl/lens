@@ -1,0 +1,198 @@
+import Foundation
+
+enum CameraEngineClass: String, Codable {
+  case staticLUT
+  case adaptive
+}
+
+struct ReferenceSpatialProfile: Equatable {
+  let intensity: Double
+  let acutance: Double
+  let chromaticAberration: Double
+  let distortion: Double
+  let cornerSoftness: Double
+  let shadowVignette: Double
+  let grainLevel: Double
+  let grainAmplitude: Double
+  let grainChroma: Double
+  let grainSize: Double
+}
+
+struct CameraRecipe: Identifiable, Equatable {
+  let id: String
+  let engineClass: CameraEngineClass
+  let lutName: String?
+  let postLUTExposure: Double
+  let postLUTSaturation: Double
+  let postLUTContrast: Double
+  let postLUTMatrix: [Double]?
+  let referenceSpatial: ReferenceSpatialProfile?
+  let exposureBias: Double
+  let adaptiveExposure: Double
+  let warmth: Double
+  let saturation: Double
+  let contrast: Double
+  let shadowLift: Double
+  let highlightCompression: Double
+  let vignette: Double
+  let bloom: Double
+  let grain: Double
+  let grainSize: Double
+  let monochrome: Bool
+  let protectsFaces: Bool
+  let preservesWarmCast: Bool
+  let decisionVocabulary: [String]
+
+  // MARK: Light-intelligence passes (R61 — the light is read, not painted)
+  /// On-camera-flash physics for the develop path: specular pop on reflective
+  /// surfaces + near/far falloff from the subject mask (background falls toward
+  /// ambient, never lifts). 0 = off.
+  let flashPhysics: Double
+  /// Bloom emanates from detected light sources in the SOURCE's own hue;
+  /// refuses to add colored glow when the scene has no emissive sources. 0 = off.
+  let sourceBloom: Double
+  /// Directional key-light shading: shadows deepen with distance from the
+  /// detected key light (faces partially preserved). 0 = off.
+  let keyShadow: Double
+  /// Video AGC behavior: grain amplitude follows scene darkness (night = noisy,
+  /// daylight = near-clean) instead of a fixed overlay.
+  let gainDrivenGrain: Bool
+  /// R62: slow-film reciprocity failure — exposure collapses and shadows crush
+  /// color-starved in dark scenes (super-8's ISO-40 cannot see at night). 0 = off.
+  let nightReciprocity: Double
+  /// R62: early-CCD highlight response — no shoulder, highlights race to clip.
+  let ccdClip: Double
+  /// R62: clipped highlights smear vertically down the sensor column
+  /// (CCD blooming / tube comet-tails). 0 = off.
+  let highlightSmear: Double
+  /// Tube cameras only smear at night gain; CCD stills smear in any light.
+  let highlightSmearDarkOnly: Bool
+
+  // MARK: Masked-light passes (R66 — the look meets the subject, skin, sky)
+  /// Backlight-gated rim halation traced along the subject's silhouette in the
+  /// source light's own (chroma-boosted) color. Structural no-op without a
+  /// subject matte or without metered lights. 0 = off.
+  let rimLight: Double
+  /// The stock's curve runs full-strength everywhere EXCEPT the skin mask,
+  /// which holds a gentler counter-grade of the same curve (the honest version
+  /// of a harsh look that still flatters people). 0 = off.
+  let skinProtect: Double
+  /// Sky-scoped color response — each film sees the sky its own way (deepen /
+  /// pastel / orthochromatic blow-out / filter-darken). Refuses when the sky
+  /// mask is absent (coverage below threshold). 0 = off.
+  let skyResponse: Double
+
+  // MARK: Flash highlight headroom (R78 — flashed faces keep structure)
+  /// A flash already exposes the SUBJECT, so the develop path must not lift it
+  /// again. On a headroom stock the engine backs off every pass that over-brightens
+  /// the flashed face into clip — the face-protection lift, the flash-falloff
+  /// subject lift, the adaptive median chase (scaled by scene highlights), and the
+  /// mono-defeated specular pop — while keeping the flash's background falloff and
+  /// hard contrast. So the face keeps structure and the hard-flash identity
+  /// survives. 0 = off (the color flash family measured sound at 7–10% face clip;
+  /// only photobooth, whose mono conversion compounds every push, clips).
+  let flashHighlightHeadroom: Double
+
+  // MARK: Daylight highlight guard (R81 — glossy night stocks don't bleach daylight)
+  /// A CCD/flash "glossy bright" stock is tuned on dark party scenes; on an
+  /// already-bright, well-exposed frame its highlight-racing passes (CCD clip,
+  /// the flash speculars/subject lift, the face-protection lift) stack past clip
+  /// and bleach faces and background. This grades those passes DOWN as the scene
+  /// gets bright (a smoothstep on scene key) and adds a highlight rolloff — full
+  /// character on dark scenes (its identity, untouched), disposable-gentle on
+  /// daylight. 0 = off. The weighting is scene-conditioned, so unlike
+  /// `flashHighlightHeadroom` it never restrains the dark-scene look.
+  let daylightHighlightGuard: Double
+
+  static func recipe(for stockID: String) -> CameraRecipe {
+    all.first(where: { $0.id == stockID }) ?? all[0]
+  }
+
+  static let all: [CameraRecipe] = [
+    .adaptive("disposable", exposure: 0.10, adaptive: 0.45, warmth: 0.12, saturation: 1.04, contrast: 1.10, shadows: 0.05, highlights: 0.20, vignette: 0.28, bloom: 0.10, grain: 0.15, grainSize: 1.1, faces: true, warmCast: true, flash: 0.45, skin: 0.25, decisions: ["Uneven flash retained", "Faces lifted gently", "Highlights allowed to bloom"]),
+    // R84 daylightHighlightGuard + black-point (item 2): the hard-flash stock was
+    // tuned on a dark party frame, where a face-lift + highlight push flatters. On
+    // an already-bright daylight café it just over-exposes — the whole frame lifts
+    // (the adaptive median chase), the blacks never reach black (grey tabletop),
+    // skin goes waxy-pale and the background verges on blown. The scene-keyed
+    // guard rolls the highlights off + backs the subject lifts off, and (as a
+    // black-point stock) commits the blacks and caps the adaptive lift on bright
+    // scenes. All scaled by brightGuardWeight → night render byte-identical.
+    .adaptive("iphone-flash", exposure: 0.18, adaptive: 0.60, warmth: -0.08, saturation: 1.08, contrast: 1.20, shadows: -0.08, highlights: 0.08, vignette: 0.05, bloom: 0.06, grain: 0.04, grainSize: 0.7, faces: true, warmCast: false, flash: 1.0, dayGuard: 0.9, skin: 0.40, decisions: ["Face exposure prioritized", "Flash kept cool", "Background shadows held deep"]),
+    // R84 daylightHighlightGuard (item 4): a small, measured guard for the tape
+    // stock's 6.8% daylight clip (critic B) — the rolloff scaled to its video
+    // identity. NOT a golden stock (adaptive; absent from the Class-A golden
+    // list), so the guard rides the normal develop path; weight 0 at night keeps
+    // the tube look byte-identical.
+    .adaptive("camcorder-90s", exposure: 0.08, adaptive: 0.55, warmth: 0.02, saturation: 0.78, contrast: 0.92, shadows: 0.08, highlights: 0.24, vignette: 0.18, bloom: 0.10, grain: 0.20, grainSize: 1.5, faces: false, warmCast: true, dayGuard: 0.5, gainNoise: true, smear: 0.85, smearDarkOnly: true, decisions: ["Auto gain followed the scene", "Color softened toward tape", "Shadow noise left visible"]),
+    .lut("leica-street", exposure: -0.05, warmth: 0, saturation: 0.98, contrast: 1.12, shadows: -0.02, highlights: 0.10, vignette: 0.12, bloom: 0.02, grain: 0.07, grainSize: 0.75, postExposure: 0.19, postMatrix: [0.885, 0, 0, 0, 1.033, 0, 0, 0, 1.132, 0, 0, 0], referenceSpatial: ReferenceSpatialProfile(intensity: 0.8, acutance: 0.22, chromaticAberration: 0.02, distortion: 0.01, cornerSoftness: 0.05, shadowVignette: 0.32, grainLevel: 0.26, grainAmplitude: 0.75, grainChroma: 0.12, grainSize: 0.8), faces: true, warmCast: true, rim: 0.20, skin: 0.30, sky: 0.15, decisions: ["Texture preserved", "Highlights protected", "Contrast kept restrained"]),
+    .lut("gq-editorial", exposure: 0.10, warmth: 0.02, saturation: 0.96, contrast: 1.14, shadows: 0.02, highlights: 0.12, vignette: 0.04, bloom: 0.03, grain: 0.03, grainSize: 0.65, postExposure: 0.35, postMatrix: [0.874, 0, 0, 0, 1.036, 0, 0, 0, 1.144, 0, 0, 0], referenceSpatial: ReferenceSpatialProfile(intensity: 0.82, acutance: 0.22, chromaticAberration: 0.03, distortion: 0.0, cornerSoftness: 0.04, shadowVignette: 0.48, grainLevel: 0.05, grainAmplitude: 0.45, grainChroma: 0.05, grainSize: 0.6), faces: true, warmCast: false, rim: 0.35, skin: 0.70, decisions: ["Face structure protected", "Strobe contrast shaped", "Color kept editorial"]),
+    // R84 (Wave 2 item 2): the Independent Still engaged ZERO light passes and so
+    // collapsed into leica-street (critic B cluster B, distance 8.56) — a mild LUT
+    // sitting on leica's mild LUT, never earning a ranking reason. Its quiet-
+    // narrative identity implies masked-light intelligence: a soft rim on backlit
+    // subjects (0.30, dossier 0.25–0.35) and a HIGH skin protection (0.60) so the
+    // stock actually reads the people. Both are structurally off on the
+    // analyzeSubjects:false golden path (no masks → byte-identical golden) and the
+    // develop scene-keys them to daylight (brightGuardWeight; night byte-identical,
+    // its already-lovely night untouched). The distinct lifted-black filmic curve /
+    // teal-shadow tone is baked into the Class-A golden LUT — an owner-approved
+    // regen, flagged in the report.
+    .lut("a24-still", exposure: -0.06, warmth: 0.02, saturation: 0.90, contrast: 0.96, shadows: 0.06, highlights: 0.26, vignette: 0.08, bloom: 0.08, grain: 0.09, grainSize: 0.9, postExposure: 0.16, postMatrix: [0.923, 0, 0, 0, 1.022, 0, 0, 0, 1.088, 0, 0, 0], referenceSpatial: ReferenceSpatialProfile(intensity: 0.8, acutance: 0.22, chromaticAberration: 0.06, distortion: 0.02, cornerSoftness: 0.15, shadowVignette: 0.42, grainLevel: 0.3, grainAmplitude: 1.0, grainChroma: 0.25, grainSize: 1.05), faces: true, warmCast: true, rim: 0.30, skin: 0.60, decisions: ["Highlight rolloff softened", "Ambient cast retained", "Shadows opened selectively"]),
+    // noir carries a restrained cool silver-gelatin tone (blue-black shadows) via
+    // the post-LUT matrix — the moodier cinematic noir the reference renders,
+    // rather than a flat neutral B&W. Subtle so it reads as toned, not tinted.
+    .lut("film-noir", exposure: -0.10, warmth: 0, saturation: 0, contrast: 1.34, shadows: -0.10, highlights: 0.08, vignette: 0.22, bloom: 0.02, grain: 0.12, grainSize: 0.8, mono: true, postExposure: 0.0, postMatrix: [0.96, 0, 0, 0, 0.99, 0, 0, 0, 1.05, -0.004, 0, 0.006], referenceSpatial: ReferenceSpatialProfile(intensity: 0.88, acutance: 0.22, chromaticAberration: 0.0, distortion: 0.04, cornerSoftness: 0.45, shadowVignette: 0.68, grainLevel: 0.42, grainAmplitude: 1.05, grainChroma: 0.0, grainSize: 1.1), faces: true, warmCast: false, keyShadow: 0.7, rim: 0.60, sky: 0.50, decisions: ["Color removed completely", "Cool silver tone held", "Blacks allowed to fall"]),
+    .adaptive("y2k-digicam", exposure: 0.20, adaptive: 0.70, warmth: -0.03, saturation: 1.22, contrast: 1.18, shadows: -0.02, highlights: 0.02, vignette: 0.04, bloom: 0.04, grain: 0.05, grainSize: 0.55, faces: true, warmCast: false, flash: 0.65, dayGuard: 1.0, ccdClip: 1.0, smear: 0.6, decisions: ["Flash exposure favored", "Color pushed glossy", "Highlights allowed to clip"]),
+    .lut("polaroid", exposure: 0.08, warmth: 0.08, saturation: 0.86, contrast: 0.90, shadows: 0.10, highlights: 0.30, vignette: 0.10, bloom: 0.10, grain: 0.08, grainSize: 0.9, postExposure: 0.35, postMatrix: [0.935, 0, 0, 0, 1.019, 0, 0, 0, 1.075, 0, 0, 0], referenceSpatial: ReferenceSpatialProfile(intensity: 0.85, acutance: 0.22, chromaticAberration: 0.18, distortion: 0.08, cornerSoftness: 0.55, shadowVignette: 0.2, grainLevel: 0.18, grainAmplitude: 0.6, grainChroma: 0.15, grainSize: 0.85), faces: true, warmCast: true, rim: 0.15, skin: 0.35, sky: 0.25, decisions: ["Dynamic range compressed", "Cream warmth retained", "Edges softened chemically"]),
+    .lut("super-8", exposure: 0.02, warmth: 0.10, saturation: 0.94, contrast: 1.05, shadows: 0.02, highlights: 0.18, vignette: 0.20, bloom: 0.12, grain: 0.18, grainSize: 1.2, postExposure: 0.11, postMatrix: [0.984, 0, 0, 0, 1.005, 0, 0, 0, 1.015, 0, 0, 0], referenceSpatial: ReferenceSpatialProfile(intensity: 0.85, acutance: 0.22, chromaticAberration: 0.45, distortion: 0.2, cornerSoftness: 0.95, shadowVignette: 0.68, grainLevel: 0.7, grainAmplitude: 1.5, grainChroma: 0.3, grainSize: 1.6), faces: false, warmCast: true, nightReciprocity: 1.0, rim: 0.40, skin: 0.20, sky: 0.20, decisions: ["Warm stock response retained", "Gate edges darkened", "Grain allowed to lead"]),
+    .adaptive("lomo", exposure: -0.02, adaptive: 0.32, warmth: 0.02, saturation: 1.28, contrast: 1.20, shadows: -0.08, highlights: 0.06, vignette: 0.42, bloom: 0.04, grain: 0.12, grainSize: 1.15, faces: false, warmCast: true, rim: 0.20, sky: 0.50, decisions: ["Color exaggerated", "Corners sacrificed", "Exposure kept unpredictable"]),
+    .lut("kodachrome", exposure: -0.04, warmth: 0.06, saturation: 1.10, contrast: 1.13, shadows: -0.03, highlights: 0.14, vignette: 0.06, bloom: 0.02, grain: 0.035, grainSize: 0.7, postExposure: 0.12, postSaturation: 0.92, postContrast: 0.96, postMatrix: [1.242303, -0.216002, -0.130785, 0.070520, 1.107397, 0.010722, -0.073353, 0.111281, 1.324162, -0.031531, -0.038719, -0.027803], referenceSpatial: ReferenceSpatialProfile(intensity: 0.80, acutance: 0.22, chromaticAberration: 0.12, distortion: 0.06, cornerSoftness: 0.20, shadowVignette: 0.46, grainLevel: 0.18, grainAmplitude: 1, grainChroma: 0.25, grainSize: 0.7), faces: true, warmCast: true, rim: 0.15, skin: 0.50, sky: 0.70, decisions: ["Reds held dense", "Shadow color preserved", "Slide highlights protected"]),
+    // R84 daylightHighlightGuard (item 4): surveillance AGC (adaptive 0.90) pushed
+    // an already-bright frame to a 12.6% pure-white clip (critic B). A measured
+    // guard rolls those highlights back. NOT a golden stock (adaptive; absent from
+    // the Class-A list) so it rides the normal develop path; weight 0 at night
+    // keeps the green-gain look byte-identical.
+    .adaptive("security-cam", exposure: 0.12, adaptive: 0.90, warmth: -0.14, saturation: 0.28, contrast: 1.02, shadows: 0.14, highlights: 0.02, vignette: 0.24, bloom: 0, grain: 0.28, grainSize: 1.5, faces: false, warmCast: false, dayGuard: 0.8, gainNoise: true, decisions: ["Auto gain raised the scene", "Color collapsed toward surveillance green", "Noise left as evidence"]),
+    // R84 daylightHighlightGuard + black-point (item 2): same failure family as
+    // iphone-flash, slightly less severe — pale/washed daylight, lifted grey
+    // blacks, drained skin where the "glossy, disciplined" promise wants gloss.
+    // Guard + black-point so it reaches true black in daylight (identity SPLIT of
+    // the flash trio is Wave 2 — here it just stops being broken). Night identical.
+    .adaptive("point-shoot", exposure: 0.14, adaptive: 0.72, warmth: -0.02, saturation: 1.14, contrast: 1.14, shadows: 0.02, highlights: 0.08, vignette: 0.08, bloom: 0.05, grain: 0.03, grainSize: 0.65, faces: true, warmCast: false, flash: 0.5, dayGuard: 0.8, skin: 0.30, sky: 0.20, decisions: ["Face exposure favored", "Small-sensor clarity retained", "Flash color kept clean"]),
+    .lut("pastel-cinema", exposure: 0.10, warmth: 0.04, saturation: 0.84, contrast: 0.86, shadows: 0.14, highlights: 0.34, vignette: 0.02, bloom: 0.07, grain: 0.04, grainSize: 0.75, postExposure: 0.34, postMatrix: [0.886, 0, 0, 0, 1.033, 0, 0, 0, 1.131, 0, 0, 0], referenceSpatial: ReferenceSpatialProfile(intensity: 0.85, acutance: 0.22, chromaticAberration: 0.05, distortion: 0.0, cornerSoftness: 0.22, shadowVignette: 0.14, grainLevel: 0.1, grainAmplitude: 0.5, grainChroma: 0.1, grainSize: 0.7), faces: true, warmCast: true, rim: 0.20, skin: 0.50, sky: 0.50, decisions: ["Contrast flattened", "Pastels protected", "Highlights spread softly"]),
+    // R84 skyResponse (item 3): tokyo's neon-night grade smears a magenta/lavender
+    // cast onto a bright daylight sky (critic A #2 — magenta skies, purple shadows).
+    // A sky-scoped neutralization pulls the sky back toward tokyo's cool signature
+    // on daylight. Sky-mask scoped, so the analyzeSubjects:false golden path is
+    // byte-identical; scene-keyed (brightGuardWeight) so its GOOD night is
+    // byte-identical. (The non-sky global cast — umbrella, midtone shadows — is
+    // baked into the golden-locked LUT and needs an owner-approved golden regen.)
+    .lut("tokyo-neon", exposure: -0.12, warmth: -0.08, saturation: 1.20, contrast: 1.18, shadows: -0.10, highlights: 0.24, vignette: 0.16, bloom: 0.18, grain: 0.08, grainSize: 0.85, postExposure: -0.1, postMatrix: [0.983, 0, 0, 0, 1.005, 0, 0, 0, 1.014, 0, 0, 0], referenceSpatial: ReferenceSpatialProfile(intensity: 0.9, acutance: 0.22, chromaticAberration: 0.75, distortion: 0.06, cornerSoftness: 0.18, shadowVignette: 0.62, grainLevel: 0.26, grainAmplitude: 1.05, grainChroma: 0.5, grainSize: 1.05), faces: true, warmCast: true, sourceBloom: 1.0, rim: 0.80, skin: 0.25, sky: 0.85, decisions: ["Colored light preserved", "Black levels held low", "Neon allowed to bloom"]),
+    // R84 daylightHighlightGuard (item 1): the unconditional flashHeadroom fixed
+    // NIGHT flashed faces; on a bright daylight frame the mono conversion + hard
+    // contrast still fused ~22% of the frame to paper-white (blown shirts and
+    // background, no true black). The scene-keyed guard adds the highlight rolloff
+    // and raises the subject restraint to full on daylight, holding the high-key
+    // B&W bright but OFF clip. Weight is 0 on the dark party scene it was tuned
+    // for (brightGuardWeight), so photobooth's night render is byte-identical.
+    .adaptive("photobooth", exposure: 0.02, adaptive: 0.50, warmth: 0, saturation: 0, contrast: 1.22, shadows: -0.06, highlights: 0.34, vignette: 0.16, bloom: 0.04, grain: 0.10, grainSize: 0.8, mono: true, faces: true, warmCast: false, flash: 1.0, flashHeadroom: 0.85, dayGuard: 1.0, skin: 0.25, decisions: ["Face exposure centered", "Color removed completely", "Flash contrast kept hard"]),
+    // tintype is a COOL orthochromatic wet-plate (owner-directed): the postLUT
+    // matrix mixes channels so reds render dark and blues render pale, over a
+    // slightly cool silver tint — a real collodion plate, not warm sepia. This
+    // intentionally diverges from the warm reference fixture (see the raised
+    // parity ceiling in FilmEngineTests).
+    .lut("tintype", exposure: -0.08, warmth: -0.05, saturation: 0.15, contrast: 1.12, shadows: -0.06, highlights: 0.20, vignette: 0.48, bloom: 0.06, grain: 0.20, grainSize: 1.7, postExposure: 0.30, postMatrix: [0.06, 0.34, 0.60, 0.05, 0.35, 0.60, 0.05, 0.33, 0.62, -0.02, -0.01, 0.01], referenceSpatial: ReferenceSpatialProfile(intensity: 0.9, acutance: 0.22, chromaticAberration: 0.05, distortion: 0.02, cornerSoftness: 0.95, shadowVignette: 0.8, grainLevel: 0.35, grainAmplitude: 0.9, grainChroma: 0.0, grainSize: 1.3), faces: true, warmCast: false, rim: 0.30, sky: 0.60, decisions: ["Portrait tones translated to plate", "Edges allowed to fail", "Cool silver plate — reds run dark"]),
+  ]
+
+  private static func lut(_ id: String, exposure: Double, warmth: Double, saturation: Double, contrast: Double, shadows: Double, highlights: Double, vignette: Double, bloom: Double, grain: Double, grainSize: Double, mono: Bool = false, postExposure: Double = 0, postSaturation: Double = 1, postContrast: Double = 1, postMatrix: [Double]? = nil, referenceSpatial: ReferenceSpatialProfile? = nil, faces: Bool, warmCast: Bool, sourceBloom: Double = 0, keyShadow: Double = 0, nightReciprocity: Double = 0, rim: Double = 0, skin: Double = 0, sky: Double = 0, decisions: [String]) -> CameraRecipe {
+    CameraRecipe(id: id, engineClass: .staticLUT, lutName: id, postLUTExposure: postExposure, postLUTSaturation: postSaturation, postLUTContrast: postContrast, postLUTMatrix: postMatrix, referenceSpatial: referenceSpatial, exposureBias: exposure, adaptiveExposure: 0, warmth: warmth, saturation: saturation, contrast: contrast, shadowLift: shadows, highlightCompression: highlights, vignette: vignette, bloom: bloom, grain: grain, grainSize: grainSize, monochrome: mono, protectsFaces: faces, preservesWarmCast: warmCast, decisionVocabulary: decisions, flashPhysics: 0, sourceBloom: sourceBloom, keyShadow: keyShadow, gainDrivenGrain: false, nightReciprocity: nightReciprocity, ccdClip: 0, highlightSmear: 0, highlightSmearDarkOnly: false, rimLight: rim, skinProtect: skin, skyResponse: sky, flashHighlightHeadroom: 0, daylightHighlightGuard: 0)
+  }
+
+  private static func adaptive(_ id: String, exposure: Double, adaptive: Double, warmth: Double, saturation: Double, contrast: Double, shadows: Double, highlights: Double, vignette: Double, bloom: Double, grain: Double, grainSize: Double, mono: Bool = false, faces: Bool, warmCast: Bool, flash: Double = 0, flashHeadroom: Double = 0, dayGuard: Double = 0, gainNoise: Bool = false, ccdClip: Double = 0, smear: Double = 0, smearDarkOnly: Bool = false, rim: Double = 0, skin: Double = 0, sky: Double = 0, decisions: [String]) -> CameraRecipe {
+    CameraRecipe(id: id, engineClass: .adaptive, lutName: nil, postLUTExposure: 0, postLUTSaturation: 1, postLUTContrast: 1, postLUTMatrix: nil, referenceSpatial: nil, exposureBias: exposure, adaptiveExposure: adaptive, warmth: warmth, saturation: saturation, contrast: contrast, shadowLift: shadows, highlightCompression: highlights, vignette: vignette, bloom: bloom, grain: grain, grainSize: grainSize, monochrome: mono, protectsFaces: faces, preservesWarmCast: warmCast, decisionVocabulary: decisions, flashPhysics: flash, sourceBloom: 0, keyShadow: 0, gainDrivenGrain: gainNoise, nightReciprocity: 0, ccdClip: ccdClip, highlightSmear: smear, highlightSmearDarkOnly: smearDarkOnly, rimLight: rim, skinProtect: skin, skyResponse: sky, flashHighlightHeadroom: flashHeadroom, daylightHighlightGuard: dayGuard)
+  }
+}
+
+
+
