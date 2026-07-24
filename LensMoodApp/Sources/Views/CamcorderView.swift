@@ -269,7 +269,7 @@ struct CamcorderView: View {
         let developed = try await VhsExporter.export(videoURL: url)
         outputURL = developed
         isExporting = false
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        Haptics.notify(.success)
       } catch {
         isExporting = false
         // a just-recorded clip lives only in tmp — offer to save the original
@@ -288,7 +288,7 @@ struct CamcorderView: View {
         try await PhotoLibraryWriter.save(videoAt: url)
         strandedOriginal = nil
         saveTick += 1
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        Haptics.notify(.success)
       } catch {
         errorMessage = error.localizedDescription
       }
@@ -303,7 +303,7 @@ struct CamcorderView: View {
         try await PhotoLibraryWriter.save(videoAt: outputURL)
         isSaving = false
         saveTick += 1
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        Haptics.notify(.success)
       } catch {
         isSaving = false
         errorMessage = error.localizedDescription

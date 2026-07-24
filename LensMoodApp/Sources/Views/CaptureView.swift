@@ -96,6 +96,14 @@ struct CaptureView: View {
       get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } }
     )) { Button("OK", role: .cancel) {} } message: { Text(errorMessage ?? "Try again.") }
     .onAppear {
+      // warm the Taptic Engine for the viewfinder's own vocabulary: the
+      // shutter's heavy thump, the mount's rigid click, the slack-shutter
+      // tap, and the dials' selection ticks. Prepared here, on arrival, so
+      // the first shot of a session answers as fast as the tenth.
+      Haptics.prepare(.heavy)
+      Haptics.prepare(.rigid)
+      Haptics.prepare(.light)
+      Haptics.prepare()
       // seed once — returning to the tab must not wipe the photographer's dials
       if !cameraSeeded {
         cameraSeeded = true
@@ -598,7 +606,7 @@ struct CaptureView: View {
     } else {
       Button {
         loadedStock = stock; camera.load(stock: stock); mountPickerShown = false
-        UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+        Haptics.impact(.rigid)
       } label: {
         mountCellLabel(stock, access: access)
       }
@@ -910,7 +918,7 @@ struct CaptureView: View {
     )
     let pulse = FocusPulse(point: location)
     focusPulse = pulse
-    UISelectionFeedbackGenerator().selectionChanged()
+    Haptics.selectionChanged()
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
       if focusPulse?.id == pulse.id { withAnimation(.easeOut(duration: 0.25)) { focusPulse = nil } }
     }
@@ -924,7 +932,7 @@ struct CaptureView: View {
     // bundled plate into the user's Roll (or spending a loaded exposure on it)
     // is never the answer. The overlay's Open Settings is the way forward.
     if cameraAccessDenied {
-      UIImpactFeedbackGenerator(style: .light).impactOccurred()
+      Haptics.impact(.light)
       showModeHint("Camera access is off — open Settings to shoot.")
       return
     }
@@ -947,11 +955,11 @@ struct CaptureView: View {
     case .spent:
       // out of film: the shutter goes slack — a fact, not a scold. The
       // offer lives behind the film bar, never over the viewfinder.
-      UIImpactFeedbackGenerator(style: .light).impactOccurred()
+      Haptics.impact(.light)
       showModeHint("Out of film — load another camera.")
       return
     }
-    UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+    Haptics.impact(.heavy)
     withAnimation(.easeOut(duration: 0.08)) { shutterFlash = true }
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.09) {
       withAnimation(.easeIn(duration: 0.12)) { shutterFlash = false }
@@ -1001,7 +1009,7 @@ struct CaptureView: View {
           pendingShotAssetID = nil
           model.add(asset)
           withAnimation { review = asset }
-          UINotificationFeedbackGenerator().notificationOccurred(.success)
+          Haptics.notify(.success)
         case .failure(let error):
           // a film-bought shot that failed to develop gives its frame
           // back — the camera never eats an exposure it didn't deliver
@@ -1041,7 +1049,7 @@ struct CaptureView: View {
           do {
             try await PhotoLibraryWriter.save(image: export)
             saveTick += 1; review = nil
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            Haptics.notify(.success)
           } catch { errorMessage = error.localizedDescription }
         }
       }
@@ -1110,7 +1118,7 @@ struct CaptureView: View {
   // hardware answers zoom/flip on a device; without hardware the plate does
   private var plateZoom: CGFloat { camera.isAvailable ? 1 : CGFloat(max(1, camera.settings.zoom)) }
   private var plateMirrored: Bool { !camera.isAvailable && camera.position == .front }
-  private func tick() { UISelectionFeedbackGenerator().selectionChanged() }
+  private func tick() { Haptics.selectionChanged() }
 
   static let apertures: [Double] = [1.2,1.4,1.6,1.8,2,2.2,2.5,2.8,3.2,3.5,4,4.5,5,5.6,6.3,7.1,8,9,11,13,16,22]
   static let shutters: [Double] = [30,15,8,4,2,1,0.5,0.25,1.0/8,1.0/15,1.0/30,1.0/60,1.0/125,1.0/250,1.0/500,1.0/1000,1.0/2000,1.0/4000,1.0/8000]

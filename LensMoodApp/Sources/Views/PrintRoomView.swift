@@ -124,7 +124,13 @@ struct PrintRoomView: View {
       // "Print this frame" (Library detail) queues a kept frame; take it
       // whether this tab is already alive (onChange) or only built when the
       // tab switch lands (onAppear) — the pendingStock idiom, for prints
-      .onAppear { consumePendingPrint() }
+      .onAppear {
+        // the print settles with a soft impact and saves with a success
+        // notification — warm both before either can be asked for
+        Haptics.prepare(.soft)
+        Haptics.prepare()
+        consumePendingPrint()
+      }
       .onChange(of: model.pendingPrintAsset?.id) { _ in consumePendingPrint() }
       // a frame queued from the Library ("Print this frame") that the user then
       // deletes must not linger here and print as a soft thumbnail — drop it
@@ -204,7 +210,7 @@ struct PrintRoomView: View {
         return
       }
       pickedAsset = DevelopedAsset(image: image, source: image, stock: Stock.all[0], decisions: [])
-      UISelectionFeedbackGenerator().selectionChanged()
+      Haptics.selectionChanged()
     }
   }
 
@@ -247,13 +253,13 @@ struct PrintRoomView: View {
     let token = UUID()
     settleToken = token
     // a soft tap as the print starts developing, a gentle success as it settles
-    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+    Haptics.impact(.soft)
     withAnimation(.easeOut(duration: duration)) { printReveal = 1 }
     DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
       // token-guarded like the capture screen's delayed hints: swapping the
       // printed frame mid-develop must not fire the old print's settle haptic
       guard settleToken == token else { return }
-      UINotificationFeedbackGenerator().notificationOccurred(.success)
+      Haptics.notify(.success)
     }
   }
 
@@ -286,7 +292,7 @@ struct PrintRoomView: View {
         try await PhotoLibraryWriter.save(image: image)
         isSaving = false
         saveTick += 1
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        Haptics.notify(.success)
       } catch {
         isSaving = false
         errorMessage = error.localizedDescription

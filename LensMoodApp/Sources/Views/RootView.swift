@@ -43,6 +43,13 @@ struct RootView: View {
     .sheet(isPresented: $model.accountPresented) {
       AccountView()
     }
+    // the dock is on screen from the first frame and its slots tick on every
+    // tap, so the engine is warmed here, at the root — the first tab change
+    // of a session should not be the one that feels dead
+    .onAppear {
+      Haptics.prepare()
+      Haptics.prepare(.medium)
+    }
     // widget taps arrive here: lensmood://develop/<stockID>
     .onOpenURL { model.open(url: $0) }
   }
@@ -97,7 +104,7 @@ private struct OceanDock: View {
     let on = model.selectedTab == .capture
     return Button {
       model.selectedTab = .capture
-      UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+      Haptics.impact(.medium)
     } label: {
       ZStack {
         Capsule()
@@ -124,7 +131,7 @@ private struct OceanDock: View {
     let on = model.selectedTab == tab
     return Button {
       model.selectedTab = tab
-      UISelectionFeedbackGenerator().selectionChanged()
+      Haptics.selectionChanged()
     } label: {
       VStack(spacing: 3) {
         Image(systemName: icon)

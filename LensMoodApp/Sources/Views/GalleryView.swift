@@ -342,6 +342,11 @@ private struct GalleryDetailView: View {
         Text("Leaves your roll for good. Saved copies stay in Photos.")
       }
       .task {
+        // the frame detail's own vocabulary: a light impact on the re-develop
+        // and print hand-offs, a success notification when a save lands.
+        // Warmed on arrival, before any of the toolbar actions can be tapped.
+        Haptics.prepare(.light)
+        Haptics.prepare()
         // decode the stored frame off-main; session assets already hold it
         guard fullImage == nil, asset.image == nil else { return }
         let asset = asset
@@ -444,7 +449,7 @@ private struct GalleryDetailView: View {
     let asset = asset
     let stock = asset.stock
     let id = asset.id
-    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    Haptics.impact(.light)
     Task { @MainActor in
       // decode the persisted original + reading off-main; the replay needs
       // both — the original alone would re-read (drift), so require the pair
@@ -474,7 +479,7 @@ private struct GalleryDetailView: View {
   private func printThisFrame() {
     model.pendingPrintAsset = asset
     model.selectedTab = .printRoom
-    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    Haptics.impact(.light)
     dismiss()
   }
 
@@ -519,7 +524,7 @@ private struct GalleryDetailView: View {
         try await PhotoLibraryWriter.save(image: frame)
         isSaving = false
         saveTick += 1
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        Haptics.notify(.success)
       } catch {
         isSaving = false
         errorMessage = error.localizedDescription

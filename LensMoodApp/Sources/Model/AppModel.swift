@@ -308,7 +308,7 @@ final class AppModel: ObservableObject {
     library[index].favorite.toggle()
     LibraryStore.setFavorite(id: id, favorite: library[index].favorite)
     Analytics.log(.favoriteToggled(on: library[index].favorite))
-    UISelectionFeedbackGenerator().selectionChanged()
+    Haptics.selectionChanged()
   }
 
   func add(_ asset: DevelopedAsset) {

@@ -222,7 +222,7 @@ struct HomeView: View {
         let index = max(0, min(Stock.all.count - 1, Int((offset / stride).rounded())))
         if index != carouselIndex {
           carouselIndex = index
-          UISelectionFeedbackGenerator().selectionChanged()
+          Haptics.selectionChanged()
         }
       }
       // the cards slide under a soft edge with a chevron — more to the right
