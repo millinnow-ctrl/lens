@@ -80,6 +80,52 @@ enum Theme {
   static let pagePadding: CGFloat = 14
   static let controlHeight: CGFloat = 52
   static let cardRadius: CGFloat = 18
+
+  /// Elevation — three tiers, one scale. Depth is meaning here, not
+  /// decoration: how far a surface sits from the page says what kind of thing
+  /// it is. Before this scale existed the app had a single `deep:` boolean, so
+  /// hierarchy read almost entirely through hairline strokes and a floating
+  /// dock carried the same weight as a static card.
+  ///
+  /// The two existing values are preserved exactly (`.resting` is the old
+  /// `oceanCardShadow()`, `.floating` the old `oceanCardShadow(deep: true)`),
+  /// so every owner-approved card keeps its reference elevation to the pixel.
+  /// `.well` is the new tier.
+  enum Elevation {
+    /// recessed — a stage the page is cut into: the photograph's dark
+    /// surround, the print stage. A well does not lift, so it casts only a
+    /// tight contact shade that seats it against the paper.
+    case well
+    /// resting — cards, mounts and panels that sit on the page
+    case resting
+    /// floating — surfaces genuinely off the page: the dock, transient
+    /// chrome like the saved tick, and the hero objects a page is built around
+    case floating
+
+    var shadowOpacity: Double {
+      switch self {
+      case .well: return 0.06
+      case .resting: return 0.10
+      case .floating: return 0.28
+      }
+    }
+
+    var shadowRadius: CGFloat {
+      switch self {
+      case .well: return 4
+      case .resting: return 10
+      case .floating: return 14
+      }
+    }
+
+    var shadowOffsetY: CGFloat {
+      switch self {
+      case .well: return 1
+      case .resting: return 4
+      case .floating: return 8
+      }
+    }
+  }
 }
 
 /// The camera instrument world, wearing the app's ocean identity: the same
@@ -99,13 +145,22 @@ enum CameraTheme {
 }
 
 extension View {
-  /// the reference app's soft card elevation (shadowOpacity 0.28 on the
-  /// deepest cards, lighter on white surfaces)
-  func oceanCardShadow(deep: Bool = false) -> some View {
+  /// the reference app's soft card elevation, now spoken as a three-tier
+  /// scale (`Theme.Elevation`) rather than a single boolean. The ink is the
+  /// reference's shadow color; only opacity, radius and offset move.
+  func oceanCardShadow(_ level: Theme.Elevation = .resting) -> some View {
     shadow(
-      color: Color(hex: "#02070A").opacity(deep ? 0.28 : 0.10),
-      radius: deep ? 14 : 10, x: 0, y: deep ? 8 : 4
+      color: Color(hex: "#02070A").opacity(level.shadowOpacity),
+      radius: level.shadowRadius, x: 0, y: level.shadowOffsetY
     )
+  }
+
+  /// the original boolean idiom, kept so no call site has to change to keep
+  /// its exact pixels: `deep: true` is `.floating`, `deep: false` is
+  /// `.resting`. Deliberately has no default argument, so the bare
+  /// `oceanCardShadow()` resolves unambiguously to the tiered form above.
+  func oceanCardShadow(deep: Bool) -> some View {
+    oceanCardShadow(deep ? .floating : .resting)
   }
 }
 
@@ -211,6 +266,10 @@ struct InstrumentPanel<Content: View>: View {
         RoundedRectangle(cornerRadius: 16, style: .continuous)
           .stroke(Theme.hairline, lineWidth: 1)
       )
+      // a panel is a resting card, and now says so. It used to separate from
+      // the paper on a hairline alone, which is why depth carried no meaning
+      // anywhere it was used.
+      .oceanCardShadow(.resting)
   }
 }
 

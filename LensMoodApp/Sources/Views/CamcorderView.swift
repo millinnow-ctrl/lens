@@ -145,7 +145,7 @@ struct CamcorderView: View {
       .padding(12)
     }
     .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
-    .oceanCardShadow(deep: true)
+    .oceanCardShadow(.floating)
   }
 
   private var exportState: some View {

@@ -40,7 +40,7 @@ struct SavedTickModifier: ViewModifier {
           .frame(minHeight: 44)
           .background(Theme.surface, in: Capsule())
           .overlay(Capsule().stroke(Theme.hairline, lineWidth: 1))
-          .oceanCardShadow(deep: true)
+          .oceanCardShadow(.floating)
           .padding(.horizontal, Theme.pagePadding)
           .padding(.bottom, 12)
           .transition(reduceMotion

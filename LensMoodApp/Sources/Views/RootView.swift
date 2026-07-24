@@ -72,7 +72,7 @@ private struct OceanDock: View {
     .background(Theme.surface)
     .clipShape(Capsule())
     .overlay(Capsule().stroke(Theme.hairline, lineWidth: 1))
-    .oceanCardShadow(deep: true)
+    .oceanCardShadow(.floating)
     .padding(.horizontal, 14)
     .padding(.top, 4)
     .padding(.bottom, 4)

@@ -140,7 +140,7 @@ struct GalleryView: View {
         RoundedRectangle(cornerRadius: 11, style: .continuous)
           .stroke(Theme.hairline, lineWidth: 1)
       )
-      .oceanCardShadow()
+      .oceanCardShadow(.resting)
     }
     .buttonStyle(.plain)
     .accessibilityLabel(
@@ -223,6 +223,9 @@ private struct GalleryDetailView: View {
             .scaledToFit()
             .frame(maxWidth: .infinity)
             .background(Theme.viewfinder)
+            // the photograph sits in a well, not on a card: the recessed tier
+            // seats the dark stage against the paper instead of hovering it
+            .oceanCardShadow(.well)
             // the unlabeled photograph was silent to VoiceOver
             .accessibilityLabel("Photograph developed on \(asset.stock.name)")
 

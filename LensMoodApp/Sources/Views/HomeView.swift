@@ -305,7 +305,7 @@ struct HomeView: View {
         .padding(16)
       }
       .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-      .oceanCardShadow(deep: true)
+      .oceanCardShadow(.floating)
     }
     .buttonStyle(.plain)
     .accessibilityLabel("Open the camcorder")
@@ -568,7 +568,7 @@ struct StyleCard: View {
     }
     .background(Theme.surface)
     .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
-    .oceanCardShadow()
+    .oceanCardShadow(.resting)
     .contentShape(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
   }
 }
@@ -728,7 +728,7 @@ struct HeroCard: View {
       .clipped()
     }
     .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-    .oceanCardShadow(deep: true)
+    .oceanCardShadow(.floating)
     .onReceive(Self.wordTimer) { _ in
       withAnimation(.easeInOut(duration: 0.34)) {
         word = (word + 1) % Self.words.count

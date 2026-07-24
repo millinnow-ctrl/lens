@@ -180,7 +180,7 @@ struct PrintRoomView: View {
       .frame(minHeight: 46)
       .background(Theme.brandFill)
       .clipShape(Capsule())
-      .oceanCardShadow()
+      .oceanCardShadow(.resting)
     }
     .frame(maxWidth: .infinity)
     .onChange(of: pickedPrintItem) { item in loadPrintPhoto(item) }
@@ -229,6 +229,9 @@ struct PrintRoomView: View {
       )
         .aspectRatio(1, contentMode: .fit)
         .overlay(Rectangle().stroke(Theme.hairline, lineWidth: 1))
+        // the print table is a stage the page is cut into, not a card that
+        // lifts off it — the recessed tier, so it seats against the paper
+        .oceanCardShadow(.well)
         .accessibilityLabel("Instant print of \(selected.stock.name) on \(surface.rawValue)")
         .onAppear { developIn() }
         .onChange(of: selected.id) { _ in developIn() }
