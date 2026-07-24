@@ -69,7 +69,20 @@ private struct OceanDock: View {
     }
     .padding(.horizontal, 8)
     .padding(.vertical, 6)
-    .background(Theme.surface)
+    // Frosted, not opaque. The dock is the one piece of chrome that floats
+    // over every screen, and as a solid white capsule it read as a slab
+    // dropped on the page wherever it overlapped content — visibly so across
+    // the develop screen's Strength slider and the Print Room's save button.
+    // The approved reference shape, palette and layout are unchanged: only
+    // the fill is honest about floating. `.ultraThinMaterial` sits behind the
+    // white identity tint, so content reads through and the overlap becomes
+    // intentional depth. iOS 15+, and SwiftUI's Material turns opaque by
+    // itself under Reduce Transparency, so no accessibility guard is needed.
+    .background {
+      Capsule()
+        .fill(.ultraThinMaterial)
+        .overlay(Capsule().fill(Theme.surface.opacity(0.62)))
+    }
     .clipShape(Capsule())
     .overlay(Capsule().stroke(Theme.hairline, lineWidth: 1))
     .oceanCardShadow(.floating)
