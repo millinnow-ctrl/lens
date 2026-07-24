@@ -31,6 +31,29 @@ struct SceneReading {
   let subject: SubjectAnalysis
 }
 
+/// The three genuinely sequential stages inside `FilmEngine.read`, in the
+/// order the read enters them. Each case names work that is about to execute —
+/// there is no case for a stage that does not exist, and none is ever emitted
+/// for work that is skipped (`analyzeSubjects: false` emits `.metering` only).
+///
+/// Deliberately NOT a progress fraction: `read` cannot know how long any stage
+/// will take, and the develop that follows it is a single lazy Core Image
+/// graph whose whole cost lands in one `createCGImage` — so a percentage would
+/// be an invention. A stage boundary is the finest honest granularity there is.
+///
+/// `Comparable` on execution order so an observer can rebuild the full picture
+/// from whichever phase it last saw, without depending on delivery order.
+enum ReadPhase: Int, Comparable, CaseIterable, Sendable {
+  /// `SceneAnalyzer.analyze` — the scene meter
+  case metering = 0
+  /// `VisionService.analyze` — the subject pass
+  case findingSubject = 1
+  /// `attachLightMasks` — the silhouette / skin / sky rasters
+  case tracingLight = 2
+
+  static func < (lhs: ReadPhase, rhs: ReadPhase) -> Bool { lhs.rawValue < rhs.rawValue }
+}
+
 final class FilmEngine {
   static let shared = FilmEngine()
 
@@ -325,21 +348,36 @@ final class FilmEngine {
   /// byte-identical to a self-reading develop, and because ALL of a photo's
   /// renders share this one reading, the subject pass (whose separate runs
   /// are not guaranteed bit-stable) can never split preview from export.
-  func read(_ source: UIImage, analyzeSubjects: Bool = true) throws -> SceneReading {
+  ///
+  /// `onPhase` (optional, default nil) fires as each of the three genuinely
+  /// sequential stages below is entered, so a caller can show the read as it
+  /// happens instead of after the fact. It is a pure observer: it reads
+  /// nothing, returns nothing, and is called between stages that already ran
+  /// in this exact order — no work is added, moved, or repeated, and every
+  /// existing caller (every default-argument call site, every golden) renders
+  /// byte-identically with it nil or non-nil.
+  func read(
+    _ source: UIImage,
+    analyzeSubjects: Bool = true,
+    onPhase: (@Sendable (ReadPhase) -> Void)? = nil
+  ) throws -> SceneReading {
     guard let image = CIImage(
       image: source,
       options: [.applyOrientationProperty: true]
     ) else {
       throw FilmEngineError.unreadableImage
     }
+    onPhase?(.metering)
     let scene = try analyzer.analyze(image.orientedForDisplay)
     let subject: SubjectAnalysis
     if analyzeSubjects {
+      onPhase?(.findingSubject)
       let base = (try? VisionService.analyze(source, includePersonMask: true))
         ?? SubjectAnalysis(faces: [], personMask: nil)
       // R66: the silhouette/skin/sky masks are produced HERE — in the one
       // subject pass — and nowhere else. A develop without a cached reading
       // carries nil masks and renders the masked-light passes structurally off.
+      onPhase?(.tracingLight)
       subject = attachLightMasks(to: base, image: image.orientedForDisplay)
     } else {
       subject = SubjectAnalysis(faces: [], personMask: nil)

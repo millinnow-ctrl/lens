@@ -60,11 +60,22 @@ struct DevelopView: View {
   /// the loaded photograph. nil until the read finishes; the rail then
   /// reorders to the ranked looks.
   @State private var matches: [LookMatch]?
-  /// the develop ceremony — real pipeline steps only (truth law): while the
-  /// Conductor reads, one line; once read, the steps it truly ran appear as
-  /// done and Developing becomes the active one
-  @State private var ceremonySteps: [String] = []
-  @State private var ceremonyActiveIndex = 0
+  /// the develop ceremony — real pipeline steps only (truth law). Each step
+  /// appears as `FilmEngine.read` genuinely enters that stage (`ReadPhase`),
+  /// and the list settles to `Conductor.narration` when the read returns.
+  /// See DevelopCeremony.swift for the full honesty contract.
+  @State private var ceremony = DevelopCeremony()
+  /// The resolution ladder's first rung: a genuine small render of this
+  /// photograph, shown while the full-size one is still computing. Display
+  /// ONLY — it is deliberately a separate slot from `developedImage` so that
+  /// no keep, save, share, library or cache path can ever see it.
+  @State private var proxyImage: UIImage?
+  /// when the running develop began — the elapsed readout is wall-clock of
+  /// work genuinely in flight, never an estimate and never a fraction
+  @State private var developStartedAt: Date?
+  /// the finished develop's measured duration (the number
+  /// `Analytics.developFinished(ms:)` has always logged and nothing surfaced)
+  @State private var developedMS: Int?
   /// the memory-bounded copy of the original stored in the Library (the
   /// full-res `sourceImage` stays only for the on-screen stage + export)
   @State private var librarySource: UIImage?
@@ -108,6 +119,9 @@ struct DevelopView: View {
               .id("film-door")
             photoPicker(title: "New photograph")
           } else {
+            // screenshot harness only: the completed record of the develop
+            // that just ran (see harnessHoldsCeremony)
+            if ceremonyRecordHeld { developingState }
             actions
             if !decisions.isEmpty { decisionPanel }
           }
@@ -223,7 +237,9 @@ struct DevelopView: View {
       }
       ScrollViewReader { proxy in
         ScrollView(.horizontal, showsIndicators: false) {
-          HStack(spacing: 8) {
+          // top alignment so a two-line camera name (see railChip) never
+          // pushes its swatch off the row every other chip sits on
+          HStack(alignment: .top, spacing: 8) {
             ForEach(railStocks) { item in
               railChip(item)
             }
@@ -297,13 +313,19 @@ struct DevelopView: View {
                 .offset(x: 4, y: 4)
             }
           }
+        // an instrument does not abbreviate its own dial labels: at 62 pt the
+        // rail read "Editorial Stro…", "Independent…", "Pocket Comp…". Two
+        // lines at 72 pt spell every camera in the catalog in full — the
+        // longest ("Independent Still", "8mm Home Movie") wrap instead of
+        // truncating, and Dynamic Type still scales rather than clipping.
         Text(item.name)
           .scaledFont(size: 10, weight: active ? .bold : .medium, relativeTo: .caption2)
           .foregroundStyle(active ? Theme.ink : Theme.fog)
-          .lineLimit(1)
-          .minimumScaleFactor(0.8)
+          .multilineTextAlignment(.center)
+          .lineLimit(2)
+          .minimumScaleFactor(0.85)
       }
-      .frame(width: 62)
+      .frame(width: 72)
     }
     .buttonStyle(.plain)
     .id(item.id)
@@ -423,8 +445,16 @@ struct DevelopView: View {
         case .developed:
           // strength blend: the developed frame over the original at `intensity`
           fittedImage(source)
-          if let developed {
-            fittedImage(developed).opacity(Double(intensity))
+          // The resolution ladder, on screen: the first rung (a genuine 512 px
+          // render) holds the stage until the full-size render lands, then the
+          // identity change crossfades one real render into the other. The
+          // proxy is only ever *shown* — `developedImage` is what every other
+          // path in this file reads, and it is the full render or nothing.
+          if let shown = developed ?? proxyImage {
+            fittedImage(shown)
+              .opacity(Double(intensity))
+              .id(developed == nil ? "ladder-first-rung" : "ladder-full")
+              .transition(.opacity)
           }
         case .compare:
           fittedImage(source)
@@ -478,14 +508,47 @@ struct DevelopView: View {
       .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 
+  /// Original / Developed / Compare. Was the stock grey `.segmented` Picker —
+  /// the one default iOS control on the develop screen, sitting directly under
+  /// the most designed surface in the app. Same three choices, same
+  /// accessibility labels (the tour taps them by name), in the app's own
+  /// hairline-and-brand-fill language.
   private var previewControl: some View {
-    Picker("Preview", selection: $previewMode) {
+    let enabled = developedImage != nil
+    return HStack(spacing: 0) {
       ForEach(PreviewMode.allCases) { mode in
-        Text(mode.rawValue).tag(mode)
+        let active = previewMode == mode
+        Button {
+          guard previewMode != mode else { return }
+          previewMode = mode
+          UISelectionFeedbackGenerator().selectionChanged()
+        } label: {
+          Text(mode.rawValue)
+            .scaledFont(size: 13, weight: active ? .bold : .medium, relativeTo: .footnote)
+            .foregroundStyle(active ? .white : Theme.inkSoft)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 9)
+            .background {
+              if active {
+                Capsule().fill(Theme.brandFill)
+              }
+            }
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(mode.rawValue)
+        .accessibilityAddTraits(active ? .isSelected : [])
       }
     }
-    .pickerStyle(.segmented)
-    .disabled(developedImage == nil)
+    .padding(3)
+    .background(Capsule().fill(Theme.surface))
+    .overlay(Capsule().stroke(Theme.hairline, lineWidth: 1))
+    .disabled(!enabled)
+    .opacity(enabled ? 1 : 0.5)
+    .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: previewMode)
+    .accessibilityElement(children: .contain)
     .accessibilityHint("Choose the original, developed, or split comparison")
   }
 
@@ -516,34 +579,80 @@ struct DevelopView: View {
   }
 
 
+  /// The ceremony panel. Every other panel in the app is an `InstrumentPanel`
+  /// (16 pt continuous radius); this was the one square-cornered box, on the
+  /// screen the develop actually happens on.
   private var developingState: some View {
-    VStack(alignment: .leading, spacing: 10) {
-      ForEach(Array(ceremonySteps.enumerated()), id: \.offset) { index, step in
-        HStack(spacing: 10) {
-          if index < ceremonyActiveIndex {
-            Image(systemName: "checkmark")
-              .scaledFont(size: 11, weight: .bold, relativeTo: .caption2)
-              .foregroundStyle(Theme.accent)
-              .frame(width: 16)
-          } else {
-            ProgressView()
-              .tint(Theme.accent)
-              .scaleEffect(0.75)
-              .frame(width: 16)
+    InstrumentPanel {
+      VStack(alignment: .leading, spacing: 10) {
+        ForEach(Array(ceremony.steps.enumerated()), id: \.offset) { index, step in
+          HStack(spacing: 10) {
+            if index < ceremony.activeIndex {
+              Image(systemName: "checkmark")
+                .scaledFont(size: 11, weight: .bold, relativeTo: .caption2)
+                .foregroundStyle(Theme.accent)
+                .frame(width: 16)
+            } else {
+              ProgressView()
+                .tint(Theme.accent)
+                .scaleEffect(0.75)
+                .frame(width: 16)
+            }
+            Text(step)
+              .scaledFont(size: 14, weight: index == ceremony.activeIndex ? .semibold : .medium, relativeTo: .footnote)
+              .foregroundStyle(index == ceremony.activeIndex ? Theme.ink : Theme.inkSoft)
           }
-          Text(step)
-            .scaledFont(size: 14, weight: index == ceremonyActiveIndex ? .semibold : .medium, relativeTo: .footnote)
-            .foregroundStyle(index == ceremonyActiveIndex ? Theme.ink : Theme.inkSoft)
         }
+        elapsedReadout
       }
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .padding(16)
     }
-    .frame(maxWidth: .infinity, alignment: .leading)
-    .padding(16)
-    .background(Theme.surface)
-    .overlay(Rectangle().stroke(Theme.hairline, lineWidth: 1))
     .accessibilityElement(children: .combine)
-    .accessibilityLabel(ceremonySteps.indices.contains(ceremonyActiveIndex)
-      ? ceremonySteps[ceremonyActiveIndex] : "Developing")
+    .accessibilityLabel(ceremonyAccessibilityLabel)
+  }
+
+  /// The measured develop time — wall clock on work genuinely in flight while
+  /// it runs, and the real measured total once it lands (the same number
+  /// `Analytics.developFinished(ms:)` records). A fact, never a fraction:
+  /// there is no percentage to know, because the whole develop is one lazy
+  /// Core Image graph that resolves in a single flush.
+  @ViewBuilder
+  private var elapsedReadout: some View {
+    if developStartedAt != nil || developedMS != nil {
+      HStack {
+        TechnicalLabel(text: developedMS == nil ? "Elapsed" : "Developed in")
+        Spacer()
+        Group {
+          if let developedMS {
+            Text(Self.durationText(ms: Double(developedMS)))
+          } else if let developStartedAt {
+            // ticks the clock only — it drives nothing and waits for nothing
+            TimelineView(.periodic(from: developStartedAt, by: 0.1)) { context in
+              Text(Self.durationText(
+                ms: context.date.timeIntervalSince(developStartedAt) * 1000
+              ))
+            }
+          }
+        }
+        .scaledFont(size: 11, weight: .bold, design: .monospaced, relativeTo: .caption2)
+        .tracking(0.8)
+        .foregroundStyle(Theme.accent)
+      }
+      .padding(.top, 2)
+    }
+  }
+
+  private static func durationText(ms: Double) -> String {
+    String(format: "%.2f S", max(0, ms) / 1000)
+  }
+
+  private var ceremonyAccessibilityLabel: String {
+    if let developedMS {
+      return "Developed in \(Self.durationText(ms: Double(developedMS)).lowercased())"
+    }
+    return ceremony.steps.indices.contains(ceremony.activeIndex)
+      ? ceremony.steps[ceremony.activeIndex] : "Developing"
   }
 
   // MARK: The film door (see ExposureRoll.swift — the gate sits at the
@@ -764,11 +873,17 @@ struct DevelopView: View {
     guard let item else { return }
     isDeveloping = true
     errorMessage = nil
-    // seed the ceremony NOW: the transferable load (slow for iCloud
-    // originals) runs before develop() seeds it, and the panel must never
-    // show the previous photo's finished steps — or nothing at all
-    ceremonySteps = ["Reading the light"]
-    ceremonyActiveIndex = 0
+    // Seed the ceremony NOW with what is actually happening: the transferable
+    // load (slow for an iCloud original) runs before develop() is reached, and
+    // the panel used to claim "Reading the light" through all of it — a step
+    // whose stage had not started. It names the fetch instead, because that is
+    // the work in flight.
+    ceremony = .loadingPhotograph()
+    proxyImage = nil
+    developedMS = nil
+    // the elapsed readout is scoped to the develop itself (started in
+    // develop()) — the fetch is the photo library's time, not the engine's
+    developStartedAt = nil
     Task { @MainActor in
       do {
         guard let data = try await item.loadTransferable(type: Data.self),
@@ -824,6 +939,7 @@ struct DevelopView: View {
     renderID = request
     isDeveloping = true
     developedImage = nil
+    proxyImage = nil
     decisions = []
     let recipe = currentStock.recipe
     let seed = Double(currentStock.id.unicodeScalars.reduce(17) { ($0 * 31 + Int($1.value)) % 100_000 })
@@ -838,9 +954,14 @@ struct DevelopView: View {
     // Conductor's one read for this photo (kept for the view's lifetime), so a
     // cache-hit landing persists the same reading a fresh render would.
     if let cached = PreviewCache.shared.render(forKey: cacheKey) {
+      // NOTHING is computed on this path, so nothing is narrated, nothing is
+      // timed and nothing is paced: the instant restore IS the honest answer.
+      ceremony = DevelopCeremony()
+      developStartedAt = nil
+      developedMS = nil
       applyDeveloped(
         image: cached.image, decisions: cached.decisions, source: image,
-        reading: Conductor.shared.cachedReading(for: photoKey)
+        reading: Conductor.shared.cachedReading(for: photoKey), reveal: false
       )
       return
     }
@@ -852,11 +973,33 @@ struct DevelopView: View {
     // guaranteed bit-stable run to run.)
     let key = photoKey
     let stockID = currentStock.id
-    ceremonySteps = ["Reading the light"]
-    ceremonyActiveIndex = 0
+    // The ceremony opens on what is TRUE right now. A photograph this session
+    // has already read (any camera switch) genuinely has its read stages
+    // behind it, so the panel says so instead of replaying a read that is not
+    // going to happen; otherwise it opens empty and each stage appears as
+    // `FilmEngine.read` actually enters it.
+    if let known = Conductor.shared.cachedReading(for: key) {
+      ceremony = .settled(narration: Conductor.narration(for: known))
+    } else {
+      ceremony = DevelopCeremony()
+    }
+    developedMS = nil
+    developStartedAt = Date()
+    // the ladder's first rung, or nil where the full preview is already small
+    let firstRung = DevelopLadder.firstRungEdge(previewEdge: edge)
     Task { @MainActor in
       do {
-        let reading = try await Conductor.shared.reading(for: image, key: key)
+        let reading = try await Conductor.shared.reading(for: image, key: key) { phase in
+          // delivered on the read's own thread as each stage is entered;
+          // hopped to the main actor here. `DevelopCeremony.begin` is
+          // order-independent, so the hop cannot scramble the panel.
+          Task { @MainActor in
+            guard renderID == request else { return }
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) {
+              ceremony.begin(phase)
+            }
+          }
+        }
         if matches == nil, key == photoKey {
           withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.35)) {
             matches = Conductor.rank(scene: reading.scene, faces: reading.subject.faces)
@@ -864,12 +1007,33 @@ struct DevelopView: View {
         }
         // the read is done — its real steps show as completed, Developing runs
         if renderID == request {
-          let narration = Conductor.narration(for: reading)
           withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.25)) {
-            ceremonySteps = narration
-            ceremonyActiveIndex = narration.count - 1
+            ceremony.settle(narration: Conductor.narration(for: reading))
           }
         }
+
+        // THE LADDER, rung one: a genuine render of this exact recipe from
+        // this exact reading, at 512. Not a thumbnail, not a blur, not a
+        // placeholder — the real look, small. It is shown and nothing more:
+        // it is never written to PreviewCache (and could not collide if it
+        // were — `PreviewCache.key` includes the edge), never handed to
+        // `applyDeveloped`, never entered in the Library, never saved. A
+        // failure here is not a develop failure — the full render is still
+        // coming, so it is swallowed.
+        if let firstRung {
+          let rung = try? await Task.detached(priority: .userInitiated) {
+            try FilmEngine.shared.develop(
+              image, with: recipe, maxPixelSize: CGFloat(firstRung),
+              seed: seed, reading: reading
+            ).image
+          }.value
+          if let rung, renderID == request, developedImage == nil {
+            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.25)) {
+              proxyImage = rung
+            }
+          }
+        }
+
         let render = try await Task.detached(priority: .userInitiated) {
           try FilmEngine.shared.develop(
             image,
@@ -884,13 +1048,20 @@ struct DevelopView: View {
           CachedRender(image: render.image, decisions: render.decisions),
           forKey: cacheKey
         )
-        Analytics.log(.developFinished(
-          lookID: stockID,
-          ms: Int((CFAbsoluteTimeGetCurrent() - startedAt) * 1000)
-        ))
-        applyDeveloped(image: render.image, decisions: render.decisions, source: image, reading: reading)
+        let elapsedMS = Int((CFAbsoluteTimeGetCurrent() - startedAt) * 1000)
+        Analytics.log(.developFinished(lookID: stockID, ms: elapsedMS))
+        // the number analytics has always logged, now visible to the person
+        // who waited for it
+        developedMS = elapsedMS
+        developStartedAt = nil
+        applyDeveloped(
+          image: render.image, decisions: render.decisions, source: image,
+          reading: reading, reveal: true
+        )
       } catch {
         guard renderID == request else { return }
+        proxyImage = nil
+        developStartedAt = nil
         // a film-bought render that failed gives its frame back — the
         // camera never eats an exposure it didn't deliver
         if pendingExposureSpend == currentStock.id {
@@ -918,17 +1089,45 @@ struct DevelopView: View {
     }
   }
 
+  /// Screenshot-harness only, DEBUG-only (mirroring `Store.gateRehearsal` and
+  /// the `LENSMOOD_AD_MODE` precedent): keep the ceremony panel on screen
+  /// after the develop lands, as the **completed record** of the develop that
+  /// just ran — every step checked, no spinner, and the real measured
+  /// duration. It is entirely inert: it delays nothing, repeats nothing and
+  /// claims nothing that is still running, so CI can photograph the panel
+  /// (and print the number) without the capture ever needing to catch a race.
+  private var harnessHoldsCeremony: Bool {
+    #if DEBUG
+      return ProcessInfo.processInfo.environment["LENSMOOD_CEREMONY"] == "hold"
+    #else
+      return false
+    #endif
+  }
+
+  private var ceremonyRecordHeld: Bool {
+    harnessHoldsCeremony && developedMS != nil && !ceremony.steps.isEmpty
+  }
+
   /// Commit a finished develop (from a fresh render or a cache hit) into editor
   /// state — and into the library only when the camera is the user's to keep.
   /// Runs on the main thread.
+  ///
+  /// `reveal` paces the PRESENTATION of a frame that is already finished — a
+  /// crossfade from the ladder's small first rung into the full render, of
+  /// pixels that are already in hand. Nothing waits on it, and a cache hit
+  /// (where no work was done) passes false: instant is the honest answer.
   private func applyDeveloped(
     image developed: UIImage, decisions newDecisions: [String], source: UIImage,
-    reading: SceneReading? = nil
+    reading: SceneReading? = nil, reveal: Bool = false
   ) {
     isDeveloping = false
-    developedImage = developed
+    // the work the ceremony named is over — nothing is left showing as running
+    ceremony.finish()
     decisions = newDecisions
     previewMode = harnessPreviewMode ?? .developed
+    withAnimation(reveal && !reduceMotion ? .easeOut(duration: 0.55) : nil) {
+      developedImage = developed
+    }
     // Every develop that renders is kept — an open camera's lands with the
     // session-replace behavior, a film-bought one lands permanently. (While
     // Store.everythingFreeForNow every camera is open: unchanged behavior.)

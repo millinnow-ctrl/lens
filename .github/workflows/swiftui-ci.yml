@@ -197,6 +197,18 @@ jobs:
             xcrun simctl launch "$DEVICE_ID" app.lensmood.ios
           sleep 9
           xcrun simctl io "$DEVICE_ID" screenshot ui-artifacts/develop-screens/rehearsal-film-door.png
+          # the develop ceremony, held as a completed record (DEBUG-only
+          # switch, never in release): the real step list for this photograph,
+          # every step checked, and the REAL measured develop duration. The
+          # panel is otherwise gone by the time any capture lands, so this is
+          # the only way the ceremony work is ever seen — and the number in
+          # the screenshot is the one Analytics.developFinished(ms:) logged.
+          xcrun simctl terminate "$DEVICE_ID" app.lensmood.ios || true
+          SIMCTL_CHILD_LENSMOOD_TAB=cameras SIMCTL_CHILD_LENSMOOD_AD=1 SIMCTL_CHILD_LENSMOOD_AD_STOCK=tokyo-neon \
+            SIMCTL_CHILD_LENSMOOD_CEREMONY=hold \
+            xcrun simctl launch "$DEVICE_ID" app.lensmood.ios
+          sleep 9
+          xcrun simctl io "$DEVICE_ID" screenshot ui-artifacts/develop-screens/ceremony-record.png
           # the same neon develop in Original and Compare preview modes — the
           # ad's compare-slider moment wipes between genuine app states
           for mode in original compare; do
