@@ -90,6 +90,9 @@ enum Theme {
   /// The two existing values are preserved exactly (`.resting` is the old
   /// `oceanCardShadow()`, `.floating` the old `oceanCardShadow(deep: true)`),
   /// so every owner-approved card keeps its reference elevation to the pixel.
+  /// (One deliberate exception, labeled product redesign: InstrumentPanel now
+  /// carries `.resting` where it had no shadow — every panel in the app gains
+  /// that depth, and the change shows in the tour for owner approval.)
   /// `.well` is the new tier.
   enum Elevation {
     /// recessed — a stage the page is cut into: the photograph's dark

@@ -263,23 +263,12 @@ private struct GalleryDetailView: View {
         }
 
         // Export is what a frame is opened for, so it lives in the chrome —
-        // the Photos idiom: save and share as glyphs at the trailing edge,
-        // everything rarer folded behind an ellipsis. Every one of them
-        // carries an explicit VoiceOver label; a glyph alone is silent.
-        ToolbarItem(placement: .topBarTrailing) {
-          Button {
-            save()
-          } label: {
-            if isSaving {
-              ProgressView()
-            } else {
-              Image(systemName: "square.and.arrow.down")
-            }
-          }
-          .disabled(isSaving)
-          .accessibilityLabel(isSaving ? "Saving to Photos" : "Save to Photos")
-          .accessibilityHint("Writes this photograph to your Photos library")
-        }
+        // the Photos idiom: share as a glyph at the trailing edge, everything
+        // else folded behind an ellipsis. The trailing edge caps at three
+        // controls (share, ellipsis, Done) so a 375 pt device or a large
+        // Dynamic Type size never collides them with the title; Save rides
+        // first in the menu. Every control carries an explicit VoiceOver
+        // label; a glyph alone is silent.
         ToolbarItem(placement: .topBarTrailing) {
           Button {
             // resolvedFrame: by now the decode has landed; the synchronous
@@ -290,9 +279,20 @@ private struct GalleryDetailView: View {
           }
           .accessibilityLabel("Share")
           .accessibilityHint("Opens the share sheet with this photograph")
+          .accessibilityShowsLargeContentViewer {
+            Label("Share", systemImage: "square.and.arrow.up")
+          }
         }
         ToolbarItem(placement: .topBarTrailing) {
           Menu {
+            Button {
+              save()
+            } label: {
+              Label(isSaving ? "Saving to Photos…" : "Save to Photos",
+                    systemImage: "square.and.arrow.down")
+            }
+            .disabled(isSaving)
+
             Button {
               shareCard()
             } label: {
@@ -317,7 +317,10 @@ private struct GalleryDetailView: View {
             Image(systemName: "ellipsis.circle")
           }
           .accessibilityLabel("More actions")
-          .accessibilityHint("Share as a camera card, print this frame, or delete it")
+          .accessibilityHint("Save, share as a camera card, print this frame, or delete it")
+          .accessibilityShowsLargeContentViewer {
+            Label("More actions", systemImage: "ellipsis.circle")
+          }
         }
 
         ToolbarItem(placement: .confirmationAction) {

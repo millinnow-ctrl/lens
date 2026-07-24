@@ -153,6 +153,12 @@ struct DevelopView: View {
       load(item)
     }
     .onAppear {
+      // warm the haptic path this screen fires most (critic amendment A1):
+      // selection ticks on the rail/segments, the rigid spend click, the
+      // light landing tap of the reveal, and the save success notify
+      Haptics.prepare(.light)
+      Haptics.prepare(.rigid)
+      Haptics.prepare()
       // a photo chosen from the Home hero develops immediately on arrival
       if let pending = model.pendingDevelopImage {
         model.pendingDevelopImage = nil
@@ -269,7 +275,7 @@ struct DevelopView: View {
         return
       }
       currentStock = item
-      UISelectionFeedbackGenerator().selectionChanged()
+      Haptics.selectionChanged()
       if let sourceImage {
         develop(sourceImage)
       }
@@ -521,7 +527,7 @@ struct DevelopView: View {
         Button {
           guard previewMode != mode else { return }
           previewMode = mode
-          UISelectionFeedbackGenerator().selectionChanged()
+          Haptics.selectionChanged()
         } label: {
           Text(mode.rawValue)
             .scaledFont(size: 13, weight: active ? .bold : .medium, relativeTo: .footnote)
@@ -567,7 +573,7 @@ struct DevelopView: View {
       // the slider itself carries the name and stays adjustable
       .accessibilityHidden(true)
       Slider(value: $intensity, in: 0...1) { editing in
-        if !editing { UISelectionFeedbackGenerator().selectionChanged() }
+        if !editing { Haptics.selectionChanged() }
       }
       .tint(Theme.accent)
       .accessibilityLabel("Look strength")
@@ -737,7 +743,7 @@ struct DevelopView: View {
     // launch reconciliation gives the exposure back (the frame never reached
     // the Roll under this id)
     ExposureLedger.shared.recordPendingSpend(assetID: assetID, on: currentStock.id)
-    UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+    Haptics.impact(.rigid)
     develop(sourceImage, spendingExposure: true)
   }
 
@@ -1137,7 +1143,7 @@ struct DevelopView: View {
       pendingExposureSpend = nil
       storeSpentExposureInLibrary(developed: developed, decisions: newDecisions, source: source, reading: reading)
     }
-    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    Haptics.impact(.light)
   }
 
   /// land a film-bought develop on the Roll for good: a spent exposure is
@@ -1246,7 +1252,7 @@ struct DevelopView: View {
         isSaving = false
         saveTick += 1
         Analytics.log(.photoSaved(lookID: stockID))
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        Haptics.notify(.success)
       } catch is CancellationError {
         // a new photo replaced this one mid-save; not an error worth an alert
         isSaving = false

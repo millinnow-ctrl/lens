@@ -233,13 +233,6 @@ final class TourTests: XCTestCase {
     // now lives in the toolbar, so all of it is reachable from the frame the
     // sheet opens on — and the tour's own miss-recording is the proof.
 
-    // Save to Photos is asserted present but deliberately NOT tapped: it
-    // writes to Photos, i.e. a system permission dialog the tour must not
-    // trip (same rule as the Print Room's Save in test04).
-    if !app.buttons["Save to Photos"].waitForExistence(timeout: 4) {
-      miss("Save to Photos toolbar button", "save-to-photos")
-    }
-
     // the share affordance opens the system share sheet — screenshot it, then
     // dismiss defensively (a wedge here cannot reach later surfaces: they are
     // separate tests)
@@ -253,6 +246,13 @@ final class TourTests: XCTestCase {
     // they exist and are one tap from the opened frame
     if tap(app.buttons["More actions"], "More-actions ellipsis toolbar menu",
            name: "more-actions") {
+      // Save to Photos rides first in the menu (critic amendment A2: the
+      // trailing edge caps at three controls). Asserted present, deliberately
+      // NOT tapped: it writes to Photos, i.e. a system permission dialog the
+      // tour must not trip (same rule as the Print Room's Save in test04).
+      if !app.buttons["Save to Photos"].waitForExistence(timeout: 4) {
+        miss("Save to Photos menu item", "save-to-photos")
+      }
       _ = app.buttons["Print this frame"].waitForExistence(timeout: 4)
       shot("library-frame-actions")
 
