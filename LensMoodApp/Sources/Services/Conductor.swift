@@ -46,7 +46,18 @@ final class Conductor: ObservableObject {
 
   /// Read the photograph once, off the main thread. Concurrent callers for
   /// the same key share a single in-flight task.
-  func reading(for photo: UIImage, key: UUID) async throws -> SceneReading {
+  ///
+  /// `onPhase` (optional, default nil) observes the read's real stage
+  /// boundaries — see `ReadPhase`. It fires ONLY when this call actually runs
+  /// a read: a cached reading and a shared in-flight task both return without
+  /// emitting a phase, because on those paths this caller ran nothing. It is
+  /// delivered on the read's own thread; a UI caller hops it to the main actor
+  /// itself (`ReadPhase` is order-independent by design, so the hop cannot
+  /// scramble the picture).
+  func reading(
+    for photo: UIImage, key: UUID,
+    onPhase: (@Sendable (ReadPhase) -> Void)? = nil
+  ) async throws -> SceneReading {
     if let finished = readings[key] {
       // true LRU: a hit refreshes recency, so the ACTIVE photo's reading is
       // never the one evicted (a re-read would re-run the subject pass,
@@ -57,7 +68,7 @@ final class Conductor: ObservableObject {
     }
     if let running = inFlight[key] { return try await running.value }
     let task = Task.detached(priority: .userInitiated) {
-      try FilmEngine.shared.read(photo)
+      try FilmEngine.shared.read(photo, onPhase: onPhase)
     }
     inFlight[key] = task
     do {
